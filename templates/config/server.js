@@ -1,6 +1,5 @@
 "use strict";
 var path = require('path');
-
 var env = process.env.NODE_ENV || 'development';
 var port = process.env.PORT || 62626;
 var host = 'http://localhost' + (port != 80 ? ':' + port : '');
@@ -44,28 +43,6 @@ module.exports = {
         //filters: require('./view-filters'),
         //layout: 'layouts/main',
     },
-    //https://github.com/balderdashy/waterline
-    //https://github.com/balderdashy/waterline-docs#supported-adapters
-    database: {
-        // Setup Adapters
-        // Creates named adapters that have been required
-        adapters: {
-            'default': require('sails-mongo'),
-        },
-        // Build Connections Config
-        // Setup connections using the named adapter configs
-        connections: {
-            'default': {
-                adapter: 'default',
-                database: 'waterline'
-            }
-        },
-        defaults: {
-            migrate: 'alter'
-        }
-
-    },
-    //https://github.com/gusnips/koa-error-ejs
     error: {
         view: 'error/error',
         layout: 'layouts/error',
