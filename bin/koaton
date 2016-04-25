@@ -1,21 +1,20 @@
 #!/usr/bin/env node
 
 const program = require('commander');
-var os = require('os');
-var fs = require('fs');
-var path = require('path');
-var colors = require('colors');
-var Handlebars = require('handlebars');
-var version = require('../package.json').version;
-var mkdirp = require('mkdirp');
-var Browser = require("gulp-browser");
+const path = require('path');
+
+const colors = require('colors');
+
+const Browser = require("gulp-browser");
 
 
-var source_path = path.join(__dirname, '..', 'templates');
+
+
 var help = process.argv.slice(2)[0];
 var proyect_path = path.resolve();
 var application = path.basename(proyect_path);
 
+const commands = require('./commands');
 /**
  * @see http://stackoverflow.com/q/7616461/940217
  * @return {number}
@@ -37,58 +36,6 @@ String.prototype.hashCode = function () {
 	return hash;
 }
 
-/**
- * echo str > path.
- *
- * @param {String} path
- * @param {String} str
- */
-function write(file, str, mode) {
-	fs.writeFile(file, str, {
-		mode: mode || 0666,
-	}, (err) => {
-		if (err) {
-			throw err;
-		}
-		console.log('   \x1b[36mcreate\x1b[0m : ' + file);
-	});
-}
-
-/**
- * Check if the given directory `path` is empty.
- *
- * @param {String} path
- * @param {Function} fn
- */
-function load_template(name) {
-	console.log(path.join(source_path, name));
-	return fs.readFileSync(path.join(source_path, name), 'utf-8')
-}
-
-/**
- * Check if the given directory `path` is empty.
- *
- * @param {String} path
- * @param {Function} fn
- */
-function Compile(from, options, mode) {
-	if (!from) {
-		throw "check source and destiny paths";
-	}
-	var default_options = {
-		program: program,
-		application: application
-	};
-	if (!options)
-		options = default_options;
-	else {
-		for (x in default_options)
-			options[x] = default_options[x];
-	}
-	var str = Handlebars.compile(load_template(from))(options);
-	return write(path.join(proyect_path, from), str, mode);
-}
-
 function compileTo2(from, to, options, mode) {
 	if (!to || !from) {
 		throw "check source and destiny paths";
@@ -106,285 +53,6 @@ function compileTo2(from, to, options, mode) {
 	var str = Handlebars.compile(load_template(from))(options);
 	return write(to, str, mode);
 }
-/**
- * Mkdir -p.
- *
- * @param {String} path
- * @param {Function} fn
- */
-function mkdir(path, fn) {
-	mkdirp(path, 0755, function (err) {
-		if (err) throw err;
-		console.log('   \033[36mcreate\033[0m : ' + path);
-		fn && fn();
-	});
-}
-/**
- *
- * Check if the given directory `path` is empty.
- * @param {String} path
- */
-function isEmpty(path) {
-	try {
-		var files = fs.readdirSync(path);
-		return !files || !files.length;
-	} catch (e) {
-		if (e.code === 'ENOENT') {
-			console.log('File not found!');
-		} else {
-			throw e;
-		}
-	}
-}
-/**
- * Create application at the given directory `path`.
- *
- * @param {String} path
- */
-function setupApplication(proyect_path) {
-	mkdir(proyect_path, function (err) {
-		if (err) throw err;
-		Compile('package.json');
-		Compile('app.js');
-		mkdir(proyect_path + "/config", function (err) {
-			if (err) throw err;
-			Compile('config/models.js');
-			Compile('config/views.js');
-			Compile('config/server.js');
-			Compile('config/connections.js');
-		});
-		mkdir(proyect_path + "/node_modules", function (err) {
-			if (err) throw err;
-			try {
-				fs.symlinkSync(__dirname + "/../", proyect_path + "/node_modules/koaton");
-			} catch (e) {
-
-			}
-
-		});
-		mkdir(proyect_path + "/controllers", function (err) {
-			if (err) throw err;
-
-		});
-		mkdir(proyect_path + "/models", function (err) {
-			if (err) throw err;
-
-		});
-		mkdir(proyect_path + "/views/layouts", function (err) {
-			if (err) throw err;
-			Compile("/views/layouts/main.handlebars");
-		});
-
-		process.on('exit', function () {
-			console.log();
-			console.log('   install dependencies:');
-			console.log('     $ cd %s && npm install', application);
-			console.log();
-			console.log('   run the app:');
-			console.log('     $ koaton serve');
-			console.log();
-		});
-	});
-}
-
-function info(env) {
-	if (env.welcome === false) {
-		console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-		console.log("   " + "-------------------------===-------------------------".dim + "   ");
-		console.log(`   Server running in ${proyect_path}\n` +
-			`   To see your app, visit ` + `http://localhost:${env.port}\n`.underline +
-			`   To shut down Koaton, press <CTRL> + C at any time.`);
-		console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-		console.log('   Enviroment:\t\t' + (env.NODE_ENV).green);
-		console.log('   Port:\t\t' + (env.port + "").green);
-	}
-}
-
-function welcome(env) {
-	console.log("Starting Server".grey + " ...".grey.dim);
-	var name = "Koaton";
-	var ll = name.length > version.length ? name.length : version.length;
-	var spaces = function (text) {
-		while (text.length < ll) {
-			text += " ";
-		}
-		return text;
-	};
-	var fill = function (n) {
-		var r = "";
-		while (r.length < n) {
-			r += " ";
-		}
-		return r;
-	}
-	var flame =
-		fill(15) + spaces("") + `      :.           `.red + "\n" +
-		fill(15) + spaces("") + `    .!>:;         `.red + "\n" +
-		fill(10) + spaces("K".gray.bold.italic + "oaton".grey) + fill(5) + `    .!!!!!:.      `.red + "\n" +
-		fill(10) + spaces("v" + version) + fill(5) + `     .-!!!:;      `.red + "\n" +
-		fill(15) + spaces("") + `      ::;>77!.     `.red + "\n" +
-		fill(15) + spaces("") + `  -.  !7>7??7:;.   `.red + "\n" +
-		fill(15) + spaces("") + ` ;>;.!7?7???7!>>.  `.red + "\n" +
-		fill(15) + spaces("") + `;>7;;>?????77777-  `.red + "\n" +
-		fill(15) + spaces("") + `;>77!>7????????7:  `.red + "\n" +
-		fill(15) + spaces("") + ` ;!777????????7:.  `.red + "\n" +
-		fill(15) + spaces("") + `   .-:!!>>!!:;. `.red;
-
-	console.log(
-		flame
-		.replace(/!/gim, "!".dim.italic.bold)
-		.replace(/:/gim, ":".bold)
-		.replace(/\?/gim, "?".dim)
-		.replace(/\./gim, ".".dim.bold)
-	);
-
-}
-
-var commands = [
-	{
-		cmd: "serve",
-		description: "Runs your awsome Koaton applicaction",
-		args: [],
-		options: [],
-		action: function () {
-			console.log(path.resolve(__dirname, '..'));
-			var env = {
-				welcome: false,
-				'NODE_ENV': 'development',
-				port: 62626
-			};
-			welcome(env);
-			const nodemon = require('gulp-nodemon');
-			const livereload = require('gulp-livereload');
-			const notifier = require('node-notifier');
-			//
-			livereload.listen({
-				port: 62627,
-				quiet: true
-			});
-			var stream = nodemon({
-				ext: '*',
-				quiet: true,
-				ignore: ["node_modules/*"],
-				verbose: false,
-				script: 'app.js',
-				env: env,
-				stdout: true
-			}).once('start', function () {
-				info(env);
-				notifier.notify({
-					title: 'Koaton',
-					message: 'Server runnung on localhost:62626',
-					open: "http://localhost:62626/",
-					icon: path.join(__dirname, 'koaton.png'),
-					sound: 'Hero',
-					wait: false
-				});
-			}).on('restart', function () {
-				setTimeout(function () {
-					livereload.reload();
-				}, 1000);
-				notifier.notify({
-					title: 'Koaton',
-					message: 'restarting server...',
-					icon: path.join(__dirname, 'koaton.png'),
-					sound: 'Hero',
-				});
-			});
-			//				.on('restart', function () {
-			//					gulp.src('app.js')
-			//						.pipe(livereload());
-			//				});
-		}
-	},
-	{
-		cmd: "build",
-		description: "Make bundles of your .js .scss .css files and output to public folder.\nDefault value is ./config/bundles.js",
-		args: ["config_file"],
-		options: [
-				["-p", "--prod", "builds for production"]
-			],
-		action: function (config_file, options) {
-			config_file = config_file || process.cwd() + '/config/bundles.js';
-			var gulp = require('gulp');
-			var browserify = require('browserify');
-			var source = require('vinyl-source-stream');
-			var buffer = require('vinyl-buffer');
-			var glob = require('glob');
-			var concat = require('gulp-concat');
-			var _ = require('lodash');
-			var sourcemaps = require('gulp-sourcemaps');
-			var uglify = require('gulp-uglify');
-			var hash = require('gulp-hash-filename');
-			var patterns = require(config_file);
-			Object.keys(patterns).forEach(function (key) {
-				var info = patterns[key].map(function(file){return path.basename(file).yellow;}).join(",".yellow.dim);
-				info ="Compiling: ".green + info+ " => " + key.green.bold;
-				console.log(info);
-				if (!options.prod) {
-					gulp.src(patterns[key])
-						.pipe(sourcemaps.init())
-						.pipe(uglify())
-						.pipe(concat(key))
-						.pipe(sourcemaps.write())
-						.pipe(hash())
-						.pipe(gulp.dest('./public/js'));
-
-				} else {
-					console.log(options.prod);
-				}
-			});
-		}
-	},
-	{
-		cmd: "new",
-		description: `Creates a new koa aplication and runs ${colors.green('npm init')} in it.`,
-		args: ["app_name"],
-		options: [
-			["-f", "--force", "Overrides the existing directory."],
-			["-sn", "--skip_npm", "Omits npm install"],
-			["-sb", "--skip_bower", "Omits bower install"],
-		],
-		action: function (app_name, options) {
-			application = app_name;
-			proyect_path = path.resolve(app_name);
-			if (!app_name) {
-				console.log(`${colors.yellow('The command requires a name to run.\n\tkoaton -h\nto see help.')}`);
-			} else {
-				var empty = isEmpty(proyect_path);
-				if (empty || options.force) {
-					setupApplication(proyect_path);
-				} else {
-					program.confirm(`destination ${colors.yellow(proyect_path)} is not empty, continue?`, function (ok) {
-						if (ok) {
-							process.stdin.destroy();
-							setupApplication(proyect_path);
-						} else {
-							abort('aborting');
-						}
-					});
-				}
-			}
-		}
-	}
-];
-
-
-function makeHelp(txt) {
-	var data = `Version: ${colors.yellow(version)}\n` +
-		`Command List:\n\n`;
-	commands.forEach(function (definition) {
-		var args = definition.args.length > 0 ? `<${definition.args.join(" > <")}>` : "";
-		var opt = definition.options.length > 0 ? '[options]' : '';
-		data += `koaton ${definition.cmd} ${colors.yellow(args)} ${colors.cyan(opt)}\n` +
-			`   ${definition.description}\n`;
-		definition.options.forEach(function (option) {
-			data += `   ${colors.cyan(option[0])}  ${colors.grey(option[1])}\t${option[2]}\n`;
-		});
-		data += '\n';
-	});
-	return data;
-}
 
 commands.forEach(function (definition) {
 	var args = definition.args.length > 0 ? `[${definition.args.join(" ] [")}]` : "";
@@ -395,11 +63,11 @@ commands.forEach(function (definition) {
 		command.option(`${option[0]}, ${option[1]}`, option[2]);
 	});
 });
-
 if (!help || help === "-h" || help === "--help") {
-	program.help(makeHelp);
+	program.outputHelp(makeHelp);
 }
 program.parse(process.argv);
+
 return;
 
 function authParser(values) {
@@ -451,117 +119,6 @@ if (['less', 'stylus', 'plain'].indexOf(program.css) === -1)
 })(destination_path);
 
 /**
- * Create application at the given directory `path`.
- *
- * @param {String} path
- */
-
-function createApplicationAt(path) {
-	mkdirp(path, 0755, function (err) {
-		if (err) throw err;
-		console.log();
-		process.on('exit', function () {
-			console.log();
-			console.log('   install dependencies:');
-			console.log('     $ cd %s && npm install', path);
-			console.log();
-			console.log('   run the app:');
-			console.log('     $ DEBUG=' + app_name + ' node --harmony --harmony_proxies app');
-			console.log();
-		});
-
-		//###config
-
-		//###controllers
-		mkdir('/controllers', function () {
-			copy_template('controllers/site.ejs', 'controllers/site.js');
-			if (program.auth) {
-				render_template('controllers/auth.ejs', 'controllers/auth.js', {
-					program: program,
-					name: app_name,
-				});
-			}
-		});
-
-		mkdir('/configs', function () {
-			render_template('/configs/main.ejs', '/configs/main.js', {
-				name: app_name,
-				program: program,
-				key: require('crypto').randomBytes(20).toString('hex'),
-			});
-			render_template('configs/database.ejs', 'configs/database.js');
-			render_template('configs/routes.ejs', 'configs/routes.js');
-			render_template('configs/view-locals.ejs', 'configs/view-locals.js');
-			render_template('configs/view-filters.ejs', 'configs/view-filters.js');
-			if (program.auth)
-				render_template('/configs/auth.ejs', '/configs/auth.js');
-		});
-
-		//###models
-		mkdir('/models', function () {
-			render_template('models/user.ejs', 'models/user.js');
-		});
-
-		//###locales
-		if (program.i18n) {
-			mkdir('/locales', function () {
-				render_template('locales/en.ejs', 'locales/en.js');
-			});
-		}
-
-		//###views
-		mkdir('/views', function () {
-			var baseViewsPath = 'views/' + program.template;
-			//changes open clone to be able to use ejs in templates already using ejs
-			var template_options = {
-				open: '<%%',
-				close: '%%>'
-			};
-			mkdir('/views/site', function () {
-				render_template(baseViewsPath + '/site/index.ejs', 'views/site/index.html', template_options);
-				if (program.auth)
-					render_template(baseViewsPath + '/site/login.ejs', 'views/site/login.html', template_options);
-			});
-			mkdir('/views/error', function () {
-				render_template(baseViewsPath + '/error/401.ejs', 'views/error/401.html', template_options);
-				render_template(baseViewsPath + '/error/403.ejs', 'views/error/403.html', template_options);
-				render_template(baseViewsPath + '/error/404.ejs', 'views/error/404.html', template_options);
-				render_template(baseViewsPath + '/error/error.ejs', 'views/error/error.html', template_options);
-			});
-			mkdir('/views/layouts', function () {
-				render_template(baseViewsPath + '/layouts/main.ejs', 'views/layouts/main.html', template_options);
-				render_template(baseViewsPath + '/layouts/error.ejs', 'views/layouts/error.html', template_options);
-			});
-		});
-
-		//###web
-		mkdir('/web', function () {
-			mkdir('/web/js', function () {
-				render_template('/web/js/main.ejs', '/web/js/main.js');
-			});
-			mkdir('/web/img');
-			mkdir('/web/css', function () {
-				// CSS Engine support
-				switch (program.css) {
-				case 'less':
-					//render_template('/web/css/main.less.ejs','/web/css/main.less');
-					//break;
-				case 'stylus':
-					//render_template('/web/css/main.styl.ejs','/web/css/main.styl');
-					//break;
-				default:
-					render_template('/web/css/main.css.ejs', '/web/css/main.css');
-				}
-			});
-		});
-
-		render_template('/package.ejs', '/package.json', {}, 0755);
-		render_template('/app.ejs', '/app.js', {}, 0755);
-
-	});
-}
-
-/**
  * Check if the given directory `path` is empty.
  *
  * @param {String} path
@@ -571,15 +128,4 @@ function copy_template(from, to) {
 	if (!to)
 		to = from;
 	write(to, load_template(from))
-}
-
-/**
- * Exit with the given `str`.
- *
- * @param {String} str
- */
-
-function abort(str) {
-	console.error(str);
-	process.exit(1);
 }

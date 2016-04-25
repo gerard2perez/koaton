@@ -42,4 +42,4 @@ io.on('join', (ctx, data) => {
 	console.log('join event fired', data)
 });
 //============================================
-koaton.start();
+koaton.start(config.port);
