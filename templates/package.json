@@ -1,31 +1,27 @@
 {
-	"name": "ranfla",
+	"name": "{{application}}",
 	"version": "1.0.0",
-	"description": "MVC Real Time Framework",
+	"description": "",
 	"main": "app.js",
-	"scripts": {
-		"test": "test"
-	},
 	"keywords": [
     "Koa",
     "MVC",
     "Websockets"
   ],
-	"author": "gerard2perez@outlook.com",
-	"license": "MIT",
+	"author": "",
+	"license": "",
 	"devDependencies": {
 		"colors": "^1.1.2",
 		"koa-logger": "^1.3.0"
 	},
 	"dependencies": {
 		"caminte": "^0.2.7",
-		"handlebars": "^4.0.5",
 		"i": "^0.3.4",
 		"koa": "1.x.x",
 		"koa-bodyparser": "^2.0.1",
 		"koa-error": "^2.0.0",
 		"koa-etag": "^2.1.1",
-		"koa-generic-session": "^1.10.2",
+		"koa-session": "^3.3.1",
 		"koa-helmet": "^1.0.0",
 		"koa-i18n": "^1.2.0",
 		"koa-locale": "^1.0.0",
@@ -33,8 +29,6 @@
 		"koa-router": "^5.4.0",
 		"koa-socket": "^4.3.0",
 		"koa-static": "^2.0.0",
-		"koa-views": "^4.1.0",
-		"mongoose": "^4.4.13",
 		"npm": "^3.8.7"
 	}
 }

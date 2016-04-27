@@ -1,8 +1,10 @@
 "use strict";
 var path = require('path');
 var env = process.env.NODE_ENV || 'development';
-var port = process.env.PORT || 62626;
+var port = process.env.port || 62626;
 var host = 'http://localhost' + (port != 80 ? ':' + port : '');
+
+console.log(port);
 
 var DEBUG = env !== 'production'
 

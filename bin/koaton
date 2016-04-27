@@ -1,59 +1,17 @@
 #!/usr/bin/env node
-
 const program = require('commander');
 const path = require('path');
-
 const colors = require('colors');
-
-const Browser = require("gulp-browser");
-
-
-
-
-var help = process.argv.slice(2)[0];
+const help = process.argv.slice(2)[0];
+const commands = require('./commands');
 var proyect_path = path.resolve();
 var application = path.basename(proyect_path);
 
-const commands = require('./commands');
-/**
- * @see http://stackoverflow.com/q/7616461/940217
- * @return {number}
- */
-String.prototype.hashCode = function () {
-	if (Array.prototype.reduce) {
-		return this.split("").reduce(function (a, b) {
-			a = ((a << 5) - a) + b.charCodeAt(0);
-			return a & a
-		}, 0);
-	}
-	var hash = 0;
-	if (this.length === 0) return hash;
-	for (var i = 0; i < this.length; i++) {
-		var character = this.charCodeAt(i);
-		hash = ((hash << 5) - hash) + character;
-		hash = hash & hash; // Convert to 32bit integer
-	}
-	return hash;
+if (!help || help === "-h" || help === "--help") {
+	program.outputHelp(commands[0](commands));
+}else{
+	delete commands[0];
 }
-
-function compileTo2(from, to, options, mode) {
-	if (!to || !from) {
-		throw "check source and destiny paths";
-	}
-	var default_options = {
-		program: program,
-		application: application
-	};
-	if (!options)
-		options = default_options;
-	else {
-		for (x in default_options)
-			options[x] = default_options[x];
-	}
-	var str = Handlebars.compile(load_template(from))(options);
-	return write(to, str, mode);
-}
-
 commands.forEach(function (definition) {
 	var args = definition.args.length > 0 ? `[${definition.args.join(" ] [")}]` : "";
 	var command = program.command(`${definition.cmd} ${args}`)
@@ -63,69 +21,4 @@ commands.forEach(function (definition) {
 		command.option(`${option[0]}, ${option[1]}`, option[2]);
 	});
 });
-if (!help || help === "-h" || help === "--help") {
-	program.outputHelp(makeHelp);
-}
 program.parse(process.argv);
-
-return;
-
-function authParser(values) {
-	if (values === 'false' || values === 'null' || values == '0' || values == null)
-		return false;
-	var auths = {
-		local: true
-	};
-	values.length && values.split(':').map(function (value) {
-		auths[value] = true;
-	});
-	return auths
-}
-
-// Path
-var source_path = path.join(__dirname, '..', 'templates', 'app');
-var destination_path = path.resolve(program.args.shift() || '.');
-
-// App name
-var app_name = path.basename(destination_path);
-
-// Options
-//template engine
-if (['ejs'].indexOf(program.template) === -1)
-	throw new Error('Invalid template engine "' + program.template + '" ');
-//db
-if (['mysql', 'postgresql', 'mongo', 'redis', 'memory', 'disk'].indexOf(program.db) === -1)
-	throw new Error('Invalid db engine "' + program.db + '" ');
-//css engine
-if (['less', 'stylus', 'plain'].indexOf(program.css) === -1)
-	throw new Error('Invalid css engine "' + program.css + '" ');
-
-// Generate application
-(function createApplication(path) {
-	emptyDirectory(path, function (empty) {
-		if (empty || program.force) {
-			createApplicationAt(path);
-		} else {
-			program.confirm('destination "' + path + '" is not empty, continue? ', function (ok) {
-				if (ok) {
-					process.stdin.destroy();
-					createApplicationAt(path);
-				} else {
-					abort('aborting');
-				}
-			});
-		}
-	});
-})(destination_path);
-
-/**
- * Check if the given directory `path` is empty.
- *
- * @param {String} path
- * @param {Function} fn
- */
-function copy_template(from, to) {
-	if (!to)
-		to = from;
-	write(to, load_template(from))
-}

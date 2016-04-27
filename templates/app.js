@@ -7,7 +7,8 @@ var logger = require('koa-logger');
 const io = new(require('koa-socket'))();
 const locale = require('koa-locale');
 const i18n = require('koa-i18n');
-var version = require('./package.json').version;
+const version = require('./package.json').version;
+const passport = require('koa-passport')
 
 locale(koaton);
 koaton.use(i18n(koaton, {
@@ -30,7 +31,11 @@ koaton.use(require('koa-helmet')());
 koaton.use(require('koa-bodyparser')(config.bodyparser));
 koaton.use(require('koa-static')(config.static.directory, config.static));
 // //app.use(require('koa-etag')());
-koaton.use(require('koa-generic-session')(config.session));
+
+koaton.use(require('koa-session')({key: config.session},koaton));
+
+koaton.use(passport.initialize());
+koaton.use(passport.session());
 
 koaton.use(koaton.views);
 koaton.use(koaton.orm);

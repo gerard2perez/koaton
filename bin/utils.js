@@ -4,8 +4,9 @@ const mkdirp = require('mkdirp');
 const Handlebars = require('handlebars');
 const path = require('path');
 const Promise = require('bluebird');
-var total = "===-----------------------------------------------------===".length;
-module.exports = {
+const colors = require('colors');
+
+module.exports.utils = {
 	info(env) {
 			var jutsus = require('./jutsus');
 			jutsus = jutsus.S.concat(jutsus.A, jutsus.B, jutsus.C);
@@ -18,18 +19,22 @@ module.exports = {
 				while (r.length < m) r += " ";
 				return r + text;
 			}
-			if (env.welcome === false) {
-				console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-				console.log(center("Koaton: " + jutsus[index].name));
-				console.log("   " + "-------------------------===-------------------------".dim + "   ");
-				console.log(`   Server running in ${this.proyect_path}\n` +
-					`   To see your app, visit ` + `http://localhost:${env.port}\n`.underline +
-					`   To shut down Koaton, press <CTRL> + C at any time.`);
-				console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-				console.log('   Enviroment:\t\t' + (env.NODE_ENV).green);
-				console.log('   Port:\t\t' + (env.port + "").green);
+			if (env.NODE_ENV !== 'production') {
+				if (env.welcome === false) {
+					console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
+					console.log(center("Koaton: " + jutsus[index].name));
+					console.log("   " + "-------------------------===-------------------------".dim + "   ");
+					console.log(`   Server running in ${this.proyect_path}\n` +
+						`   To see your app, visit ` + `http://localhost:${env.port}\n`.underline +
+						`   To shut down Koaton, press <CTRL> + C at any time.`);
+					console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
+					console.log('   Enviroment:\t\t' + (env.NODE_ENV).green);
+					console.log('   Port:\t\t' + (env.port + "").green);
+				}
 			}
 		},
+		from_env: path.join(__dirname, '..', 'templates'),
+		to_env: path.resolve(),
 		welcome(env) {
 			console.log("Starting Server".grey + " ...".grey.dim);
 			var name = "Koaton";
@@ -59,36 +64,15 @@ module.exports = {
 				fill(15) + spaces("") + `;>77!>7????????7:  `.red + "\n" +
 				fill(15) + spaces("") + ` ;!777????????7:.  `.red + "\n" +
 				fill(15) + spaces("") + `   .-:!!>>!!:;. `.red;
-
-			console.log(
-				flame
-				.replace(/!/gim, "!".dim.italic.bold)
-				.replace(/:/gim, ":".bold)
-				.replace(/\?/gim, "?".dim)
-				.replace(/\./gim, ".".dim.bold)
-			);
-
-		},
-		makeHelp(txt) {
-			var data = `Version: ${colors.yellow(this.version)}\n` +
-				`Command List:\n\n`;
-			commands.forEach(function (definition) {
-				var args = definition.args.length > 0 ? `<${definition.args.join(" > <")}>` : "";
-				var opt = definition.options.length > 0 ? '[options]' : '';
-				data += `koaton ${definition.cmd} ${colors.yellow(args)} ${colors.cyan(opt)}\n` +
-					`   ${definition.description}\n`;
-				definition.options.forEach(function (option) {
-					data += `   ${colors.cyan(option[0])}  ${colors.grey(option[1])}\t${option[2]}\n`;
-				});
-				data += '\n';
-			});
-			return data;
-		},
-		center(text) {
-			var m = Math.floor((total - text.length) / 2);
-			var r = "";
-			while (r.length < m) r += " ";
-			return r + text;
+			if (env.NODE_ENV !== 'production') {
+				console.log(
+					flame
+					.replace(/!/gim, "!".dim.italic.bold)
+					.replace(/:/gim, ":".bold)
+					.replace(/\?/gim, "?".dim)
+					.replace(/\./gim, ".".dim.bold)
+				);
+			}
 		},
 		version: require('../package.json').version,
 		proyect_path: path.resolve(),
@@ -99,54 +83,62 @@ module.exports = {
 		 * @param {String} path
 		 * @param {String} str
 		 */
-		write(file, str, mode) {
-			fs.writeFile(file, str, {
-				mode: mode || 0666,
-			}, (err) => {
-				if (err) {
-					throw err;
-				}
-				console.log('   \x1b[36mcreate\x1b[0m : ' + file);
+		_write: Promise.promisify(fs.writeFile),
+		write(file, content, mode) {
+			return this._write(file, content, mode).then(() => {
+				var head = path.basename(file);
+				var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
+				console.log('   create'.cyan + ': ' + body + head.green);
+				return true;
+			}).catch((e) => {
+				console.log(e.red);
+				return false;
 			});
 		},
+		glob: Promise.promisify(require('node-glob')),
 		/**
 		 * Check if the given directory `path` is empty.
 		 *
 		 * @param {String} path
 		 * @param {Function} fn
 		 */
-		load_template(name) {
-			return fs.readFileSync(path.join(this.source_path, name), 'utf-8')
+		encoding: (ext) => {
+			switch (ext) {
+			case ".png":
+			case ".jpg":
+				return null;
+			default:
+				return "utf-8";
+			}
 		},
-		Copy(file) {
-			if (!file) {
-				throw "check source and destiny paths";
-			}
-			var str = this.load_template(file);
-			return this.write(path.join(this.proyect_path, file), str);
+		copy(from, to) {
+			to = path.join(this.to_env, to || from);
+			from = path.join(this.from_env, from);
+			return this.read(from, {
+				encoding: this.encoding(path.extname(from))
+			}).then((data) => {
+				return this.write(to, data);
+			}).catch((e) => {
+				console.log(e.red);
+				return false;
+			});
 		},
-		/**
-		 * Check if the given directory `path` is empty.
-		 *
-		 * @param {String} path
-		 * @param {Function} fn
-		 */
-		Compile(from, options, mode) {
-			if (!from) {
-				throw "check source and destiny paths";
+		read: Promise.promisify(fs.readFile),
+		compile(from, to, options) {
+			if (options === undefined) {
+				options = to;
+				to = undefined;
 			}
-			var default_options = {
-				//				program: program,
-				//				application: application
-			};
-			if (!options)
-				options = default_options;
-			else {
-				for (x in default_options)
-					options[x] = default_options[x];
-			}
-			var str = Handlebars.compile(this.load_template(from))(options);
-			return this.write(path.join(this.proyect_path, from), str, mode);
+			to = path.join(this.to_env, to || from);
+			return this.read(path.join(this.from_env, from), {
+				encoding: this.encoding(path.extname(from))
+			}).then((data) => {
+				return this.write(to, Handlebars.compile(data)(options || {}));
+			}).catch((e) => {
+				console.log(e.red);
+				return false;
+			});
+
 		},
 		/**
 		 * Mkdir -p.
@@ -154,10 +146,15 @@ module.exports = {
 		 * @param {String} path
 		 * @param {Function} fn
 		 */
-		mkdir: Promise.promisify(function (path, fn) {
-			mkdirp(path, 0755, function (err) {
+		mkdir: Promise.promisify(function (file, fn) {
+			mkdirp(file, 0755, function (err) {
 				if (err) throw err;
-				console.log('   \033[36mcreate\033[0m : ' + path);
+
+				file = file.replace(process.cwd() + "/", "");
+				var head = path.basename(file);
+				file = file.replace(head, "");
+
+				console.log('   create'.cyan + ': ' + file + head.green);
 				fn && fn();
 			});
 		}),
