@@ -24,9 +24,6 @@ koaton.use(i18n(koaton, {
     ]
 }));
 
-koaton.inflect = require('i')();
-koaton.inflect.inflections.irregular('human', 'humans');
-
 koaton.use(require('koa-helmet')());
 koaton.use(require('koa-bodyparser')(config.bodyparser));
 koaton.use(require('koa-static')(config.static.directory, config.static));
@@ -38,7 +35,6 @@ koaton.use(passport.initialize());
 koaton.use(passport.session());
 
 koaton.use(koaton.views);
-koaton.use(koaton.orm);
 koaton.use(koaton.router);
 
 //============================================

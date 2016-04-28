@@ -77,6 +77,7 @@ function setupApplication(proyect_path, db, eg, options) {
 		yield utils.mkdir(proyect_path + "/config");
 		yield utils.compile('config/models.js');
 		yield utils.compile('config/views.js');
+		yield utils.compile('config/inflections.js');
 		yield utils.compile('config/server.js', {
 			key: `"${(yield secret(48)).toString('hex')}"`
 		});
@@ -320,7 +321,10 @@ module.exports = function(schema) {
 						yield utils.write(process.cwd() + "/models/" + name.toLowerCase() + ".js", definition);
 					}
 				}
-				//				utils.abort('aborting');
+				if(options.rest && ok){
+					var restcontroller = `"use strict";\nmodule.exports = {\n\tREST:true\n};`;
+					yield utils.write(process.cwd() + "/controllers/" + name.toLowerCase() + ".js", restcontroller);
+				}
 				process.exit(1);
 			});
 
