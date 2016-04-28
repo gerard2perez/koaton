@@ -13,6 +13,7 @@ const version = require(path.resolve() + "/package.json").version;
 const secret = require('./secret');
 const ADP = require('./adapters');
 const adapters = ADP.adapters;
+const camintejs = ["Number", "Integer", "Float", "Double", "Real", "Boolean", "Date", "String", "Text", "Json", "BLOB"];
 
 function exec(cmd, opts) {
 	opts || (opts = {});
@@ -219,16 +220,16 @@ function proxydb(driver) {
 	case undefined:
 		driver = "mongoose";
 		break;
-		default:
-			driver=null;
-			break;
+	default:
+		driver = null;
+		break;
 	}
 	return driver;
 }
 
 function database(selection) {
 	selection = proxydb(selection);
-	if(selection==null){
+	if (selection == null) {
 		console.log("Unknown driver.".red);
 		process.exit(1);
 	}
@@ -253,6 +254,7 @@ module.exports = [
 				//				command.option(`${option[0]}, ${option[1]}`, option[2]);
 			});
 			console.log();
+			console.log();
 		});
 		process.exit(0);
 	},
@@ -268,6 +270,75 @@ module.exports = [
 		}
 	},
 	{
+		cmd: "model",
+		description: `Creates a new model. fields must sourround by \"\".
+	${"Fields syntax".yellow}:
+		${"field_name"}:${"type".cyan}	${"[ ".yellow+camintejs.map((c)=>{return c.toLowerCase().cyan}).join( " | ".yellow )+" ]".yellow}
+	${"example:".yellow}
+		koaton model User "active:integer name email password note:text created:date"
+`,
+		args: ["name", "fields"],
+		options: [
+			["-f", "--force", "Deletes the model is exits."],
+			["-r", "--rest", "Makes the model REST enabled."]
+		],
+		action: function (name, fields, options) {
+
+			fields = fields.split(' ').map((field) => {
+				return field.split(':');
+			});
+			var definition = {
+				model: {},
+				extra: {}
+			};
+			const _camintejs = camintejs.map((c) => {
+				return c.toLowerCase();
+			});
+			fields.forEach((field) => {
+				field[1] = field[1] || "String";
+				definition.model[field[0]] = `{ type:schema.${camintejs[_camintejs.indexOf(field[1].toLowerCase())]} }`;
+			});
+			definition = JSON.stringify(definition, null, '\t').replace(/"{/igm, "{").replace(/}"/igm, "}");
+			definition = `"use strict";
+module.exports = function(schema) {
+    return ${definition};
+};`;
+			co(function* () {
+				var ok = true;
+				try {
+					require(process.cwd() + "/models/" + name.toLowerCase());
+					if (!options.force) {
+						ok = yield prompt.confirm(`The model ${name.green} already exits,do you want to override it? [y/n]: `);
+					}
+				} finally {
+					if (ok) {
+						yield utils.write(process.cwd() + "/models/" + name.toLowerCase() + ".js", definition);
+					}
+				}
+				//				utils.abort('aborting');
+				process.exit(1);
+			});
+
+			// caminte -m User active:int name email password note:text created:date
+			/*
+			module.exports = function(schema) {
+    return {
+        model: {
+            email: { type: schema.String, "null": false, unique: true },
+            name: { type: schema.String, "null": false, limit: 255, index: true },
+            content: { type: schema.Text },
+            params: { type: schema.JSON },
+            date: { type: schema.Date, default: Date.now },
+        }
+    };
+}
+
+			*/
+			function fieldparser(field) {
+				var cfg = field.split(':');
+			}
+		}
+}, {
 		cmd: "adapter",
 		description: "Install the especified driver adapter.",
 		args: ["driver"],
@@ -376,8 +447,7 @@ module.exports = [
 				});
 			}
 		}
-	},
-	{
+}, {
 		cmd: "new",
 		description: `Creates a new koaton aplication.`,
 		args: ["app_name"],
@@ -428,8 +498,7 @@ module.exports = [
 				}
 			});
 		}
-	},
-	{
+}, {
 		cmd: "serve",
 		description: "Runs your awsome Koaton applicaction",
 		args: [],
@@ -501,8 +570,7 @@ module.exports = [
 				});
 			}
 		}
-	},
-	{
+}, {
 		cmd: "stop",
 		description: "Stops the forever running server.",
 		args: [],
@@ -512,8 +580,7 @@ module.exports = [
 				process.exit(0);
 			});
 		}
-	},
-	{
+}, {
 		cmd: "list",
 		description: "Lists all Koaton running applicactions.",
 		args: [],
@@ -558,8 +625,7 @@ module.exports = [
 				process.exit(0);
 			});
 		}
-	},
-	{
+}, {
 		cmd: "build",
 		description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 		args: ["config_file"],
@@ -602,5 +668,5 @@ module.exports = [
 				}
 			});
 		}
-			},
-			];
+},
+];
