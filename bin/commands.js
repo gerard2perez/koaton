@@ -283,21 +283,26 @@ module.exports = [
 			["-r", "--rest", "Makes the model REST enabled."]
 		],
 		action: function (name, fields, options) {
-
-			fields = fields.split(' ').map((field) => {
-				return field.split(':');
-			});
+			if (name === undefined) {
+				console.log("you must especifie a ".red + "name".yellow);
+				process.exit(1);
+			}
 			var definition = {
 				model: {},
 				extra: {}
 			};
-			const _camintejs = camintejs.map((c) => {
-				return c.toLowerCase();
-			});
-			fields.forEach((field) => {
-				field[1] = field[1] || "String";
-				definition.model[field[0]] = `{ type:schema.${camintejs[_camintejs.indexOf(field[1].toLowerCase())]} }`;
-			});
+			if (fields !== undefined) {
+				fields = fields.split(' ').map((field) => {
+					return field.split(':');
+				});
+				const _camintejs = camintejs.map((c) => {
+					return c.toLowerCase();
+				});
+				fields.forEach((field) => {
+					field[1] = field[1] || "String";
+					definition.model[field[0]] = `{ type:schema.${camintejs[_camintejs.indexOf(field[1].toLowerCase())]} }`;
+				});
+			}
 			definition = JSON.stringify(definition, null, '\t').replace(/"{/igm, "{").replace(/}"/igm, "}");
 			definition = `"use strict";
 module.exports = function(schema) {
