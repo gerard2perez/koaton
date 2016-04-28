@@ -9,8 +9,10 @@ const spawn = require('child_process').spawn;
 const _exec = require('child_process').exec;
 const utils = require('./utils').utils;
 const print = require('./console');
-const version = require(path.resolve()+"/package.json").version;
-
+const version = require(path.resolve() + "/package.json").version;
+const secret = require('./secret');
+const ADP = require('./adapters');
+const adapters = ADP.adapters;
 
 function exec(cmd, opts) {
 	opts || (opts = {});
@@ -62,7 +64,6 @@ function npmlog(command, cwd, cb) {
 
 const NMPLog = Promise.promisify(npmlog);
 
-
 /**
  * Create application at the given directory `path`.
  *
@@ -75,7 +76,9 @@ function setupApplication(proyect_path, db, eg, options) {
 		yield utils.mkdir(proyect_path + "/config");
 		yield utils.compile('config/models.js');
 		yield utils.compile('config/views.js');
-		yield utils.compile('config/server.js');
+		yield utils.compile('config/server.js', {
+			key: `"${(yield secret(48)).toString('hex')}"`
+		});
 		yield utils.compile('config/connections.js');
 		yield utils.compile('config/bundles.js');
 		yield utils.compile('config/routes.js');
@@ -191,20 +194,22 @@ function engine(selection) {
 	return ["npm", "install", selection, "--save", "--loglevel", "info"];
 }
 
-function database(selection) {
-	switch (selection) {
+function proxydb(driver) {
+	switch (driver) {
 	case "mariadb":
-		selection = "mysql";
+		driver = "mysql";
 		break;
 	case "mongo":
-		selection = "mongoose";
+		driver = "mongoose";
+		break;
+	case "postgres":
+		driver = "pg";
 		break;
 	case "mongoose":
 	case "mysql":
-	case "postgres":
 	case "redis":
 	case "sqlite3":
-	case "couchbd":
+	case "couchdb":
 	case "neo4j":
 	case "riak":
 	case "firebird":
@@ -212,35 +217,165 @@ function database(selection) {
 	case "rethinkdb":
 		break;
 	case undefined:
-		selection = "mongoose";
+		driver = "mongoose";
 		break;
-	default:
-		console.log("unknow driver".red.bold);
+		default:
+			driver=null;
+			break;
+	}
+	return driver;
+}
+
+function database(selection) {
+	selection = proxydb(selection);
+	if(selection==null){
+		console.log("Unknown driver.".red);
 		process.exit(1);
-		break;
 	}
 	return ["npm", "install", selection, "--save", "--loglevel", "info"];
 }
 module.exports = [
 	function (commands) {
 		delete this[0];
-		console.log("  version: "+version);
+		console.log("  version: " + version);
 		console.log("  Command list:");
 		commands.forEach(function (definition) {
 			var args = definition.args.length > 0 ? `<${definition.args.join(" > <")}>` : "";
-			var opts = definition.options.length > 0 ? "[options]":"";
+			var opts = definition.options.length > 0 ? "[options]" : "";
 			console.log(`    koaton ${definition.cmd} ${args.yellow} ${opts.cyan}`);
 			console.log(`      ${definition.description.replace('\n',"\n   ")}`);
 			definition.options.forEach(function (option) {
 				var opt = option[1].split(' ');
-				opt[0] = option[0] === opt[0] ? "":opt[0];
+				opt[0] = option[0] === opt[0] ? "" : opt[0];
 				opt[1] = opt[1] || "";
-				console.log(`      ${option[0].cyan} ${opt[0].gray} ${opt[1].cyan}\t\t${option[2]}`);
-//				command.option(`${option[0]}, ${option[1]}`, option[2]);
+				while (opt[0].length < 13) opt[0] = opt[0] + " ";
+				console.log(`      ${option[0].cyan} ${opt[0].gray} ${opt[1].cyan} ${option[2]}`);
+				//				command.option(`${option[0]}, ${option[1]}`, option[2]);
 			});
 			console.log();
 		});
 		process.exit(0);
+	},
+	{
+		cmd: "barebone",
+		description: "Runs your awsome Koaton applicaction",
+		args: [],
+		options: [
+			["-p", "--production", "Runs with NODE_ENV = production"]
+		],
+		action: function (options) {
+
+		}
+	},
+	{
+		cmd: "adapter",
+		description: "Install the especified driver adapter.",
+		args: ["driver"],
+		options: [
+			["-l", "--list", "Show the adapters installed in the current application. " + "koaton adapter -l".bgWhite.black],
+			["-g", "--generate", "Creates an adapter template for the especified driver"],
+			["--host", "--host <hostname>", "Default is localhost. Use this with -g"],
+			["--port", "--port <port>", "Default driver port. Use this with -g"],
+			["--user", "--user <username>", "User to connect to database default is ''. Use this with -g"],
+			["--db", "--db <databse>", "Database name for the connection default is ''. Use this with -g"],
+			["--password", "--password <databse>", "Password to login in your database default is ''. Use this with -g"],
+		],
+		action: function (driver, options) {
+			const dependencies = require(path.resolve() + "/package.json").dependencies;
+			let drivers = {};
+			adapters.map((adapter) => {
+				drivers[adapter] = dependencies[proxydb(adapter)] ? dependencies[proxydb(adapter)] : false;
+			});
+			let installed = {};
+			let available = {};
+			Object.keys(drivers).forEach((driver) => {
+				if (drivers[driver]) {
+					installed[driver] = drivers[driver];
+				} else {
+					available[driver] = drivers[driver];
+				}
+			});
+			if (installed['mysql']) {
+				delete available['mariadb'];
+			}
+			if (installed['pg']) {
+				installed['postgres'] = installed['pg'];
+				delete installed['pg'];
+				delete available['postgres'];
+			}
+			if (adapters.indexOf(driver) == -1) {
+				console.log("The driver you especied is not available please check: ".yellow);
+				console.log();
+				options.list = true;
+			}
+			if (options.list) {
+				console.log("Installed drives: ");
+				Object.keys(installed).forEach((driver) => {
+					console.log(`\t${driver}@${installed[driver].cyan}`);
+				});
+				console.log();
+				console.log("Available drives: ");
+				Object.keys(available).forEach((driver) => {
+					console.log(`\t${driver}`);
+				});
+			} else {
+				co(function* () {
+					if (!options.generate) {
+						if (available[driver] === undefined) {
+							console.log("The driver you especified is not available.".red);
+							console.log("Available drives: ");
+							Object.keys(available).forEach((driver) => {
+								console.log(`\t${driver}`);
+							});
+							process.exit(1);
+						}
+						yield NMPLog(database(driver), process.cwd());
+						console.log(`${driver}@${require(path.resolve() + "/package.json").dependencies[proxydb(driver)]} installed`);
+						options.generate = true;
+					}
+					if (options.generate) {
+						const Handlebars = require('handlebars');
+						var adapterCFG = JSON.parse(Handlebars.compile(ADP.template)({
+							adapter: driver,
+							driver: proxydb(driver),
+							user: options.user || '',
+							password: options.password || '',
+							host: options.host || 'localhost',
+							port: options.port || ADP.connections[proxydb(driver)],
+							application: options.db || path.basename(process.cwd())
+						}), "\t");
+						if (drivers === "sqlite3") {
+							delete adapterCFG.port;
+							delete adapterCFG.host;
+							delete adapterCFG.pool;
+							delete adapterCFG.ssl;
+						}
+						try {
+							var connections = require(process.cwd() + "/config/connections");
+							if (connections[driver] === undefined) {
+								connections[driver] = adapterCFG;
+							} else {
+								console.log(`An adapter named ${driver.green} already exits in ./config/${"connections.js".green}\nPlease update it manually.`);
+								process.exit(1);
+							}
+							var output = '"use strict";\nmodule.exports=' + JSON.stringify(connections, null, '\t') + ";";
+							utils.write(process.cwd() + "/config/connections.js", output).then(() => {
+								console.log("Adapter added:");
+								console.log(connections[driver]);
+							}).catch((e) => {
+								console.log(e.red);
+								process.exit(1);
+							});
+						} catch (e) {
+							console.log("Configuration file located at ./config/connections.js not found.");
+						}
+
+					} else {
+
+					}
+				});
+			}
+		}
 	},
 	{
 		cmd: "new",
@@ -250,7 +385,7 @@ module.exports = [
 			[
 				"-d", "--db <driver>",
 				"[ ".yellow +
-				["mongo", "mysql", "mariadb", "postgres", "redis", "sqlite3", "couchbd", "neo4j", "riak", "firebird", "tingodb", "rethinkdb"].map(function (tx) {
+				adapters.map(function (tx) {
 					return tx.cyan;
 				}).join(" | ".yellow)
 				+ " ]".yellow
@@ -325,9 +460,7 @@ module.exports = [
 			if (options.forever) {
 				const app = path.basename(process.cwd());
 				const cmd = `NODE_ENV=${env.NODE_ENV} port=${env.port} forever start --colors --uid "koaton_${app}" -a app.js`;
-				exec(`forever stop koaton_${app}`, {
-					cwd: process.cwd()
-				}).finally(() => {
+				exec(`forever stop koaton_${app}`).catch(() => {}).finally(() => {
 					exec(cmd, {
 						cwd: process.cwd()
 					}).then((data) => {
@@ -368,7 +501,7 @@ module.exports = [
 				});
 			}
 		}
-			},
+	},
 	{
 		cmd: "stop",
 		description: "Stops the forever running server.",

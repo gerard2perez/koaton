@@ -32,7 +32,7 @@ koaton.use(require('koa-bodyparser')(config.bodyparser));
 koaton.use(require('koa-static')(config.static.directory, config.static));
 // //app.use(require('koa-etag')());
 
-koaton.use(require('koa-session')({key: config.session},koaton));
+koaton.use(require('koa-session')(config.session,koaton));
 
 koaton.use(passport.initialize());
 koaton.use(passport.session());
