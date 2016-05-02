@@ -12,8 +12,19 @@ const print = require('./console');
 const version = require(path.resolve() + "/package.json").version;
 const secret = require('./secret');
 const ADP = require('./adapters');
+
+const access = function (path) {
+	try {
+		fs.access(path);
+		return true;
+	} catch (e) {
+		return false;
+	}
+};
+
 const adapters = ADP.adapters;
 const camintejs = ["Number", "Integer", "Float", "Double", "Real", "Boolean", "Date", "String", "Text", "Json", "BLOB"];
+const emberdatas = ["number", "number", "number", "number", "number", "boolean", "date", "string", "string", undefined, "string"]
 
 function exec(cmd, opts) {
 	opts || (opts = {});
@@ -33,34 +44,57 @@ function exec(cmd, opts) {
 
 var application = "";
 var buffer = "";
+var logstring = "";
 
 function endstream() {
-	process.stdout.clearLine();
-	process.stdout.cursorTo(0);
-	buffer = "";
+	try {
+		process.stdout.clearLine();
+		process.stdout.cursorTo(0);
+	} catch (e) {
+
+	} finally {
+		buffer = "";
+	}
+
 }
 
 function output(data) {
+	//	console.log(data.toString());
 	buffer += data.toString();
+	logstring += data.toString();
 	if (buffer.indexOf('\n') > -1 && buffer.indexOf("idealTree") === -1 && buffer.indexOf("currentTree") === -1) {
-		process.stdout.clearLine();
-		process.stdout.cursorTo(0);
-		buffer = buffer.split('\n')[0].split(" ").slice(2).join(" ");
-		process.stdout.write(buffer);
-		buffer = "";
+		try {
+			process.stdout.clearLine();
+			process.stdout.cursorTo(0);
+		} catch (e) {
+
+		} finally {
+			buffer = buffer.split('\n')[0].split(" ").slice(2).join(" ");
+			process.stdout.write(buffer);
+			buffer = "";
+		}
 	}
+	//	process.stdout.write(data.toString().length+'\n');
+	//	process.stdout.write(data.toString() + '\n');
 }
 
 function npmlog(command, cwd, cb) {
+	logstring = "";
+		console.log(command.join(" "), " -> ", cwd);
 	var child = spawn(command[0], command.slice(1), {
-		cwd: cwd
+		cwd: path.join(cwd, "/"),
+		shell: true
+			//		stdio: process.stdio
 	});
+	//			child.stdout.pipe(process.stdout);
+	//			child.stderr.pipe(process.stdout);
 	child.stdout.on('data', output);
 	child.stderr.on('data', output);
-	child.on('close', function () {
+	child.on('close', function (code, signal) {
 		endstream();
-		cb && cb(null, true);
+		cb && cb(null, code || child.exitCode);
 	});
+	//	process.stdin.pipe(child.stdin);
 }
 
 const NMPLog = Promise.promisify(npmlog);
@@ -78,6 +112,7 @@ function setupApplication(proyect_path, db, eg, options) {
 		yield utils.compile('config/models.js');
 		yield utils.compile('config/views.js');
 		yield utils.compile('config/inflections.js');
+		yield utils.compile('config/ember.js');
 		yield utils.compile('config/server.js', {
 			key: `"${(yield secret(48)).toString('hex')}"`
 		});
@@ -236,6 +271,18 @@ function database(selection) {
 	}
 	return ["npm", "install", selection, "--save", "--loglevel", "info"];
 }
+
+function diff(start, end) {
+	console.log((end[0] - start[0]) * 1000000 + (end[1] - start[1]) / 1000, 'us');
+}
+
+const bk = function (fn) {
+	co(function* () {
+		return yield fn();
+	}).then((res) => {
+		process.exit(res);
+	});
+}
 module.exports = [
 	function (commands) {
 		delete this[0];
@@ -252,7 +299,6 @@ module.exports = [
 				opt[1] = opt[1] || "";
 				while (opt[0].length < 13) opt[0] = opt[0] + " ";
 				console.log(`      ${option[0].cyan} ${opt[0].gray} ${opt[1].cyan} ${option[2]}`);
-				//				command.option(`${option[0]}, ${option[1]}`, option[2]);
 			});
 			console.log();
 			console.log();
@@ -267,7 +313,114 @@ module.exports = [
 			["-p", "--production", "Runs with NODE_ENV = production"]
 		],
 		action: function (options) {
+			let i;
+			let t0;
+			let t1
+			let j = 10;
+			let Namespace;
+			t0 = process.hrtime();
+			let time = 10000000;
+			i = time;
+			while (--i) {
+				Namespace = undefined;
+				if (Namespace === undefined) {
+					Namespace = "";
+				}
+				path.resolve("/", Namespace, "hola");
+			}
+			t1 = process.hrtime();
+			diff(t0, t1);
 
+			t0 = process.hrtime();
+			i = time;
+			while (--i) {
+				Namespace = undefined;
+				Namespace = Namespace === undefined ? "" : Namespace;
+				path.resolve("/", Namespace, "hola");
+			}
+			t1 = process.hrtime();
+			diff(t0, t1);
+		}
+	},
+	{
+		cmd: "ember",
+		description: "Shows the ember apps installed.",
+		args: ["app_name"],
+		options: [
+			["-l", "--list", "shows all ember applications."],
+			["-n", "--new", "Creates a new ember app with the especified named."],
+			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app."],
+			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
+		],
+		action: function (app_name, options) {
+			bk(function* () {
+				if (app_name == undefined || options.list) {
+					fs.readdirSync('./ember').forEach((dir) => {
+						var f = require(`${process.cwd()}/ember/${dir}/bower.json`);
+						console.log(`${dir}@${f.dependencies.ember}`);
+					});
+				} else {
+					if (options.build) {
+						const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
+						const publicdir = path.join(process.cwd(), "public", app_name, "/");
+						const mount_views = path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/");
+						const mount_public = path.join(process.cwd(), "public", embercfg.mount, "/");
+						console.log(`Building ... ${app_name.yellow}->${embercfg.mount.green}`);
+						if (yield NMPLog(
+							["ember", "build", "--environment", options.build, "-o", path.join("../../public/", embercfg.mount)],
+								process.cwd() + "/ember/" + app_name
+							)) {
+							console.log(logstring.red);
+							return 1;
+						};
+						yield utils.mkdir(mount_views);
+						console.log(`${publicdir}index.html`, `${mount_views}index.html`);
+						fs.renameSync(`${mount_public}index.html`, `${mount_views}index.html`);
+						fs.renameSync(`${mount_public}crossdomain.xml`, `${mount_views}crossdomain.xml`);
+						fs.renameSync(`${mount_public}robots.txt`, `${mount_views}robots.txt`);
+						fs.unlinkSync(`${mount_public}testem.js`);
+						fs.unlinkSync(`${mount_public}tests/index.html`);
+						fs.rmdirSync(`${mount_public}tests/`);
+						return 0;
+					} else {
+						var pt = `${process.cwd()}/ember/${app_name}`;
+						if (options.new) {
+							var override = true;
+							if (access(pt) && app_name) {
+								override = yield prompt.confirm(`destination ${pt} is not empty, continue? [y/n]: `);
+								if (override) {
+									fs.rmdirSync(pt);
+								}
+							}
+							if (override) {
+								yield NMPLog([
+									"ember",
+									"new", app_name,
+									"-dir", pt,
+									"-sn",
+									"-sb"], process.cwd());
+
+							}
+							options.mount = options.mount === undefined ? "/" : options.mount;
+						}
+						if (options.mount) {
+							console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
+							var emberjs = require(`${process.cwd()}/config/ember.js`);
+							emberjs[app_name] = {
+								mount: options.mount
+							};
+							yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
+module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
+							let embercfg = yield utils.read(`${pt}/config/environment.js`, {
+								encoding: 'utf-8'
+							});
+							embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
+							yield utils.write(`${pt}/config/environment.js`, embercfg, true);
+						}
+
+					}
+				}
+			});
 		}
 	},
 	{
@@ -280,24 +433,31 @@ module.exports = [
 `,
 		args: ["name", "fields"],
 		options: [
+			["-e", "--ember <app>", "Generates the model also for the app especified."],
 			["-f", "--force", "Deletes the model is exits."],
 			["-r", "--rest", "Makes the model REST enabled."]
 		],
 		action: function (name, fields, options) {
+			const inflector = require('i')();
+			const inflections = require(process.cwd() + '/config/inflections');
+			inflections.irregular.forEach((inflect) => {
+				inflector.inflections.irregular(inflect[0], inflect[1]);
+			});
 			if (name === undefined) {
 				console.log("you must especifie a ".red + "name".yellow);
 				process.exit(1);
 			}
+			name = inflector.singularize(name.toLowerCase());
 			var definition = {
 				model: {},
 				extra: {}
 			};
+			const _camintejs = camintejs.map((c) => {
+				return c.toLowerCase();
+			});
 			if (fields !== undefined) {
 				fields = fields.split(' ').map((field) => {
 					return field.split(':');
-				});
-				const _camintejs = camintejs.map((c) => {
-					return c.toLowerCase();
 				});
 				fields.forEach((field) => {
 					field[1] = field[1] || "String";
@@ -321,33 +481,47 @@ module.exports = function(schema) {
 						yield utils.write(process.cwd() + "/models/" + name.toLowerCase() + ".js", definition);
 					}
 				}
-				if(options.rest && ok){
+				if (options.rest && ok) {
 					var restcontroller = `"use strict";\nmodule.exports = {\n\tREST:true\n};`;
 					yield utils.write(process.cwd() + "/controllers/" + name.toLowerCase() + ".js", restcontroller);
+				}
+				if (options.ember) {
+					var embermodel = "import Model from 'ember-data/model';\n";
+					embermodel += "import attr from 'ember-data/attr';\n";
+					embermodel += "export default Model.extend({\n";
+					fields.forEach((field) => {
+						embermodel += `\t${field[0]}:attr('${emberdatas[_camintejs.indexOf(field[1].toLowerCase())]}'),\n`
+					});
+					embermodel += "});";
+					yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/models/" + name + ".js", embermodel);
+					if (options.rest) {
+						var embercontroller = `
+						import CTABLE from 'ember-cli-crudtable/mixins/crud-controller';
+import Ember from 'ember';
+export default Ember.Controller.extend(CTABLE('${name}'),{
+	actions:{
+	},
+	fieldDefinition:{ 
+		${fields.map((f)=>{return f[0];}).join(':{},\n\t\t')}:{}
+	}
+});`
+						yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/controllers/" + name + ".js", embercontroller);
+						yield utils.write(
+							process.cwd() + "/ember/" + options.ember + "/app/templates/" + name + ".hbs",
+							`{{crud-table\n\tfields=this.fieldDefinition\n}}`
+						);
+					}
+					console.log(`Please add this.route('${name}') to your ember app router.js`);
 				}
 				process.exit(1);
 			});
 
-			// caminte -m User active:int name email password note:text created:date
-			/*
-			module.exports = function(schema) {
-    return {
-        model: {
-            email: { type: schema.String, "null": false, unique: true },
-            name: { type: schema.String, "null": false, limit: 255, index: true },
-            content: { type: schema.Text },
-            params: { type: schema.JSON },
-            date: { type: schema.Date, default: Date.now },
-        }
-    };
-}
-
-			*/
 			function fieldparser(field) {
 				var cfg = field.split(':');
 			}
 		}
-}, {
+			},
+	{
 		cmd: "adapter",
 		description: "Install the especified driver adapter.",
 		args: ["driver"],
@@ -456,7 +630,8 @@ module.exports = function(schema) {
 				});
 			}
 		}
-}, {
+			},
+	{
 		cmd: "new",
 		description: `Creates a new koaton aplication.`,
 		args: ["app_name"],
@@ -507,7 +682,8 @@ module.exports = function(schema) {
 				}
 			});
 		}
-}, {
+			},
+	{
 		cmd: "serve",
 		description: "Runs your awsome Koaton applicaction",
 		args: [],
@@ -517,69 +693,82 @@ module.exports = function(schema) {
 			["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 		],
 		action: function (options) {
-			const env = {
-				welcome: false,
-				NODE_ENV: !options.production ? 'development' : 'production',
-				port: options.port || 62626
-			};
-			if (options.forever) {
-				env.NODE_ENV = 'production';
-			}
-			utils.welcome(env);
-			const nodemon = require('gulp-nodemon');
-			const livereload = require('gulp-livereload');
-			const notifier = require('node-notifier');
-			if (options.production) {
-				livereload.listen({
-					port: 62627,
-					quiet: true
-				});
-			}
-			if (options.forever) {
-				const app = path.basename(process.cwd());
-				const cmd = `NODE_ENV=${env.NODE_ENV} port=${env.port} forever start --colors --uid "koaton_${app}" -a app.js`;
-				exec(`forever stop koaton_${app}`).catch(() => {}).finally(() => {
-					exec(cmd, {
-						cwd: process.cwd()
-					}).then((data) => {
-						console.log(app + " is running ... ");
-					}).finally((a, b, c) => {
-						process.exit(0);
+			co(function* () {
+				const env = {
+					welcome: false,
+					NODE_ENV: !options.production ? 'development' : 'production',
+					port: options.port || 62626
+				};
+				if (options.forever) {
+					env.NODE_ENV = 'production';
+				}
+				utils.welcome(env);
+				const nodemon = require('gulp-nodemon');
+				const livereload = require('gulp-livereload');
+				const notifier = require('node-notifier');
+				if (options.production) {
+					livereload.listen({
+						port: 62627,
+						quiet: true
 					});
-				});
-			} else {
-				nodemon({
-					ext: '*',
-					quiet: true,
-					ignore: ["node_modules/*"],
-					verbose: false,
-					script: 'app.js',
-					env: env,
-					stdout: true
-				}).once('start', function () {
-					utils.info(env);
-					notifier.notify({
-						title: 'Koaton',
-						message: 'Server runnung on localhost:' + env.port,
-						open: "http://localhost:" + env.port,
-						icon: path.join(__dirname, 'koaton.png'),
-						sound: 'Hero',
-						wait: false
+				}
+				//ember_app
+				const embercfg = require(`${process.cwd()}/config/ember`);
+				let build = [];
+				for (var ember_app in embercfg) {
+					if (build.indexOf(ember_app) === -1) {
+						console.log("Building " + ember_app.green + "...");
+						let a = yield NMPLog(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+						console.log(a === 0 ? "Success".green : "Failed".red);
+					}
+				}
+				if (options.forever) {
+					const app = path.basename(process.cwd());
+					const cmd = `NODE_ENV=${env.NODE_ENV} port=${env.port} forever start --colors --uid "koaton_${app}" -a app.js`;
+					exec(`forever stop koaton_${app}`).catch(() => {}).finally(() => {
+						exec(cmd, {
+							cwd: process.cwd()
+						}).then((data) => {
+							console.log(app + " is running ... ");
+						}).finally((a, b, c) => {
+							process.exit(0);
+						});
 					});
-				}).on('restart', function () {
-					setTimeout(function () {
-						livereload.reload();
-					}, 1000);
-					notifier.notify({
-						title: 'Koaton',
-						message: 'restarting server...',
-						icon: path.join(__dirname, 'koaton.png'),
-						sound: 'Hero',
+				} else {
+					nodemon({
+						ext: '*',
+						quiet: true,
+						ignore: ["node_modules/*"],
+						verbose: false,
+						script: 'app.js',
+						env: env,
+						stdout: true
+					}).once('start', function () {
+						utils.info(env);
+						notifier.notify({
+							title: 'Koaton',
+							message: 'Server runnung on localhost:' + env.port,
+							open: "http://localhost:" + env.port,
+							icon: path.join(__dirname, 'koaton.png'),
+							sound: 'Hero',
+							wait: false
+						});
+					}).on('restart', function () {
+						setTimeout(function () {
+							livereload.reload();
+						}, 1000);
+						notifier.notify({
+							title: 'Koaton',
+							message: 'restarting server...',
+							icon: path.join(__dirname, 'koaton.png'),
+							sound: 'Hero',
+						});
 					});
-				});
-			}
+				}
+			});
 		}
-}, {
+			},
+	{
 		cmd: "stop",
 		description: "Stops the forever running server.",
 		args: [],
@@ -589,7 +778,8 @@ module.exports = function(schema) {
 				process.exit(0);
 			});
 		}
-}, {
+			},
+	{
 		cmd: "list",
 		description: "Lists all Koaton running applicactions.",
 		args: [],
@@ -634,7 +824,8 @@ module.exports = function(schema) {
 				process.exit(0);
 			});
 		}
-}, {
+			},
+	{
 		cmd: "build",
 		description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 		args: ["config_file"],
@@ -677,5 +868,5 @@ module.exports = function(schema) {
 				}
 			});
 		}
-},
-];
+			},
+			];

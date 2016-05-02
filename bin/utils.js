@@ -85,10 +85,10 @@ module.exports.utils = {
 		 */
 		_write: Promise.promisify(fs.writeFile),
 		write(file, content, mode) {
-			return this._write(file, content, mode).then(() => {
+			return this._write(file, content,undefined).then(() => {
 				var head = path.basename(file);
 				var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
-				console.log('   create'.cyan + ': ' + body + head.green);
+				console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
 				return true;
 			}).catch((e) => {
 				console.log(e.red);
