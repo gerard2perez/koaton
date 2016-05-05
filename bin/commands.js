@@ -9,22 +9,35 @@ const spawn = require('child_process').spawn;
 const _exec = require('child_process').exec;
 const utils = require('./utils').utils;
 const print = require('./console');
-const version = require(path.resolve() + "/package.json").version;
+const version = require(__dirname + "/../package.json").version;
 const secret = require('./secret');
 const ADP = require('./adapters');
-
 const access = function (path) {
 	try {
-		fs.access(path);
+		fs.accessSync(path);
 		return true;
 	} catch (e) {
 		return false;
 	}
 };
-
+const deleteFolderRecursive = function (path) {
+	var files = [];
+	if (fs.existsSync(path)) {
+		files = fs.readdirSync(path);
+		files.forEach(function (file, index) {
+			var curPath = path + "/" + file;
+			if (fs.lstatSync(curPath).isDirectory()) { // recurse
+				deleteFolderRecursive(curPath);
+			} else { // delete file
+				fs.unlinkSync(curPath);
+			}
+		});
+		fs.rmdirSync(path);
+	}
+};
 const adapters = ADP.adapters;
 const camintejs = ["Number", "Integer", "Float", "Double", "Real", "Boolean", "Date", "String", "Text", "Json", "BLOB"];
-const emberdatas = ["number", "number", "number", "number", "number", "boolean", "date", "string", "string", undefined, "string"]
+const emberdatas = ["number", "number", "number", "number", "number", "boolean", "date", "string", "string", undefined, "string"];
 
 function exec(cmd, opts) {
 	opts || (opts = {});
@@ -59,7 +72,6 @@ function endstream() {
 }
 
 function output(data) {
-	//	console.log(data.toString());
 	buffer += data.toString();
 	logstring += data.toString();
 	if (buffer.indexOf('\n') > -1 && buffer.indexOf("idealTree") === -1 && buffer.indexOf("currentTree") === -1) {
@@ -80,7 +92,7 @@ function output(data) {
 
 function npmlog(command, cwd, cb) {
 	logstring = "";
-		console.log(command.join(" "), " -> ", cwd);
+	//	console.log(command.join(" "), " -> ", cwd);
 	var child = spawn(command[0], command.slice(1), {
 		cwd: path.join(cwd, "/"),
 		shell: true
@@ -97,7 +109,7 @@ function npmlog(command, cwd, cb) {
 	//	process.stdin.pipe(child.stdin);
 }
 
-const NMPLog = Promise.promisify(npmlog);
+const SPAWN = Promise.promisify(npmlog);
 
 /**
  * Create application at the given directory `path`.
@@ -107,6 +119,7 @@ const NMPLog = Promise.promisify(npmlog);
 function setupApplication(proyect_path, db, eg, options) {
 	co(function* (val) {
 		yield utils.mkdir(proyect_path);
+		yield utils.mkdir(proyect_path + "/ember");
 		yield utils.compile('app.js');
 		yield utils.mkdir(proyect_path + "/config");
 		yield utils.compile('config/models.js');
@@ -148,11 +161,11 @@ function setupApplication(proyect_path, db, eg, options) {
 			yield utils.write(application + "/package.json", JSON.stringify(pk, null, '\t'), null);
 			console.log(print.line1);
 			console.log(print.center("Installing core dependencies"));
-			yield NMPLog(["npm", "install", "--loglevel", "info"], application);
+			yield SPAWN(["npm", "install", "--loglevel", "info"], application);
 			console.log(print.center("Installing database adapter " + db[2].green));
-			yield NMPLog(db, application);
+			yield SPAWN(db, application);
 			console.log(print.center("Installing view engine " + eg[2].green));
-			yield NMPLog(eg, application);
+			yield SPAWN(eg, application);
 		} else {
 			pk.dependencies[eg[2]] = "latest";
 			pk.dependencies[db[2]] = "latest";
@@ -161,7 +174,7 @@ function setupApplication(proyect_path, db, eg, options) {
 		if (!options.skipBower) {
 			console.log(print.line1);
 			console.log(print.center("Installing Bower dependencies"));
-			yield NMPLog(["bower", "install"], application);
+			yield SPAWN(["bower", "install"], application);
 		}
 	}).then(function () {
 		process.on('exit', function () {
@@ -344,6 +357,7 @@ module.exports = [
 	},
 	{
 		cmd: "ember",
+		alias:"ex",
 		description: "Shows the ember apps installed.",
 		args: ["app_name"],
 		options: [
@@ -354,72 +368,69 @@ module.exports = [
 		],
 		action: function (app_name, options) {
 			bk(function* () {
+				var override = false;
+				const pt = `${process.cwd()}/ember/${app_name}`;
 				if (app_name == undefined || options.list) {
 					fs.readdirSync('./ember').forEach((dir) => {
-						var f = require(`${process.cwd()}/ember/${dir}/bower.json`);
+						const f = require(`${process.cwd()}/ember/${dir}/bower.json`);
 						console.log(`${dir}@${f.dependencies.ember}`);
 					});
-				} else {
-					if (options.build) {
-						const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
-						const publicdir = path.join(process.cwd(), "public", app_name, "/");
-						const mount_views = path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/");
-						const mount_public = path.join(process.cwd(), "public", embercfg.mount, "/");
-						console.log(`Building ... ${app_name.yellow}->${embercfg.mount.green}`);
-						if (yield NMPLog(
+				} else if (options.new) {
+					const canAccess = access(pt);
+					override = !canAccess;
+					if (canAccess && app_name) {
+						override = yield prompt.confirm(`destination ${pt} is not empty, continue? [y/n]: `);
+						if (override) {
+							deleteFolderRecursive(pt);
+						}
+					}
+					if (override) {
+						console.log(`Installing [${app_name.green}]`);
+						yield SPAWN(["ember", "new", app_name, "-dir", pt, "-v"], process.cwd());
+						options.mount = options.mount === undefined ? "/" : options.mount;
+					}
+
+				} else if (options.build) {
+					const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
+					const publicdir = path.join(process.cwd(), "public", app_name, "/");
+					const mount_views = path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/");
+					const mount_public = path.join(process.cwd(), "public", embercfg.mount, "/");
+					console.log(`Building ... ${app_name.yellow}->${embercfg.mount.green}`);
+					if (yield SPAWN(
 							["ember", "build", "--environment", options.build, "-o", path.join("../../public/", embercfg.mount)],
-								process.cwd() + "/ember/" + app_name
-							)) {
-							console.log(logstring.red);
-							return 1;
+							process.cwd() + "/ember/" + app_name
+						)) {
+						console.log(logstring.red);
+						return 1;
+					};
+					yield utils.mkdir(mount_views);
+					console.log(`${publicdir}index.html`, `${mount_views}index.html`);
+					fs.renameSync(`${mount_public}index.html`, `${mount_views}index.html`);
+					fs.renameSync(`${mount_public}crossdomain.xml`, `${mount_views}crossdomain.xml`);
+					fs.renameSync(`${mount_public}robots.txt`, `${mount_views}robots.txt`);
+					fs.unlinkSync(`${mount_public}testem.js`);
+					fs.unlinkSync(`${mount_public}tests/index.html`);
+					fs.rmdirSync(`${mount_public}tests/`);
+				}
+
+				if (options.build) {} else {
+					if (options.new) {}
+					if (options.mount) {
+						console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
+						var emberjs = require(`${process.cwd()}/config/ember.js`);
+						emberjs[app_name] = {
+							mount: options.mount
 						};
-						yield utils.mkdir(mount_views);
-						console.log(`${publicdir}index.html`, `${mount_views}index.html`);
-						fs.renameSync(`${mount_public}index.html`, `${mount_views}index.html`);
-						fs.renameSync(`${mount_public}crossdomain.xml`, `${mount_views}crossdomain.xml`);
-						fs.renameSync(`${mount_public}robots.txt`, `${mount_views}robots.txt`);
-						fs.unlinkSync(`${mount_public}testem.js`);
-						fs.unlinkSync(`${mount_public}tests/index.html`);
-						fs.rmdirSync(`${mount_public}tests/`);
-						return 0;
-					} else {
-						var pt = `${process.cwd()}/ember/${app_name}`;
-						if (options.new) {
-							var override = true;
-							if (access(pt) && app_name) {
-								override = yield prompt.confirm(`destination ${pt} is not empty, continue? [y/n]: `);
-								if (override) {
-									fs.rmdirSync(pt);
-								}
-							}
-							if (override) {
-								yield NMPLog([
-									"ember",
-									"new", app_name,
-									"-dir", pt,
-									"-sn",
-									"-sb"], process.cwd());
-
-							}
-							options.mount = options.mount === undefined ? "/" : options.mount;
-						}
-						if (options.mount) {
-							console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
-							var emberjs = require(`${process.cwd()}/config/ember.js`);
-							emberjs[app_name] = {
-								mount: options.mount
-							};
-							yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
+						yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
 module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
-							let embercfg = yield utils.read(`${pt}/config/environment.js`, {
-								encoding: 'utf-8'
-							});
-							embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
-							yield utils.write(`${pt}/config/environment.js`, embercfg, true);
-						}
-
+						let embercfg = yield utils.read(`${pt}/config/environment.js`, {
+							encoding: 'utf-8'
+						});
+						embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
+						yield utils.write(`${pt}/config/environment.js`, embercfg, true);
 					}
 				}
+				return 0;
 			});
 		}
 	},
@@ -469,18 +480,15 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 module.exports = function(schema) {
     return ${definition};
 };`;
-			co(function* () {
+			bk(function* () {
 				var ok = true;
-				try {
-					require(process.cwd() + "/models/" + name.toLowerCase());
-					if (!options.force) {
-						ok = yield prompt.confirm(`The model ${name.green} already exits,do you want to override it? [y/n]: `);
-					}
-				} finally {
-					if (ok) {
-						yield utils.write(process.cwd() + "/models/" + name.toLowerCase() + ".js", definition);
-					}
+				console.log(`${process.cwd()}/models/${name.toLowerCase()}.js`);
+				console.log();
+				if(access( `${process.cwd()}/models/${name.toLowerCase()}.js`) && !options.force){
+					ok = yield prompt.confirm(`The model ${name.green} already exits,do you want to override it? [y/n]: `);
 				}
+				if(!ok){return 0;}
+				yield utils.write(process.cwd() + "/models/" + name.toLowerCase() + ".js", definition);
 				if (options.rest && ok) {
 					var restcontroller = `"use strict";\nmodule.exports = {\n\tREST:true\n};`;
 					yield utils.write(process.cwd() + "/controllers/" + name.toLowerCase() + ".js", restcontroller);
@@ -583,7 +591,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 							});
 							process.exit(1);
 						}
-						yield NMPLog(database(driver), process.cwd());
+						yield SPAWN(database(driver), process.cwd());
 						console.log(`${driver}@${require(path.resolve() + "/package.json").dependencies[proxydb(driver)]} installed`);
 						options.generate = true;
 					}
@@ -718,7 +726,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				for (var ember_app in embercfg) {
 					if (build.indexOf(ember_app) === -1) {
 						console.log("Building " + ember_app.green + "...");
-						let a = yield NMPLog(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+						let a = yield SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 						console.log(a === 0 ? "Success".green : "Failed".red);
 					}
 				}

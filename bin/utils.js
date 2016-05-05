@@ -177,7 +177,7 @@ module.exports.utils = {
 				var files = fs.readdirSync(path);
 				return !files || !files.length;
 			} catch (e) {
-				return false;
+				return true;
 			}
 		}
 };
