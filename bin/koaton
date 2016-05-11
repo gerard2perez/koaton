@@ -10,7 +10,7 @@ if (!help || help === "-h" || help === "--help") {
 	delete commands[0];
 }
 commands.forEach(function (definition) {
-	var args = definition.args.length > 0 ? `[${definition.args.join(" ] [")}]` : "";
+	var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
 	var command = program.command(`${definition.cmd} ${args}`)
 		.description(definition.description)
 		.action(definition.action);

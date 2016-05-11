@@ -36,6 +36,7 @@ const deleteFolderRecursive = function (path) {
 	}
 };
 const adapters = ADP.adapters;
+const chokidar = require('chokidar');
 const camintejs = ["Number", "Integer", "Float", "Double", "Real", "Boolean", "Date", "String", "Text", "Json", "BLOB"];
 const emberdatas = ["number", "number", "number", "number", "number", "boolean", "date", "string", "string", undefined, "string"];
 
@@ -302,7 +303,7 @@ module.exports = [
 		console.log("  version: " + version);
 		console.log("  Command list:");
 		commands.forEach(function (definition) {
-			var args = definition.args.length > 0 ? `<${definition.args.join(" > <")}>` : "";
+			var args = definition.args.length > 0 ? `<${definition.args.join("> <")}>` : "";
 			var opts = definition.options.length > 0 ? "[options]" : "";
 			console.log(`    koaton ${definition.cmd} ${args.yellow} ${opts.cyan}`);
 			console.log(`      ${definition.description.replace('\n',"\n   ")}`);
@@ -318,63 +319,87 @@ module.exports = [
 		});
 		process.exit(0);
 	},
-	{
+	/*{
 		cmd: "barebone",
 		description: "Runs your awsome Koaton applicaction",
-		args: [],
+		args: ["command", "args"],
 		options: [
 			["-p", "--production", "Runs with NODE_ENV = production"]
 		],
-		action: function (options) {
-			let i;
-			let t0;
-			let t1
-			let j = 10;
-			let Namespace;
-			t0 = process.hrtime();
-			let time = 10000000;
-			i = time;
-			while (--i) {
-				Namespace = undefined;
-				if (Namespace === undefined) {
-					Namespace = "";
-				}
-				path.resolve("/", Namespace, "hola");
-			}
-			t1 = process.hrtime();
-			diff(t0, t1);
-
-			t0 = process.hrtime();
-			i = time;
-			while (--i) {
-				Namespace = undefined;
-				Namespace = Namespace === undefined ? "" : Namespace;
-				path.resolve("/", Namespace, "hola");
-			}
-			t1 = process.hrtime();
-			diff(t0, t1);
-		}
-	},
+		action: function (command, args, options) {}
+	},*/
 	{
-		cmd: "ember",
-		alias:"ex",
-		description: "Shows the ember apps installed.",
+		cmd: "new",
+		description: `Creates a new koaton aplication.`,
 		args: ["app_name"],
 		options: [
-			["-l", "--list", "shows all ember applications."],
-			["-n", "--new", "Creates a new ember app with the especified named."],
-			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app."],
-			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
+			[
+				"-d", "--db <driver>",
+				"[ ".yellow +
+				adapters.map(function (tx) {
+					return tx.cyan;
+				}).join(" | ".yellow)
+				+ " ]".yellow
+			],
+			[
+				"-e", "--view-engine <engine>",
+				"[ ".yellow +
+				["handlebars", "ejs"].map(function (tx) {
+					return tx.cyan;
+				}).join(" | ".yellow)
+				+ " ]".yellow
+			 //"[ atpl|doT|dust|dustjs-linkedin|eco|ect|ejs|haml|haml-coffee|hamlet|handlebars|hogan|htmling|jade|jazz\n\t\t\t\t jqtpl|JUST|liquor|lodash|mote|mustache|nunjucks|QEJS|ractive|react|slm|swig|templayed|twig|liquid|toffee\n\t\t\t\t underscore|vash|walrus|whiskers ]"
+			],
+			["-f", "--force", "Overrides the existing directory."],
+			["-n", "--skip-npm", "Omits npm install"],
+			["-b", "--skip-bower", "Omits bower install"],
 		],
 		action: function (app_name, options) {
+			application = app_name;
+			const proypath = path.resolve(app_name);
+			utils.proyect_path = proypath;
+			if (!application) {
+				console.log(`${colors.yellow('The command requires a name to run.\n\tkoaton -h\nto see help.')}`);
+				process.die(1);
+			}
+			const db = database(options.db);
+			const eg = engine(options.viewEngine);
+			var empty = utils.isEmpty(proypath);
+			co(function* () {
+				var ok = true;
+				if (!(empty || options.force)) {
+					ok = yield prompt.confirm(`destination ${colors.yellow(utils.proyect_path)} is not empty, continue? [y/n]: `);
+				}
+				if (ok) {
+					process.stdin.destroy();
+					utils.to_env = path.join(utils.to_env, application);
+					setupApplication(proypath, db, eg, options);
+				} else {
+					utils.abort('aborting');
+				}
+			});
+		}
+			},
+	{
+		cmd: "ember",
+		alias: "ex",
+		description: "If no app_name epecified it lists all the installed ember apps.",
+		args: ["app_name"],
+		options: [
+			["-n", "--new", "Creates a new ember app with the especified named."],
+			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
+			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
+		],
+		action: function (app_name,options) {
 			bk(function* () {
 				var override = false;
 				const pt = `${process.cwd()}/ember/${app_name}`;
-				if (app_name == undefined || options.list) {
+				if (app_name===undefined) {
 					fs.readdirSync('./ember').forEach((dir) => {
 						const f = require(`${process.cwd()}/ember/${dir}/bower.json`);
 						console.log(`${dir}@${f.dependencies.ember}`);
 					});
+					process.exit(0);
 				} else if (options.new) {
 					const canAccess = access(pt);
 					override = !canAccess;
@@ -389,7 +414,6 @@ module.exports = [
 						yield SPAWN(["ember", "new", app_name, "-dir", pt, "-v"], process.cwd());
 						options.mount = options.mount === undefined ? "/" : options.mount;
 					}
-
 				} else if (options.build) {
 					const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
 					const publicdir = path.join(process.cwd(), "public", app_name, "/");
@@ -412,123 +436,25 @@ module.exports = [
 					fs.unlinkSync(`${mount_public}tests/index.html`);
 					fs.rmdirSync(`${mount_public}tests/`);
 				}
-
-				if (options.build) {} else {
-					if (options.new) {}
-					if (options.mount) {
-						console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
-						var emberjs = require(`${process.cwd()}/config/ember.js`);
-						emberjs[app_name] = {
-							mount: options.mount
-						};
-						yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
+				if (!options.build) {
+					options.mount = path.join('/', options.mount);
+					console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
+					var emberjs = require(`${process.cwd()}/config/ember.js`);
+					emberjs[app_name] = {
+						mount: options.mount
+					};
+					yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
 module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
-						let embercfg = yield utils.read(`${pt}/config/environment.js`, {
-							encoding: 'utf-8'
-						});
-						embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
-						yield utils.write(`${pt}/config/environment.js`, embercfg, true);
-					}
+					let embercfg = yield utils.read(`${pt}/config/environment.js`, {
+						encoding: 'utf-8'
+					});
+					embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
+					yield utils.write(`${pt}/config/environment.js`, embercfg, true);
 				}
 				return 0;
 			});
 		}
 	},
-	{
-		cmd: "model",
-		description: `Creates a new model. fields must sourround by \"\".
-	${"Fields syntax".yellow}:
-		${"field_name"}:${"type".cyan}	${"[ ".yellow+camintejs.map((c)=>{return c.toLowerCase().cyan}).join( " | ".yellow )+" ]".yellow}
-	${"example:".yellow}
-		koaton model User "active:integer name email password note:text created:date"
-`,
-		args: ["name", "fields"],
-		options: [
-			["-e", "--ember <app>", "Generates the model also for the app especified."],
-			["-f", "--force", "Deletes the model is exits."],
-			["-r", "--rest", "Makes the model REST enabled."]
-		],
-		action: function (name, fields, options) {
-			const inflector = require('i')();
-			const inflections = require(process.cwd() + '/config/inflections');
-			inflections.irregular.forEach((inflect) => {
-				inflector.inflections.irregular(inflect[0], inflect[1]);
-			});
-			if (name === undefined) {
-				console.log("you must especifie a ".red + "name".yellow);
-				process.exit(1);
-			}
-			name = inflector.singularize(name.toLowerCase());
-			var definition = {
-				model: {},
-				extra: {}
-			};
-			const _camintejs = camintejs.map((c) => {
-				return c.toLowerCase();
-			});
-			if (fields !== undefined) {
-				fields = fields.split(' ').map((field) => {
-					return field.split(':');
-				});
-				fields.forEach((field) => {
-					field[1] = field[1] || "String";
-					definition.model[field[0]] = `{ type:schema.${camintejs[_camintejs.indexOf(field[1].toLowerCase())]} }`;
-				});
-			}
-			definition = JSON.stringify(definition, null, '\t').replace(/"{/igm, "{").replace(/}"/igm, "}");
-			definition = `"use strict";
-module.exports = function(schema) {
-    return ${definition};
-};`;
-			bk(function* () {
-				var ok = true;
-				console.log(`${process.cwd()}/models/${name.toLowerCase()}.js`);
-				console.log();
-				if(access( `${process.cwd()}/models/${name.toLowerCase()}.js`) && !options.force){
-					ok = yield prompt.confirm(`The model ${name.green} already exits,do you want to override it? [y/n]: `);
-				}
-				if(!ok){return 0;}
-				yield utils.write(process.cwd() + "/models/" + name.toLowerCase() + ".js", definition);
-				if (options.rest && ok) {
-					var restcontroller = `"use strict";\nmodule.exports = {\n\tREST:true\n};`;
-					yield utils.write(process.cwd() + "/controllers/" + name.toLowerCase() + ".js", restcontroller);
-				}
-				if (options.ember) {
-					var embermodel = "import Model from 'ember-data/model';\n";
-					embermodel += "import attr from 'ember-data/attr';\n";
-					embermodel += "export default Model.extend({\n";
-					fields.forEach((field) => {
-						embermodel += `\t${field[0]}:attr('${emberdatas[_camintejs.indexOf(field[1].toLowerCase())]}'),\n`
-					});
-					embermodel += "});";
-					yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/models/" + name + ".js", embermodel);
-					if (options.rest) {
-						var embercontroller = `
-						import CTABLE from 'ember-cli-crudtable/mixins/crud-controller';
-import Ember from 'ember';
-export default Ember.Controller.extend(CTABLE('${name}'),{
-	actions:{
-	},
-	fieldDefinition:{ 
-		${fields.map((f)=>{return f[0];}).join(':{},\n\t\t')}:{}
-	}
-});`
-						yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/controllers/" + name + ".js", embercontroller);
-						yield utils.write(
-							process.cwd() + "/ember/" + options.ember + "/app/templates/" + name + ".hbs",
-							`{{crud-table\n\tfields=this.fieldDefinition\n}}`
-						);
-					}
-					console.log(`Please add this.route('${name}') to your ember app router.js`);
-				}
-				process.exit(1);
-			});
-
-			function fieldparser(field) {
-				var cfg = field.split(':');
-			}
-		}
-			},
 	{
 		cmd: "adapter",
 		description: "Install the especified driver adapter.",
@@ -640,199 +566,103 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 		}
 			},
 	{
-		cmd: "new",
-		description: `Creates a new koaton aplication.`,
-		args: ["app_name"],
+		cmd: "model",
+		description: `Creates a new model. fields must sourround by \"\".
+	${"Fields syntax".yellow}:
+		${"field_name"}:${"type".cyan}	${"[ ".yellow+camintejs.map((c)=>{return c.toLowerCase().cyan}).join( " | ".yellow )+" ]".yellow}
+	${"example:".yellow}
+		koaton model User "active:integer name email password note:text created:date"
+`,
+		args: ["name", "fields"],
 		options: [
-			[
-				"-d", "--db <driver>",
-				"[ ".yellow +
-				adapters.map(function (tx) {
-					return tx.cyan;
-				}).join(" | ".yellow)
-				+ " ]".yellow
-			],
-			[
-				"-e", "--view-engine <engine>",
-				"[ ".yellow +
-				["handlebars", "ejs"].map(function (tx) {
-					return tx.cyan;
-				}).join(" | ".yellow)
-				+ " ]".yellow
-			 //"[ atpl|doT|dust|dustjs-linkedin|eco|ect|ejs|haml|haml-coffee|hamlet|handlebars|hogan|htmling|jade|jazz\n\t\t\t\t jqtpl|JUST|liquor|lodash|mote|mustache|nunjucks|QEJS|ractive|react|slm|swig|templayed|twig|liquid|toffee\n\t\t\t\t underscore|vash|walrus|whiskers ]"
-			],
-			["-f", "--force", "Overrides the existing directory."],
-			["-n", "--skip-npm", "Omits npm install"],
-			["-b", "--skip-bower", "Omits bower install"],
+			["-e", "--ember <app>", "Generates the model also for the app especified."],
+			["-f", "--force", "Deletes the model is exits."],
+			["-r", "--rest", "Makes the model REST enabled."]
 		],
-		action: function (app_name, options) {
-			application = app_name;
-			const proypath = path.resolve(app_name);
-			utils.proyect_path = proypath;
-			if (!application) {
-				console.log(`${colors.yellow('The command requires a name to run.\n\tkoaton -h\nto see help.')}`);
-				process.die(1);
+		action: function (name, fields, options) {
+			const inflector = require('i')();
+			const inflections = require(process.cwd() + '/config/inflections');
+			inflections.irregular.forEach((inflect) => {
+				inflector.inflections.irregular(inflect[0], inflect[1]);
+			});
+			if (name === undefined) {
+				console.log("you must especifie a ".red + "name".yellow);
+				process.exit(1);
 			}
-			const db = database(options.db);
-			const eg = engine(options.viewEngine);
-			var empty = utils.isEmpty(proypath);
-			co(function* () {
+			name = inflector.singularize(name.toLowerCase());
+			var definition = {
+				model: {},
+				extra: {}
+			};
+			const _camintejs = camintejs.map((c) => {
+				return c.toLowerCase();
+			});
+			if (fields !== undefined) {
+				fields = fields.split(' ').map((field) => {
+					return field.split(':');
+				});
+				fields.forEach((field) => {
+					field[1] = field[1] || "String";
+					definition.model[field[0]] = `{ type:schema.${camintejs[_camintejs.indexOf(field[1].toLowerCase())]} }`;
+				});
+			}
+			definition = JSON.stringify(definition, null, '\t').replace(/"{/igm, "{").replace(/}"/igm, "}");
+			definition = `"use strict";
+module.exports = function(schema) {
+    return ${definition};
+};`;
+			bk(function* () {
 				var ok = true;
-				if (!(empty || options.force)) {
-					ok = yield prompt.confirm(`destination ${colors.yellow(utils.proyect_path)} is not empty, continue? [y/n]: `);
+				console.log(`${process.cwd()}/models/${name.toLowerCase()}.js`);
+				console.log();
+				if (access(`${process.cwd()}/models/${name.toLowerCase()}.js`) && !options.force) {
+					ok = yield prompt.confirm(`The model ${name.green} already exits,do you want to override it? [y/n]: `);
 				}
-				if (ok) {
-					process.stdin.destroy();
-					utils.to_env = path.join(utils.to_env, application);
-					setupApplication(proypath, db, eg, options);
-				} else {
-					utils.abort('aborting');
+				if (!ok) {
+					return 0;
 				}
-			});
-		}
-			},
-	{
-		cmd: "serve",
-		description: "Runs your awsome Koaton applicaction",
-		args: [],
-		options: [
-			["-p", "--production", "Runs with NODE_ENV = production"],
-			["-f", "--forever", "Runs your server with forever. Also sets NODE_ENV = production."],
-			["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
-		],
-		action: function (options) {
-			co(function* () {
-				const env = {
-					welcome: false,
-					NODE_ENV: !options.production ? 'development' : 'production',
-					port: options.port || 62626
-				};
-				if (options.forever) {
-					env.NODE_ENV = 'production';
+				yield utils.write(process.cwd() + "/models/" + name.toLowerCase() + ".js", definition);
+				if (options.rest && ok) {
+					var restcontroller = `"use strict";\nmodule.exports = {\n\tREST:true\n};`;
+					yield utils.write(process.cwd() + "/controllers/" + name.toLowerCase() + ".js", restcontroller);
 				}
-				utils.welcome(env);
-				const nodemon = require('gulp-nodemon');
-				const livereload = require('gulp-livereload');
-				const notifier = require('node-notifier');
-				if (options.production) {
-					livereload.listen({
-						port: 62627,
-						quiet: true
+				if (options.ember) {
+					var embermodel = "import Model from 'ember-data/model';\n";
+					embermodel += "import attr from 'ember-data/attr';\n";
+					embermodel += "export default Model.extend({\n";
+					fields.forEach((field) => {
+						embermodel += `\t${field[0]}:attr('${emberdatas[_camintejs.indexOf(field[1].toLowerCase())]}'),\n`
 					});
-				}
-				//ember_app
-				const embercfg = require(`${process.cwd()}/config/ember`);
-				let build = [];
-				for (var ember_app in embercfg) {
-					if (build.indexOf(ember_app) === -1) {
-						console.log("Building " + ember_app.green + "...");
-						let a = yield SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
-						console.log(a === 0 ? "Success".green : "Failed".red);
+					embermodel += "});";
+					yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/models/" + name + ".js", embermodel);
+					if (options.rest) {
+						var embercontroller = `
+						import CTABLE from 'ember-cli-crudtable/mixins/crud-controller';
+import Ember from 'ember';
+export default Ember.Controller.extend(CTABLE('${name}'),{
+	actions:{
+	},
+	fieldDefinition:{ 
+		${fields.map((f)=>{return f[0];}).join(':{},\n\t\t')}:{}
+	}
+});`
+						yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/controllers/" + name + ".js", embercontroller);
+						yield utils.write(
+							process.cwd() + "/ember/" + options.ember + "/app/templates/" + name + ".hbs",
+							`{{crud-table\n\tfields=this.fieldDefinition\n}}`
+						);
 					}
+					console.log(`Please add this.route('${name}') to your ember app router.js`);
 				}
-				if (options.forever) {
-					const app = path.basename(process.cwd());
-					const cmd = `NODE_ENV=${env.NODE_ENV} port=${env.port} forever start --colors --uid "koaton_${app}" -a app.js`;
-					exec(`forever stop koaton_${app}`).catch(() => {}).finally(() => {
-						exec(cmd, {
-							cwd: process.cwd()
-						}).then((data) => {
-							console.log(app + " is running ... ");
-						}).finally((a, b, c) => {
-							process.exit(0);
-						});
-					});
-				} else {
-					nodemon({
-						ext: '*',
-						quiet: true,
-						ignore: ["node_modules/*"],
-						verbose: false,
-						script: 'app.js',
-						env: env,
-						stdout: true
-					}).once('start', function () {
-						utils.info(env);
-						notifier.notify({
-							title: 'Koaton',
-							message: 'Server runnung on localhost:' + env.port,
-							open: "http://localhost:" + env.port,
-							icon: path.join(__dirname, 'koaton.png'),
-							sound: 'Hero',
-							wait: false
-						});
-					}).on('restart', function () {
-						setTimeout(function () {
-							livereload.reload();
-						}, 1000);
-						notifier.notify({
-							title: 'Koaton',
-							message: 'restarting server...',
-							icon: path.join(__dirname, 'koaton.png'),
-							sound: 'Hero',
-						});
-					});
-				}
+				process.exit(1);
 			});
-		}
-			},
-	{
-		cmd: "stop",
-		description: "Stops the forever running server.",
-		args: [],
-		options: [],
-		action: function (options) {
-			exec(`forever stop koaton_${path.basename(process.cwd())}`).then((data) => {}).finally((a) => {
-				process.exit(0);
-			});
-		}
-			},
-	{
-		cmd: "list",
-		description: "Lists all Koaton running applicactions.",
-		args: [],
-		options: [],
-		action: function (options) {
-			exec(`forever list`).then((data, data2) => {
-				data = data.stdout.replace("info:    Forever processes running", "").replace(/ /igm, "-").replace(/data:/igm, "").replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
-				var headers = data[1].trim().split(' ').slice(1);
-				data = data.slice(2).map((d) => {
-					return d.trim().split(' ')
-				}).map((d) => {
-					return d.slice(1);
-				});
-				headers[0] = headers[0].green;
-				headers[1] = headers[1].gray.dim;
-				headers[2] = headers[2].gray.dim;
-				headers[3] = headers[3].gray.dim;
-				headers[4] = headers[4].cyan;
-				headers[5] = headers[5].gray.dim;
-				headers[6] = headers[6].magenta;
-				headers[7] = headers[7].yellow;
-				data.pop();
-				data.forEach((line) => {
-					line[0] = line[0].green;
-					line[1] = line[1].gray.dim;
-					line[2] = line[2].gray.dim;
-					line[3] = line[3].gray.dim;
-					line[4] = line[4].cyan;
-					line[5] = line[5].magenta;
-					line[6] = line[6].yellow;
-				});
-				console.log(headers.join(' ').replace(/-/igm, " "));
-				console.log(data.map((d) => {
-					if (d[0].indexOf("koaton") > -1) {
-						return d.join(' ').replace(/-/igm, " ");
-					} else {
-						return null;
-					}
 
-				}).join('\n'));
-			}).finally((a) => {
-				process.exit(0);
-			});
+			function fieldparser(field) {
+				var cfg = field.split(':');
+			}
 		}
 			},
+
 	{
 		cmd: "build",
 		description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
@@ -876,5 +706,215 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				}
 			});
 		}
-			},
-			];
+},
+	{
+		cmd: "serve",
+		description: "Runs your awsome Koaton applicaction using nodemon",
+		args: [],
+		options: [
+			["-p", "--production", "Runs with NODE_ENV = production"],
+			["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
+		],
+		action: function (options) {
+			co(function* () {
+				const env = {
+					welcome: false,
+					NODE_ENV: !options.production ? 'development' : 'production',
+					port: options.port || 62626
+				};
+				if (options.forever) {
+					env.NODE_ENV = 'production';
+				}
+				utils.welcome(env);
+				const nodemon = require('gulp-nodemon');
+				const livereload = require('gulp-livereload');
+				const notifier = require('node-notifier');
+				if (options.production) {
+					livereload.listen({
+						port: 62627,
+						quiet: true
+					});
+				}
+				const embercfg = require(`${process.cwd()}/config/ember`);
+				let build = [];
+				let watching = [];
+				var trigger = {};
+				for (var ember_app in embercfg) {
+					const updateApp = function (dir) {
+						notifier.notify({
+							title: 'Koaton',
+							message: 'Rebuilding app: ' + ember_app,
+							icon: path.join(__dirname, 'koaton.png'),
+							sound: 'Hero',
+							wait: false
+						});
+						SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+						livereload.reload();
+					}
+					if (build.indexOf(ember_app) === -1) {
+						console.log("Building " + ember_app.green + "...");
+						let a = yield SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+						if (a === 0) {
+							var watcher = chokidar.watch(`ember/${ember_app}/**/*.js`, {
+								ignored: [
+									"**/node_modules/**",
+									"**/bower_components/**",
+									"**/tmp/**",
+									"**/vendor/**",
+									/[\/\\]\./
+								],
+								persistent: true,
+								usePolling: true,
+								interval: 300,
+								binaryInterval: 400,
+								alwaysStat: false,
+								awaitWriteFinish: {
+									stabilityThreshold: 1000,
+									pollInterval: 100
+								},
+							});
+							var log = console.log.bind(console);
+							watcher
+								.on('change', updateApp)
+								.on('unlink', updateApp)
+								.on('ready', path => watcher.on('add', updateApp))
+								.on('unlinkDir', updateApp)
+								.on('error', error => console.log(`Watcher error: ${error}`));
+							watching.push(watcher);
+						} else {
+							console.log("Failed".red);
+						}
+					}
+					nodemon({
+						ext: '*',
+						quiet: true,
+						delay: 500,
+						ignore: ["**/node_modules/**", "**/bower_components/**", "**/ember/**"],
+						verbose: false,
+						script: 'app.js',
+						env: env,
+						stdout: true
+					}).once('start', function () {
+						utils.info(env);
+						notifier.notify({
+							title: 'Koaton',
+							message: 'Server runnung on localhost:' + env.port,
+							open: "http://localhost:" + env.port,
+							icon: path.join(__dirname, 'koaton.png'),
+							sound: 'Hero',
+							wait: false
+						});
+					}).on('restart', function () {
+						setTimeout(function () {
+							livereload.reload();
+						}, 1000);
+						notifier.notify({
+							title: 'Koaton',
+							message: 'restarting server...',
+							icon: path.join(__dirname, 'koaton.png'),
+							sound: 'Hero',
+						});
+					});
+				}
+			});
+		}
+},
+	{
+		cmd: "forever",
+		description: "Runs your awsome Koaton on production mode with forever.",
+		args: [],
+		options: [
+			["-l", "--list", "Lists all Koaton running applicactions."],
+			["-o", "--logs <app>", "Shows the logs for the selected app."],
+			["-s", "--stop", "Stops all the forever running servers."],
+			["--port", "--port <port>", "(Default: 62626) Run on the especified port (port 80 requires sudo)."]
+		],
+		action: function (options) {
+			const env = {
+				welcome: false,
+				NODE_ENV: 'production',
+				port: options.port || 62626
+			};
+			const app = path.basename(process.cwd());
+			const cmd = `NODE_ENV=${env.NODE_ENV} port=${env.port} forever start --colors --uid "koaton_${app}" -a app.js`;
+			if (options.logs) {
+				exec(`forever list`).then((data, data2) => {
+					data = data.stdout.replace("info:    Forever processes running", "").replace(/ /igm, "-").replace(/data:/igm, "").replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
+					var headers = data[1].trim().split(' ').slice(1);
+					data = data.slice(2).map((d) => {
+						return d.trim().split(' ')
+					});
+					for (let i in data) {
+						if (data[i].indexOf(options.logs) > -1) {
+							return data[i][6];
+						}
+					}
+					return null;
+				}).done(id => {
+					if (id !== null) {
+						exec(`cat ${id}`).then(data => {
+							console.log(data.stdout);
+						}).finally((a) => {
+							process.exit(0);
+						});
+					}
+				});
+			} else if (options.stop) {
+				exec(`forever stop koaton_${path.basename(process.cwd())}`).then((data) => {}).finally((a) => {
+					process.exit(0);
+				});
+			} else if (options.list) {
+				exec(`forever list`).then((data, data2) => {
+					data = data.stdout.replace("info:    Forever processes running", "").replace(/ /igm, "-").replace(/data:/igm, "").replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
+					var headers = data[1].trim().split(' ').slice(1);
+					data = data.slice(2).map((d) => {
+						return d.trim().split(' ')
+					}).map((d) => {
+						return d.slice(1);
+					});
+					headers[0] = headers[0].green;
+					headers[1] = headers[1].gray.dim;
+					headers[2] = headers[2].gray.dim;
+					headers[3] = headers[3].gray.dim;
+					headers[4] = headers[4].cyan;
+					headers[5] = headers[5].gray.dim;
+					headers[6] = headers[6].magenta;
+					headers[7] = headers[7].yellow;
+					data.pop();
+					data.forEach((line) => {
+						line[0] = line[0].green;
+						line[1] = line[1].gray.dim;
+						line[2] = line[2].gray.dim;
+						line[3] = line[3].gray.dim;
+						line[4] = line[4].cyan;
+						line[5] = line[5].magenta;
+						line[6] = line[6].yellow;
+					});
+					console.log(headers.join(' ').replace(/-/igm, " "));
+					console.log(data.map((d) => {
+						if (d[0].indexOf("koaton") > -1) {
+							return d.join(' ').replace(/-/igm, " ");
+						} else {
+							return null;
+						}
+
+					}).join('\n'));
+				}).finally((a) => {
+					process.exit(0);
+				});
+			} else {
+				exec(`forever stop koaton_${app}`).catch(() => {}).finally(() => {
+					exec(cmd, {
+						cwd: process.cwd()
+					}).then((data) => {
+						console.log(app + " is running ... ");
+					}).finally((a, b, c) => {
+						process.exit(0);
+					});
+				});
+			}
+		}
+	},
+
+
+];

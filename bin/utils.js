@@ -95,7 +95,7 @@ module.exports.utils = {
 				return false;
 			});
 		},
-		glob: Promise.promisify(require('node-glob')),
+		glob: Promise.promisify(require('glob')),
 		/**
 		 * Check if the given directory `path` is empty.
 		 *
