@@ -673,12 +673,9 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 		action: function (config_file, options) {
 			config_file = config_file || process.cwd() + '/config/bundles.js';
 			var gulp = require('gulp');
-			var browserify = require('browserify');
 			var source = require('vinyl-source-stream');
 			var buffer = require('vinyl-buffer');
-			var glob = require('glob');
 			var concat = require('gulp-concat');
-			var _ = require('lodash');
 			var sourcemaps = require('gulp-sourcemaps');
 			var uglify = require('gulp-uglify');
 			var hash = require('gulp-hash-filename');

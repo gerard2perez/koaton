@@ -1,7 +1,7 @@
 {
   "name": "koaton",
   "version": "0.0.1",
-  "description": "MVC Real Time Framework",
+  "description": "Koaton is a CLI tool that provides a nice starting point for full stack JavaScript Web development with Koa, Ember, and Node.js along with CaminateJS and WebSockets.",
   "main": "./lib/index.js",
   "bin": {
     "koaton": "./bin/koaton"
@@ -14,33 +14,29 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@bitbucket.org/gerardopp/koaton.git"
+    "url": "https://github.com/gerard2p/koaton.git"
   },
   "keywords": [
     "koa",
     "bootstrap",
     "seed",
     "mvc",
-    "emberjs"
+    "emberjs",
+	"websockets"
   ],
   "author": "Gerardo Pérez Pérez <gerard2perez@outlook.com>",
   "license": "MIT",
   "readmeFilename": "README.md",
-  "homepage": "https://bitbucket.org/gerardopp/koaton#readme",
+  "homepage": "https://github.com/gerard2p/koaton.git",
   "dependencies": {
-    "@f/defaults": "^1.0.1",
     "bluebird": "^3.3.5",
-    "browserify": "^13.0.0",
     "chokidar": "^1.5.0",
     "co": "^4.6.0",
     "co-prompt": "^1.0.0",
     "co-views": "^2.1.0",
     "colors": "^1.1.2",
     "commander": "^2.9.0",
-    "glob": "^7.0.3",
     "gulp": "^3.9.1",
-    "gulp-browser": "^2.0.1",
-    "gulp-browserify": "^0.5.1",
     "gulp-concat": "^2.6.0",
     "gulp-hash-filename": "^1.0.1",
     "gulp-imagemin": "^2.4.0",
@@ -51,16 +47,9 @@
     "gulp-uglify": "^1.5.3",
     "handlebars": "^4.0.5",
     "i": "^0.3.4",
-    "i18n": "^0.8.2",
     "koa-send": "^3.2.0",
     "livereload": "^0.4.1",
-    "lodash": "^4.11.1",
     "mkdirp": "^0.5.1",
-    "node-glob": "^1.2.0",
-    "node-notifier": "^4.5.0",
-    "saw": "^1.0.7",
-    "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.1.0",
-    "vinyl-transform": "^1.0.0"
+    "node-notifier": "^4.5.0"
   }
 }
