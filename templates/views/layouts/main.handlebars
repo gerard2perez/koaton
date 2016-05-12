@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+	<head>
+    	<meta charset="utf-8" />
+    	{{meta}}
+    	<title>{{title}}</title>
+    	{{{css}}}
+	</head>
+	<body>
+    	{{{body}}}
+    	{{js}}
+ 	{{#if env_dev}}
+	 	<script src="http://localhost:62627/livereload.js?snipver=1"></script>
+ 	{{/if}}
+	</body>
+</html>
