@@ -390,11 +390,11 @@ module.exports = [
 			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
 			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
 		],
-		action: function (app_name,options) {
+		action: function (app_name, options) {
 			bk(function* () {
 				var override = false;
 				const pt = `${process.cwd()}/ember/${app_name}`;
-				if (app_name===undefined) {
+				if (app_name === undefined) {
 					fs.readdirSync('./ember').forEach((dir) => {
 						const f = require(`${process.cwd()}/ember/${dir}/bower.json`);
 						console.log(`${dir}@${f.dependencies.ember}`);
@@ -412,7 +412,7 @@ module.exports = [
 					if (override) {
 						console.log(`Installing [${app_name.green}]`);
 						yield SPAWN(["ember", "new", app_name, "-dir", pt, "-v"], process.cwd());
-						options.mount = options.mount === undefined ? "/" : options.mount;
+						options.mount = options.mount === undefined ? "/" : path.join("/",options.mount);
 					}
 				} else if (options.build) {
 					const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
@@ -710,6 +710,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 		args: [],
 		options: [
 			["-p", "--production", "Runs with NODE_ENV = production"],
+			["-b", "--build", "Builds the ember apss."],
 			["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 		],
 		action: function (options) {
@@ -750,7 +751,10 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					}
 					if (build.indexOf(ember_app) === -1) {
 						console.log("Building " + ember_app.green + "...");
-						let a = yield SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+						let a = options.build ? 1 : 0;
+						if (options.build) {
+							a = yield SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+						}
 						if (a === 0) {
 							var watcher = chokidar.watch(`ember/${ember_app}/**/*.js`, {
 								ignored: [
@@ -761,16 +765,15 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 									/[\/\\]\./
 								],
 								persistent: true,
-								usePolling: true,
-								interval: 300,
-								binaryInterval: 400,
+//								usePolling: true,
+//								interval: 300,
+//								binaryInterval: 400,
 								alwaysStat: false,
 								awaitWriteFinish: {
 									stabilityThreshold: 1000,
 									pollInterval: 100
 								},
 							});
-							var log = console.log.bind(console);
 							watcher
 								.on('change', updateApp)
 								.on('unlink', updateApp)
@@ -786,7 +789,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 						ext: '*',
 						quiet: true,
 						delay: 500,
-						ignore: ["**/node_modules/**", "**/bower_components/**", "**/ember/**"],
+						ignore: ["**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**", "**/views/**"],
 						verbose: false,
 						script: 'app.js',
 						env: env,
@@ -801,7 +804,9 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 							sound: 'Hero',
 							wait: false
 						});
-					}).on('restart', function () {
+					}).on('restart', function (a, b) {
+						console.log(a);
+						console.log(b);
 						setTimeout(function () {
 							livereload.reload();
 						}, 1000);
