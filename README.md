@@ -1,4 +1,4 @@
-![Koaton](/bin/koaton.png) Koaton 
+![Koaton](/templates/public/koaton2.png)
 -----------
 
 Koaton is a CLI tool that provides a nice starting point for full stack JavaScript Web development with [Koa](http://koajs.com/), [Ember](http://emberjs.com/), and [Node.js](http://www.nodejs.org/) along with [CaminateJS](http://www.camintejs.com/) and [WebSockets](https://developer.mozilla.org/en/docs/WebSockets).

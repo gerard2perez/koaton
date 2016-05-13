@@ -1,22 +1,22 @@
 {
-  "name": "koaton",
-  "version": "0.0.0",
-  "description": "Koaton is a CLI tool that provides a nice starting point for full stack JavaScript Web development with Koa, Ember, and Node.js along with CaminateJS and WebSockets.",
-  "main": "./lib/index.js",
-  "bin": {
-    "koaton": "./bin/koaton"
-  },
-  "directories": {
-    "lib": "lib"
-  },
-  "engines": {
-    "node": ">= 4.4.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/gerard2p/koaton.git"
-  },
-  "keywords": [
+	"name": "koaton",
+	"version": "0.0.0",
+	"description": "Koaton is a CLI tool that provides a nice starting point for full stack JavaScript Web development with Koa, Ember, and Node.js along with CaminateJS and WebSockets.",
+	"main": "./lib/index.js",
+	"bin": {
+		"koaton": "./bin/koaton"
+	},
+	"directories": {
+		"lib": "lib"
+	},
+	"engines": {
+		"node": ">= 4.4.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/gerard2p/koaton.git"
+	},
+	"keywords": [
     "koa",
     "bootstrap",
     "seed",
@@ -24,32 +24,32 @@
     "emberjs",
 	"websockets"
   ],
-  "author": "Gerardo Pérez Pérez <gerard2perez@outlook.com>",
-  "license": "MIT",
-  "readmeFilename": "README.md",
-  "homepage": "https://github.com/gerard2p/koaton.git",
-  "dependencies": {
-    "bluebird": "^3.3.5",
-    "chokidar": "^1.5.0",
-    "co": "^4.6.0",
-    "co-prompt": "^1.0.0",
-    "co-views": "^2.1.0",
-    "colors": "^1.1.2",
-    "commander": "^2.9.0",
-    "gulp": "^3.9.1",
-    "gulp-concat": "^2.6.0",
-    "gulp-hash-filename": "^1.0.1",
-    "gulp-imagemin": "^2.4.0",
-    "gulp-jscrambler": "^0.1.5",
-    "gulp-livereload": "^3.8.1",
-    "gulp-nodemon": "^2.0.6",
-    "gulp-sourcemaps": "^2.0.0-alpha",
-    "gulp-uglify": "^1.5.3",
-    "handlebars": "^4.0.5",
-    "i": "^0.3.4",
-    "koa-send": "^3.2.0",
-    "livereload": "^0.4.1",
-    "mkdirp": "^0.5.1",
-    "node-notifier": "^4.5.0"
-  }
+	"author": "Gerardo Pérez Pérez <gerard2perez@outlook.com>",
+	"license": "MIT",
+	"readmeFilename": "README.md",
+	"homepage": "https://github.com/gerard2p/koaton.git",
+	"dependencies": {
+		"bluebird": "^3.3.5",
+		"chokidar": "^1.5.0",
+		"co": "^4.6.0",
+		"co-prompt": "^1.0.0",
+		"co-views": "^2.1.0",
+		"colors": "^1.1.2",
+		"commander": "^2.9.0",
+		"gulp": "^3.9.1",
+		"gulp-concat": "^2.6.0",
+		"gulp-hash-filename": "^1.0.1",
+		"gulp-imagemin": "^2.4.0",
+		"gulp-jscrambler": "^0.1.5",
+		"gulp-livereload": "^3.8.1",
+		"gulp-nodemon": "^2.0.6",
+		"gulp-sourcemaps": "^2.0.0-alpha",
+		"gulp-uglify": "^1.5.3",
+		"handlebars": "^4.0.5",
+		"i": "^0.3.4",
+		"koa-send": "^3.2.0",
+		"livereload": "^0.4.1",
+		"mkdirp": "^0.5.1",
+		"node-notifier": "^4.5.0"
+	}
 }

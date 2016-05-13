@@ -69,10 +69,92 @@ function endstream() {
 	} finally {
 		buffer = "";
 	}
+}
+var spinners = [
+    "←↖↑↗→↘↓↙",
+    "▁▃▄▅▆▇█▇▆▅▄▃",
+    "▉▊▋▌▍▎▏▎▍▌▋▊▉",
+    "▖▘▝▗",
+    "▌▀▐▄",
+    "┤┘┴└├┌┬┐",
+    "◢◣◤◥",
+    "◰◳◲◱",
+    "◴◷◶◵",
+    "◐◓◑◒",
+    "|/-\\",
+    ".oO@*",
+    ["◡◡", "⊙⊙", "◠◠"],
+    ["◜ ", " ◝", " ◞", "◟ "],
+    "◇◈◆",
+    "⣾⣽⣻⢿⡿⣟⣯⣷",
+    "⠁⠂⠄⡀⢀⠠⠐⠈",
+    [">))'>", " >))'>", "  >))'>", "   >))'>", "    >))'>", "   <'((<", "  <'((<", " <'((<"],
+    ["    /\\O\n     /\\/\n    /\\\n   /  \\\n LOL  LOL", "     _O\n   //|_\n    |\n   /|\n   LLOL", "      O\n     /_\n     |\\\n    / |\n  LOLLOL"],
+];
+let pipeval = {
+	action: "start"
+};
+const pipe = (str) => {
+	if (!!str) {
+		pipeval = str;
+	} else {
+		return pipeval;
+	}
 
+};
+const spinner = co.wrap(function* (interval, text) {
+	const spin = "◐◓◑◒";
+	const l = spin.length;
+	let current = -1;
+	//	let id = spinnerid;
+	let prom = new Promise(function (resolve, reject) {
+		let i = null;
+		i = setInterval(() => {
+			let pip = pipe();
+			switch (pip.action) {
+			case "end":
+				clearInterval(i);
+				i = null;
+				if (pip.id !== undefined) {
+					process.stdout.clearLine();
+					process.stdout.cursorTo(0);
+					process.stdout.write(pip.id);
+				}
+				process.stdout.write("\n");
+				resolve(true);
+				break;
+			case "text":
+				text = pip.id;
+				break;
+			default:
+				process.stdout.clearLine();
+				process.stdout.cursorTo(0);
+				current++
+				if (current >= l) {
+					current = 0;
+				}
+				process.stdout.write(spin[current].green.bold + "\t" + text + "\t");
+				//				process.stdout.write(" "+current.toString());
+
+				break;
+			}
+			pipe({});
+		}, interval);
+		//	return yield p.resolve(val);
+		//	while (i !== null){console.log(".");}
+		//	console.log('end');
+	});
+	return yield prom;
+});
+const closeSpinner = (msg) => {
+	pipe({
+		action: "end",
+		id: msg
+	});
 }
 
 function output(data) {
+	process.stdout.write(data.toString());
 	buffer += data.toString();
 	logstring += data.toString();
 	if (buffer.indexOf('\n') > -1 && buffer.indexOf("idealTree") === -1 && buffer.indexOf("currentTree") === -1) {
@@ -83,7 +165,8 @@ function output(data) {
 
 		} finally {
 			buffer = buffer.split('\n')[0].split(" ").slice(2).join(" ");
-			process.stdout.write(buffer);
+			process.stdout.write(buffer.replace(/\r/igm, "").replace(/\n/igm, "").substr(0, 20));
+			//			process.stdout.write(buffer);
 			buffer = "";
 		}
 	}
@@ -91,26 +174,23 @@ function output(data) {
 	//	process.stdout.write(data.toString() + '\n');
 }
 
-function npmlog(command, cwd, cb) {
-	logstring = "";
-	//	console.log(command.join(" "), " -> ", cwd);
+function npmlog(display, command, cwd, cb) {
+	let c = undefined;
+	spinner(50, display).then(() => {
+		cb && cb(null, c || child.exitCode);
+	});
 	var child = spawn(command[0], command.slice(1), {
 		cwd: path.join(cwd, "/"),
 		shell: true
-			//		stdio: process.stdio
 	});
-	//			child.stdout.pipe(process.stdout);
-	//			child.stderr.pipe(process.stdout);
-	child.stdout.on('data', output);
-	child.stderr.on('data', output);
 	child.on('close', function (code, signal) {
-		endstream();
-		cb && cb(null, code || child.exitCode);
+		c = code;
+		const msg = code === 0 ? `✓`.green : `✗`.red;
+		closeSpinner(`+ ${display}\t${msg}`.green);
 	});
-	//	process.stdin.pipe(child.stdin);
 }
 
-const SPAWN = Promise.promisify(npmlog);
+const shell = Promise.promisify(npmlog);
 
 /**
  * Create application at the given directory `path`.
@@ -161,32 +241,26 @@ function setupApplication(proyect_path, db, eg, options) {
 		if (!options.skipNpm) {
 			yield utils.write(application + "/package.json", JSON.stringify(pk, null, '\t'), null);
 			console.log(print.line1);
-			console.log(print.center("Installing core dependencies"));
-			yield SPAWN(["npm", "install", "--loglevel", "info"], application);
-			console.log(print.center("Installing database adapter " + db[2].green));
-			yield SPAWN(db, application);
-			console.log(print.center("Installing view engine " + eg[2].green));
-			yield SPAWN(eg, application);
+			yield shell("Installing npm dependencies", ["npm", "install", "--loglevel", "info"], application);
+			yield shell("Installing adapter " + db[2].green, db, application);
+			yield shell("Installing engine " + eg[2].green, eg, application);
 		} else {
 			pk.dependencies[eg[2]] = "latest";
 			pk.dependencies[db[2]] = "latest";
 			yield utils.write(application + "/package.json", JSON.stringify(pk, null, '\t'), null);
 		}
 		if (!options.skipBower) {
-			console.log(print.line1);
-			console.log(print.center("Installing Bower dependencies"));
-			yield SPAWN(["bower", "install"], application);
+			yield shell("Installing bower dependencies", ["bower", "install"], application);
 		}
 	}).then(function () {
 		process.on('exit', function () {
 			console.log(print.line1);
-			console.log(print.line2.center);
 			console.log("   To run your app first: ");
 			console.log('     $' + ' cd %s '.bgWhite.black, application);
 			console.log('   and then: ');
 			console.log('     $' + ' koaton serve '.bgWhite.black);
 			console.log(print.line3("or"));
-			console.log('     $' + 'cd %s && koaton serve '.bgWhite.black.bold, application);
+			console.log('     $' + 'cd %s && koaton serve '.bgWhite.black, application);
 			console.log();
 			console.log();
 		});
@@ -297,6 +371,7 @@ const bk = function (fn) {
 		process.exit(res);
 	});
 }
+
 module.exports = [
 	function (commands) {
 		delete this[0];
@@ -328,6 +403,21 @@ module.exports = [
 		],
 		action: function (command, args, options) {}
 	},*/
+	{
+		cmd: "spinner",
+		description: "Runs your awsome Koaton applicaction",
+		args: ["command", "args"],
+		options: [
+			["-p", "--production", "Runs with NODE_ENV = production"]
+		],
+		action: function (command, args, options) {
+			//			spinner(50, "Instaling Something");
+			//			pipe({
+			//					action: "text",
+			//					id: "Hola Pau!"
+			//				});
+		}
+	},
 	{
 		cmd: "new",
 		description: `Creates a new koaton aplication.`,
@@ -387,6 +477,7 @@ module.exports = [
 		args: ["app_name"],
 		options: [
 			["-n", "--new", "Creates a new ember app with the especified named."],
+			["-u", "--use <ember_addon>", "Install the especified addon in the especified app."],
 			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
 			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
 		],
@@ -399,7 +490,12 @@ module.exports = [
 						const f = require(`${process.cwd()}/ember/${dir}/bower.json`);
 						console.log(`${dir}@${f.dependencies.ember}`);
 					});
-					process.exit(0);
+					return 0;
+				} else if (options.use) {
+					console.log(`Installing ${options.use.green} addon on ${app_name.cyan}`);
+					let res = yield shell(["ember", "i", options.use], pt);
+					console.log(!res ? "Success".green : "Failed".red);
+					return res;
 				} else if (options.new) {
 					const canAccess = access(pt);
 					override = !canAccess;
@@ -411,8 +507,8 @@ module.exports = [
 					}
 					if (override) {
 						console.log(`Installing [${app_name.green}]`);
-						yield SPAWN(["ember", "new", app_name, "-dir", pt, "-v"], process.cwd());
-						options.mount = options.mount === undefined ? "/" : path.join("/",options.mount);
+						yield shell(["ember", "new", app_name, "-dir", pt, "-v"], process.cwd());
+						options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);
 					}
 				} else if (options.build) {
 					const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
@@ -420,7 +516,7 @@ module.exports = [
 					const mount_views = path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/");
 					const mount_public = path.join(process.cwd(), "public", embercfg.mount, "/");
 					console.log(`Building ... ${app_name.yellow}->${embercfg.mount.green}`);
-					if (yield SPAWN(
+					if (yield shell(
 							["ember", "build", "--environment", options.build, "-o", path.join("../../public/", embercfg.mount)],
 							process.cwd() + "/ember/" + app_name
 						)) {
@@ -454,7 +550,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 				return 0;
 			});
 		}
-	},
+			},
 	{
 		cmd: "adapter",
 		description: "Install the especified driver adapter.",
@@ -517,7 +613,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 							});
 							process.exit(1);
 						}
-						yield SPAWN(database(driver), process.cwd());
+						yield shell(database(driver), process.cwd());
 						console.log(`${driver}@${require(path.resolve() + "/package.json").dependencies[proxydb(driver)]} installed`);
 						options.generate = true;
 					}
@@ -567,7 +663,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			},
 	{
 		cmd: "model",
-		description: `Creates a new model. fields must sourround by \"\".
+		description: `Creates a new model. fields must be sourrounded by \"\".
 	${"Fields syntax".yellow}:
 		${"field_name"}:${"type".cyan}	${"[ ".yellow+camintejs.map((c)=>{return c.toLowerCase().cyan}).join( " | ".yellow )+" ]".yellow}
 	${"example:".yellow}
@@ -662,7 +758,6 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			}
 		}
 			},
-
 	{
 		cmd: "build",
 		description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
@@ -673,8 +768,6 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 		action: function (config_file, options) {
 			config_file = config_file || process.cwd() + '/config/bundles.js';
 			var gulp = require('gulp');
-			var source = require('vinyl-source-stream');
-			var buffer = require('vinyl-buffer');
 			var concat = require('gulp-concat');
 			var sourcemaps = require('gulp-sourcemaps');
 			var uglify = require('gulp-uglify');
@@ -703,7 +796,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				}
 			});
 		}
-},
+			},
 	{
 		cmd: "serve",
 		description: "Runs your awsome Koaton applicaction using nodemon",
@@ -733,7 +826,9 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 						quiet: true
 					});
 				}
+
 				const embercfg = require(`${process.cwd()}/config/ember`);
+
 				let build = [];
 				let watching = [];
 				var trigger = {};
@@ -746,14 +841,13 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 							sound: 'Hero',
 							wait: false
 						});
-						SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+						shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 						livereload.reload();
 					}
 					if (build.indexOf(ember_app) === -1) {
-						console.log("Building " + ember_app.green + "...");
 						let a = options.build ? 1 : 0;
 						if (options.build) {
-							a = yield SPAWN(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+							a = yield shell(["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 						}
 						if (a === 0) {
 							var watcher = chokidar.watch(`ember/${ember_app}/**/*.js`, {
@@ -765,9 +859,6 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 									/[\/\\]\./
 								],
 								persistent: true,
-//								usePolling: true,
-//								interval: 300,
-//								binaryInterval: 400,
 								alwaysStat: false,
 								awaitWriteFinish: {
 									stabilityThreshold: 1000,
@@ -781,46 +872,44 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 								.on('unlinkDir', updateApp)
 								.on('error', error => console.log(`Watcher error: ${error}`));
 							watching.push(watcher);
-						} else {
-							console.log("Failed".red);
 						}
 					}
-					nodemon({
-						ext: '*',
-						quiet: true,
-						delay: 500,
-						ignore: ["**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**", "**/views/**"],
-						verbose: false,
-						script: 'app.js',
-						env: env,
-						stdout: true
-					}).once('start', function () {
-						utils.info(env);
-						notifier.notify({
-							title: 'Koaton',
-							message: 'Server runnung on localhost:' + env.port,
-							open: "http://localhost:" + env.port,
-							icon: path.join(__dirname, 'koaton.png'),
-							sound: 'Hero',
-							wait: false
-						});
-					}).on('restart', function (a, b) {
-						console.log(a);
-						console.log(b);
-						setTimeout(function () {
-							livereload.reload();
-						}, 1000);
-						notifier.notify({
-							title: 'Koaton',
-							message: 'restarting server...',
-							icon: path.join(__dirname, 'koaton.png'),
-							sound: 'Hero',
-						});
-					});
 				}
-			});
+				nodemon({
+					ext: '*',
+					quiet: true,
+					delay: 500,
+					ignore: [
+						"**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**", "**/views/**"
+					],
+					verbose: false,
+					script: 'app.js',
+					env: env,
+					stdout: true
+				}).once('start', function () {
+					utils.info(env);
+					notifier.notify({
+						title: 'Koaton',
+						message: 'Server runnung on localhost:' + env.port,
+						open: "http://localhost:" + env.port,
+						icon: path.join(__dirname, 'koaton.png'),
+						sound: 'Hero',
+						wait: false
+					});
+				}).on('restart', function (a, b) {
+					setTimeout(function () {
+						livereload.reload();
+					}, 1000);
+					notifier.notify({
+						title: 'Koaton',
+						message: 'restarting server...',
+						icon: path.join(__dirname, 'koaton.png'),
+						sound: 'Hero',
+					});
+				});
+			}).then(a => console.log(a), a => console.log(a));
 		}
-},
+			},
 	{
 		cmd: "forever",
 		description: "Runs your awsome Koaton on production mode with forever.",
@@ -916,7 +1005,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				});
 			}
 		}
-	},
+			},
 
 
-];
+			];
