@@ -21,12 +21,12 @@ Documentation will be avaliable at:
 ## Installation
 
   Will be:
-  ```bash
-  npm i koaton -g
-  ```
+```sh
+npm i koaton -g
+```
 
 ## Usage
-```bash
+```zsh
 koaton new myfirstapp
 koaton ember restapp -n -m /panel
 koaton model user "active:number name email password note:text created:date"
