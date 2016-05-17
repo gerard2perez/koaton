@@ -1,24 +1,34 @@
 #!/usr/bin/env node
+
 const program = require('commander');
 const colors = require('colors');
 const help = process.argv.slice(2)[0];
 const commands = require('./commands');
+const co = require("co");
 
 if (!help || help === "-h" || help === "--help") {
-	program.outputHelp(commands[0](commands));
-}else{
+	console.log(commands[0](commands))
+	process.exit(0);
+} else {
 	delete commands[0];
 }
 commands.forEach(function (definition) {
-	var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
-	var command = program.command(`${definition.cmd} ${args}`)
-		.description(definition.description)
-		.action(definition.action);
-	if(definition.alias){
-		command.alias(definition.alias);
+	try {
+		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
+		//		definition.action
+		var command = program.command(`${definition.cmd} ${args}`)
+			.description(definition.description)
+			.action(co.wrap(function* (){
+				process.exit( yield definition.action.apply(command,arguments) );
+			}));
+		if (definition.alias) {
+			command.alias(definition.alias);
+		}
+		definition.options.forEach(function (option) {
+			command.option(`${option[0]}, ${option[1]}`, option[2]);
+		});
+	} catch (e) {
+		console.log(e);
 	}
-	definition.options.forEach(function (option) {
-		command.option(`${option[0]}, ${option[1]}`, option[2]);
-	});
 });
 program.parse(process.argv);

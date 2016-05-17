@@ -3,6 +3,10 @@
 	"version": "0.0.0",
 	"description": "Koaton is a CLI tool that provides a nice starting point for full stack JavaScript Web development with Koa, Ember, and Node.js along with CaminateJS and WebSockets.",
 	"main": "./lib/index.js",
+	"scripts": {
+		"test": "node tests/index.js",
+		"live-test": "node tests/index.js p1"
+	},
 	"bin": {
 		"koaton": "./bin/koaton"
 	},

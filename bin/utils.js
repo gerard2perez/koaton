@@ -1,13 +1,62 @@
-//"use strict";
+"use strict";
 const fs = require('fs');
 const mkdirp = require('mkdirp');
 const Handlebars = require('handlebars');
 const path = require('path');
 const Promise = require('bluebird');
 const colors = require('colors');
-
-module.exports.utils = {
-	info(env) {
+const spawn = require('child_process').spawn;
+const spinner = require('./spinner');
+const exec = require('child_process').exec;
+exports.exec = (cmd, opts) => {
+	opts || (opts = {});
+	return new Promise((resolve, reject) => {
+		const child = exec(cmd, opts, (err, stdout, stderr) => err ? reject(err) : resolve({
+			stdout: stdout,
+			stderr: stderr
+		}));
+		if (opts.stdout) {
+			child.stdout.pipe(opts.stdout);
+		}
+		if (opts.stderr) {
+			child.stderr.pipe(opts.stderr);
+		}
+	});
+}
+exports.shell = Promise.promisify((display, command, cwd, cb) => {
+	let c = undefined;
+	let buffer = "";
+	const child = spawn(command[0], command.slice(1), {
+		cwd: path.join(cwd, "/"),
+		shell: true
+	});
+	spinner.start(50, display).then(() => {
+		cb && cb(null, c || child.exitCode);
+	}, (err) => {
+		cb && cb(err, c || child.exitCode);
+	});
+	child.stderr.on('data', (data) => {
+//		console.log(data.toString());
+	});
+	child.stdout.on('data', (data) => {
+		buffer += data.toString();
+		if (buffer.indexOf('\n') > -1) {
+			let send = buffer.toString().split('\n');
+			spinner.pipe({
+				action: "extra",
+				id: send[0].substr(0, 150).replace(/\n/igm, "")
+			});
+			buffer = "";
+		}
+	});
+	child.on('close', function (code, signal) {
+		c = code;
+		const msg = code === 0 ? `✓`.green : `✗`.red;
+		spinner.end(`+ ${display}\t${msg}`.green);
+	});
+});
+exports.utils = {
+	info(env, promises) {
 			var jutsus = require('./jutsus');
 			jutsus = jutsus.S.concat(jutsus.A, jutsus.B, jutsus.C);
 			var index = Math.floor((Math.random() * jutsus.length));
@@ -27,9 +76,12 @@ module.exports.utils = {
 					console.log(`   Server running in ${this.proyect_path}\n` +
 						`   To see your app, visit ` + `http://localhost:${env.port}\n`.underline +
 						`   To shut down Koaton, press <CTRL> + C at any time.`);
-					console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-					console.log('   Enviroment:\t\t' + (env.NODE_ENV).green);
-					console.log('   Port:\t\t' + (env.port + "").green);
+					Promise.all(promises).then((a) => {
+						console.log(a.join('\n'));
+						console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
+						console.log('   Enviroment:\t\t' + (env.NODE_ENV).green);
+						console.log('   Port:\t\t' + (env.port + "").green);
+					});
 				}
 			}
 		},
@@ -85,12 +137,13 @@ module.exports.utils = {
 		 */
 		_write: Promise.promisify(fs.writeFile),
 		write(file, content, mode) {
-			return this._write(file, content,undefined).then(() => {
+			return this._write(file, content, undefined).then(() => {
 				var head = path.basename(file);
 				var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
 				console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
 				return true;
-			}).catch((e) => {
+			}).catch((e, a) => {
+				console.log(a);
 				console.log(e.red);
 				return false;
 			});
@@ -146,7 +199,7 @@ module.exports.utils = {
 		 * @param {Function} fn
 		 */
 		mkdir: Promise.promisify(function (file, fn) {
-			mkdirp(file, 0755, function (err) {
+			mkdirp(file, '0755', function (err) {
 				if (err) throw err;
 
 				file = file.replace(process.cwd() + "/", "");
