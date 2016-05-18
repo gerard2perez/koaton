@@ -5,7 +5,7 @@ const Handlebars = require('handlebars');
 const path = require('path');
 const Promise = require('bluebird');
 const colors = require('colors');
-const spawn = require('child_process').spawn;
+const spawn = require('cross-spawn-async');
 const spinner = require('./spinner');
 const exec = require('child_process').exec;
 exports.exec = (cmd, opts) => {

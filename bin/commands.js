@@ -318,6 +318,7 @@ module.exports = [
 		args: ["app_name"],
 		options: [
 			["-n", "--new", "Creates a new ember app with the especified named."],
+			["-f", "--force", "Overrides the current app."],
 			["-u", "--use <ember_addon>", "Install the especified addon in the especified app."],
 			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
 			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
@@ -338,15 +339,17 @@ module.exports = [
 			} else if (options.new) {
 				const canAccess = access(pt);
 				override = !canAccess;
-				if (canAccess && app_name) {
+				if (canAccess && app_name && !options.force) {
 					override = yield prompt.confirm(`destination ${pt} is not empty, continue? [y/n]: `);
 					if (override) {
 						deleteFolderRecursive(pt);
 					}
 				}
-				if (override) {
+				if (override || options.force) {
 					yield shell(`Installing ${app_name.green}`, ["ember", "new", app_name, "-dir", pt, "-v"], process.cwd());
 					options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);
+				}else{
+					return 0;
 				}
 			} else if (options.build) {
 				const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
@@ -373,6 +376,7 @@ module.exports = [
 				const connection = require(`${process.cwd()}/config/models`).connection;
 				const def = connections[connection];
 				options.mount = path.join('/', options.mount);
+				options.mount = options.mount.replace(/\\/igm,"/");
 				console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
 				yield utils.mkdir(path.join(process.cwd(), "ember", app_name, "app", "adapters"));
 				yield utils.compile('ember_apps/adapter.js',
@@ -380,8 +384,8 @@ module.exports = [
 						localhost: def.host,
 						port: def.port
 					});
-
 				var emberjs = require(`${process.cwd()}/config/ember.js`);
+
 				emberjs[app_name] = {
 					mount: options.mount
 				};
@@ -584,7 +588,7 @@ import Ember from 'ember';
 export default Ember.Controller.extend(CTABLE('${name}'),{
 	actions:{
 	},
-	fieldDefinition:{ 
+	fieldDefinition:{
 		${fields.map((f)=>{return f[0];}).join(':{},\n\t\t')}:{}
 	}
 });`
