@@ -48,8 +48,8 @@ const koaton = Promise.promisify((command, cb) => {
 });
 const testengine = require('./engine');
 const help = commands[0](commands).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "") + "\n";
-//yield mkdir(testdir);
 testengine(function* (suite) {
+	yield mkdir(testdir);
 	yield suite("koaton --help", function* (assert) {
 		assert.expect(3);
 		assert.equal(help, (yield koaton([""]))[1], "Renders help if not parameters");
