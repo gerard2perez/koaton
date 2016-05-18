@@ -1,3 +1,4 @@
+"use strict";
 const nodemon = require('gulp-nodemon');
 const notifier = require('node-notifier');
 // process.stdout.write('clear');

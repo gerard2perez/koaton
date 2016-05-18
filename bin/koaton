@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/*eslint no-empty-label: 0, no-process-exit: 0*/
 
 const program = require('commander');
 const colors = require('colors');

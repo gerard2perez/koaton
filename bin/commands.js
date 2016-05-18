@@ -1,4 +1,5 @@
 "use strict";
+
 const Promise = require('bluebird');
 const colors = require('colors');
 const prompt = require('co-prompt');
@@ -10,7 +11,7 @@ const exec = require('./utils').exec;
 
 const print = require('./console');
 
-const version = require(__dirname + "/../package.json").version;
+const version = require(path.join(__dirname , "/../package.json")).version;
 
 const secret = require('./secret');
 const ADP = require('./adapters');
@@ -27,7 +28,7 @@ const deleteFolderRecursive = function (path) {
 	if (fs.existsSync(path)) {
 		files = fs.readdirSync(path);
 		files.forEach(function (file, index) {
-			var curPath = path + "/" + file;
+			var curPath = path.join(path,"/",file);
 			if (fs.lstatSync(curPath).isDirectory()) { // recurse
 				deleteFolderRecursive(curPath);
 			} else { // delete file
@@ -52,7 +53,7 @@ function endstream() {
 		process.stdout.clearLine();
 		process.stdout.cursorTo(0);
 	} catch (e) {
-
+		process.stdout.write(e.toString());
 	} finally {
 		buffer = "";
 	}
@@ -67,9 +68,9 @@ function endstream() {
  */
 function* setupApplication(proyect_path, db, eg, options) {
 	yield utils.mkdir(proyect_path);
-	yield utils.mkdir(proyect_path + "/ember");
+	yield utils.mkdir(`${proyect_path}/ember`);
 	yield utils.compile('app.js');
-	yield utils.mkdir(proyect_path + "/config");
+	yield utils.mkdir(`${proyect_path}/config`);
 	yield utils.compile('config/models.js');
 	yield utils.compile('config/views.js');
 	yield utils.compile('config/inflections.js');
@@ -80,23 +81,23 @@ function* setupApplication(proyect_path, db, eg, options) {
 	yield utils.compile('config/connections.js');
 	yield utils.compile('config/bundles.js');
 	yield utils.compile('config/routes.js');
-	yield utils.mkdir(proyect_path + "/assets/img");
+	yield utils.mkdir(`${proyect_path}/assets/img`);
 	yield utils.copy("/public/img/koaton.png", 'assets/img/logo.png');
 	yield utils.copy("/public/img/koaton2.png", 'assets/img/logo2.png');
-	yield utils.mkdir(proyect_path + "/assets/js");
-	yield utils.mkdir(proyect_path + "/assets/css");
+	yield utils.mkdir(`${proyect_path}/assets/js`);
+	yield utils.mkdir(`${proyect_path}/assets/css`);
 	yield utils.copy("../bin/koaton-char.png", "assets/img/favicon.ico");
-	yield utils.mkdir(proyect_path + "/node_modules");
+	yield utils.mkdir(`${proyect_path}/node_modules`);
 	try {
-		fs.symlinkSync(__dirname + "/../", proyect_path + "/node_modules/koaton");
+		fs.symlinkSync(path.join(__dirname , "/../"), path.join(proyect_path , "/node_modules/koaton"));
 	} catch (e) {
-
+		console.log(e.toString());
 	}
-	yield utils.mkdir(proyect_path + "/controllers");
-	yield utils.mkdir(proyect_path + "/models");
-	yield utils.mkdir(proyect_path + "/public");
-	yield utils.mkdir(proyect_path + "/public/img");
-	yield utils.mkdir(proyect_path + "/views/layouts");
+	yield utils.mkdir(`${proyect_path}/controllers`);
+	yield utils.mkdir(`${proyect_path}/models`);
+	yield utils.mkdir(`${proyect_path}/public`);
+	yield utils.mkdir(`${proyect_path}/public/img`);
+	yield utils.mkdir(`${proyect_path}/views/layouts`);
 	yield utils.copy("/views/layouts/main.handlebars");
 	yield utils.compile('/views/index.html', {
 		application: application
@@ -108,7 +109,7 @@ function* setupApplication(proyect_path, db, eg, options) {
 	var pk = require('../templates/package');
 	pk.name = application;
 	if (!options.skipNpm) {
-		yield utils.write(application + "/package.json", JSON.stringify(pk, null, '\t'), null);
+		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);
 		console.log(print.line1);
 		yield shell("Installing npm dependencies", ["npm", "install", "--loglevel", "info"], application);
 		yield shell("Installing adapter " + db[2].green, db, application);
@@ -116,7 +117,7 @@ function* setupApplication(proyect_path, db, eg, options) {
 	} else {
 		pk.dependencies[eg[2]] = "latest";
 		pk.dependencies[db[2]] = "latest";
-		yield utils.write(application + "/package.json", JSON.stringify(pk, null, '\t'), null);
+		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);
 	}
 	if (!options.skipBower) {
 		yield shell("Installing bower dependencies", ["bower", "install"], application);
@@ -136,7 +137,6 @@ function* setupApplication(proyect_path, db, eg, options) {
 
 function engine(selection) {
 	switch (selection) {
-
 	case "atpl":
 	case "doT":
 	case "dust":
@@ -219,7 +219,7 @@ function proxydb(driver) {
 
 function database(selection) {
 	selection = proxydb(selection);
-	if (selection == null) {
+	if (selection === null) {
 		console.log("Unknown driver.".red);
 		process.exit(1);
 	}
@@ -234,7 +234,7 @@ module.exports = [
 	(commands) => {
 		let help = "";
 		delete commands[0];
-		help += "  version: " + version+"\n";
+		help += `  version: ${version}\n`;
 		help += "  Command list:\n";
 		commands.forEach(function (definition) {
 			var args = definition.args.length > 0 ? `<${definition.args.join("> <")}>` : "";
@@ -245,7 +245,7 @@ module.exports = [
 				var opt = option[1].split(' ');
 				opt[0] = option[0] === opt[0] ? "" : opt[0];
 				opt[1] = opt[1] || "";
-				while (opt[0].length < 13) opt[0] = opt[0] + " ";
+				while (opt[0].length < 13) {opt[0] = opt[0] + " "};
 				help += `      ${option[0].cyan} ${opt[0].gray} ${opt[1].cyan} ${option[2]}\n`;
 			});
 			help +="\n\n" ;
@@ -285,7 +285,7 @@ module.exports = [
 			],
 			["-f", "--force", "Overrides the existing directory."],
 			["-n", "--skip-npm", "Omits npm install"],
-			["-b", "--skip-bower", "Omits bower install"],
+			["-b", "--skip-bower", "Omits bower install"]
 		],
 		action: function* (app_name, options) {
 			application = app_name;
@@ -308,6 +308,7 @@ module.exports = [
 				return yield setupApplication(proypath, db, eg, options);
 			} else {
 				utils.abort('aborting');
+				return 1;
 			}
 		}
 			},
@@ -321,7 +322,7 @@ module.exports = [
 			["-f", "--force", "Overrides the current app."],
 			["-u", "--use <ember_addon>", "Install the especified addon in the especified app."],
 			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
-			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
+			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."]
 		],
 		action: function* (app_name, options) {
 			var override = false;
@@ -361,7 +362,7 @@ module.exports = [
 					)) {
 					console.log(logstring.red);
 					return 1;
-				};
+				}
 				yield utils.mkdir(mount_views);
 				console.log(`${publicdir}index.html`, `${mount_views}index.html`);
 				fs.renameSync(`${mount_public}index.html`, `${mount_views}index.html`);
@@ -412,7 +413,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			["--port", "--port <port>", "Default driver port. Use this with -g"],
 			["--user", "--user <username>", "User to connect to database default is ''. Use this with -g"],
 			["--db", "--db <databse>", "Database name for the connection default is ''. Use this with -g"],
-			["--password", "--password <databse>", "Password to login in your database default is ''. Use this with -g"],
+			["--password", "--password <databse>", "Password to login in your database default is ''. Use this with -g"]
 		],
 		action: function* (driver, options) {
 			const dependencies = require(path.resolve() + "/package.json").dependencies;
@@ -429,15 +430,15 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 					available[driver] = drivers[driver];
 				}
 			});
-			if (installed['mysql']) {
-				delete available['mariadb'];
+			if (installed.mysql) {
+				delete available.mariadb;
 			}
-			if (installed['pg']) {
-				installed['postgres'] = installed['pg'];
-				delete installed['pg'];
-				delete available['postgres'];
+			if (installed.pg) {
+				installed.postgres = installed.pg;
+				delete installed.pg;
+				delete available.postgres;
 			}
-			if (adapters.indexOf(driver) == -1) {
+			if (adapters.indexOf(driver) === -1) {
 				console.log("The driver you especied is not available please check: ".yellow);
 				console.log();
 				options.list = true;
@@ -629,7 +630,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				var info = patterns[key].map(function (file) {
 					return path.basename(file).yellow;
 				}).join(",".yellow.dim);
-				info = "Compiling: ".green + info + " => " + "public/js/" + key.green.bold;
+				info = "Compiling: ".green + info + " => public/js/" + key.green.bold;
 				console.log(info);
 				if (!options.prod) {
 					gulp.src(patterns[key])
@@ -714,14 +715,14 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 							awaitWriteFinish: {
 								stabilityThreshold: 1000,
 								pollInterval: 100
-							},
+							}
 						});
 						watcher
-							.on('change', updateApp)
-							.on('unlink', updateApp)
-							.on('ready', path => watcher.on('add', updateApp))
-							.on('unlinkDir', updateApp)
-							.on('error', error => console.log(`Watcher error: ${error}`));
+						.on('change', updateApp)
+						.on('unlink', updateApp)
+						.on('ready', path => watcher.on('add', updateApp))
+						.on('unlinkDir', updateApp)
+						.on('error', error => console.log(`Watcher error: ${error}`));
 						watching.push(watcher);
 					}
 				}
@@ -741,8 +742,8 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				utils.info(env, building);
 				notifier.notify({
 					title: 'Koaton',
-					message: 'Server runnung on localhost:' + env.port,
-					open: "http://localhost:" + env.port,
+					message: `Server runnung on localhost: ${env.port}`,
+					open: `http://localhost: ${env.port}`,
 					icon: path.join(__dirname, 'koaton.png'),
 					sound: 'Hero',
 					wait: false
@@ -755,7 +756,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					title: 'Koaton',
 					message: 'restarting server...',
 					icon: path.join(__dirname, 'koaton.png'),
-					sound: 'Hero',
+					sound: 'Hero'
 				});
 			});
 		}
@@ -848,14 +849,14 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					exec(cmd, {
 						cwd: process.cwd()
 					}).then((data) => {
-						console.log(app + " is running ... ");
+						console.log(`${app} is running ... `);
 					}).finally((a, b, c) => {
 						process.exit(0);
 					});
 				});
 			}
 		}
-			},
+			}
 
 
 			];
