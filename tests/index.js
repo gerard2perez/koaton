@@ -1,15 +1,18 @@
 "use strict";
 const nodemon = require('gulp-nodemon');
 const notifier = require('node-notifier');
+const path = require('path');
 // process.stdout.write('clear');
 // process.stdout.write('\x1Bc');
+console.log(path.join(process.cwd(), 'bin/koaton-log.png'));
 if(process.argv[2]!==undefined){
 	var app = nodemon({
 		ext: '*',
 		quiet: true,
 		delay: 500,
 		ignore: [
-			"**/node_modules/**", "**/bower_components/**","**/running_test/**"
+			"**/node_modules/**", "**/bower_components/**","**/running_test/**",
+			"tests/index.js"
 		],
 		verbose: false,
 		script: './tests/test.js',
@@ -18,10 +21,8 @@ if(process.argv[2]!==undefined){
 	}).once('start', function () {
 		notifier.notify({
 			title: 'Koaton',
-			message:"hola",
-	//		message: 'Server runnung on localhost:' + env.port,
-	//		open: "http://localhost:" + env.port,
-	//		icon: path.join(__dirname, 'koaton.png'),
+			message:'Live Development Started',
+			icon: path.join(process.cwd(), 'bin/koaton.png'),
 			sound: 'Hero',
 			wait: false
 		});
@@ -31,9 +32,9 @@ if(process.argv[2]!==undefined){
 	//	}, 1000);
 		notifier.notify({
 			title: 'Koaton',
-			message: 'restarting server...',
-	//		icon: path.join(__dirname, 'koaton.png'),
-			sound: 'Hero',
+			message: 'Restarting Tests',
+			icon: path.join(process.cwd(), 'bin/koaton.png'),
+			sound: 'Hero'
 		});
 	});
 }else{

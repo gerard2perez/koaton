@@ -1,49 +1,36 @@
 "use strict";
+/*eslint global-require:0*/
 //process.stdout.write('clear');
 //process.stdout.write('\e[3J');
 //process.stdout.write('\x1Bc');
 //process.stdout.write('clear');
 process.stdout.write('\x1Bc');
 let prefix = "";
-const colors = require('colors');
 const path = require('path');
 const mkdir = require('../bin/utils').utils.mkdir;
 const spawn = require('cross-spawn-async');
 const Promise = require('bluebird');
-const spinner = require('../bin/spinner');
+require('colors');
+
 const testdir = "running_test";
 const commands = require('../bin/commands');
-const pout = process.stdout.write.bind(process.stdout);
 const koaton = Promise.promisify((command, cb) => {
 	let buffer = "";
-	let c = undefined;
 	const child = spawn("koaton", command, {
 		cwd: testdir+prefix,
 		shell: true
 	});
-	//	child.stdout.pipe(process.stdout);
-	//	spinner.start(50, "").then(() => {
-	//		cb && cb(null, c || child.exitCode);
-	//	}, (err) => {
-	//		cb && cb(err, c || child.exitCode);
-	//	});
 	child.stderr.on('data', (data) => {
-		console.log(data.toString());
+		buffer += data.toString();
 	});
 	process.stdin.pipe(child.stdin);
 	child.stdout.on('data', (data) => {
 		buffer += data.toString();
-		// console.log(data.toString());
 	});
-	child.on('close', function (code, signal) {
+	child.on('close', function () {
 		process.stdout.clearLine();
 		process.stdout.cursorTo(0);
-		cb && cb(null, [c || child.exitCode, buffer.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "")]);
-		//		c = code;
-		//		const msg = code === 0 ? `✓`.green : `✗`.red;
-		//		//`+ ${display}\t${msg}`.green
-		//		spinner.end();
-		//		console.log(buffer);
+		cb(null, [child.exitCode, buffer.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "")]);
 	});
 });
 const testengine = require('./engine');
@@ -84,7 +71,32 @@ testengine(function* (suite) {
 		prefix="";
 	});
 	yield suite("koaton adapter <driver>",function*(assert){
-		assert.ok(false,"upps");
+		const cachepath =path.join(path.resolve(),"/running_test/dummy/package.json");
+		const r1 = yield koaton(["adapter","couchdb"]);
+		assert.equal(0,r1[0],"Installs CouchDb Adapter");
+		delete require.cache[cachepath];
+		assert.ok(require("../running_test/dummy/package.json").dependencies.couchdb,"pacakge.js is updated");
+		assert.equal(0,(yield koaton(["adapter","couchdb","-g"]))[0],"Generates the Adapter structure");
+		assert.ok(require("../running_test/dummy/config/connections.js").couchdb,"Connections file is updated.");
+
+const ccommand = yield koaton(["adapter","couchdb",
+"-g",
+"--host","192.168.0.1",
+"--port","8080",
+"--user","dummy",
+"--password","pa$$w0rd",
+"--db","awsome"
+]);
+		assert.equal(0,ccommand[0],"Command with custom paramentes");
+		delete require.cache[path.join(path.resolve(),"/running_test/dummy/config/connections.js")];
+		const dbadapter = require("../running_test/dummy/config/connections.js").couchdb;
+		//console.log(dbadapter);
+		
+		assert.equal("192.168.0.1",dbadapter.host,"Host is ok");
+		assert.equal(8080,dbadapter.port,"Port is ok");
+		assert.equal("dummy",dbadapter.user,"User is ok");
+		assert.equal("pa$$w0rd",dbadapter.password,"Password is secure");
+		assert.equal("awsome",dbadapter.database,"Database is awsome");
 	});
 	yield suite("koaton model <name> <fields>",function*(assert){
 		assert.ok(false,"upps");

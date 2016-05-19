@@ -1,6 +1,5 @@
 "use strict";
 
-const Promise = require('bluebird');
 const colors = require('colors');
 const prompt = require('co-prompt');
 const path = require('path');
@@ -8,13 +7,12 @@ const fs = require('fs');
 const utils = require('./utils').utils;
 const shell = require('./utils').shell;
 const exec = require('./utils').exec;
-
 const print = require('./console');
-
 const version = require(path.join(__dirname , "/../package.json")).version;
-
 const secret = require('./secret');
 const ADP = require('./adapters');
+const Handlebars = require('handlebars');
+const inflector = require('i')();
 const access = function (path) {
 	try {
 		fs.accessSync(path);
@@ -27,7 +25,7 @@ const deleteFolderRecursive = function (path) {
 	var files = [];
 	if (fs.existsSync(path)) {
 		files = fs.readdirSync(path);
-		files.forEach(function (file, index) {
+		files.forEach(function (file) {
 			var curPath = path.join(path,"/",file);
 			if (fs.lstatSync(curPath).isDirectory()) { // recurse
 				deleteFolderRecursive(curPath);
@@ -47,20 +45,6 @@ const emberdatas = ["number", "number", "number", "number", "number", "boolean",
 
 
 var application = "";
-
-function endstream() {
-	try {
-		process.stdout.clearLine();
-		process.stdout.cursorTo(0);
-	} catch (e) {
-		process.stdout.write(e.toString());
-	} finally {
-		buffer = "";
-	}
-}
-
-
-
 /**
  * Create application at the given directory `path`.
  *
@@ -471,7 +455,6 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 					options.generate = true;
 				}
 				if (options.generate) {
-					const Handlebars = require('handlebars');
 					var adapterCFG = JSON.parse(Handlebars.compile(ADP.template)({
 						adapter: driver,
 						driver: proxydb(driver),
@@ -481,6 +464,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 						port: options.port || ADP.connections[proxydb(driver)],
 						application: options.db || path.basename(process.cwd())
 					}), "\t");
+
 					if (drivers === "sqlite3") {
 						delete adapterCFG.port;
 						delete adapterCFG.host;
@@ -489,20 +473,16 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 					}
 					try {
 						var connections = require(process.cwd() + "/config/connections");
-						if (connections[driver] === undefined) {
+						/*if (connections[driver] === undefined) {
 							connections[driver] = adapterCFG;
 						} else {
 							console.log(`An adapter named ${driver.green} already exits in ./config/${"connections.js".green}\nPlease update it manually.`);
 							return 1;
-						}
-						var output = '"use strict";\nmodule.exports=' + JSON.stringify(connections, null, '\t') + ";";
-						utils.write(process.cwd() + "/config/connections.js", output, true).then(() => {
-							console.log("Adapter added:");
-
-						}).catch((e) => {
-							console.log(e.red);
-							return 1;
-						});
+						}*/
+						connections[driver] = adapterCFG;
+						const output = '"use strict";\nmodule.exports=' + JSON.stringify(connections, null, '\t') + ";";
+						yield utils.write(process.cwd() + "/config/connections.js", output, true);
+						return 0;
 					} catch (e) {
 						console.log("Configuration file located at ./config/connections.js not found.");
 						return 1;
@@ -528,7 +508,6 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			["-r", "--rest", "Makes the model REST enabled."]
 		],
 		action: function* (name, fields, options) {
-			const inflector = require('i')();
 			const inflections = require(process.cwd() + '/config/inflections');
 			inflections.irregular.forEach((inflect) => {
 				inflector.inflections.irregular(inflect[0], inflect[1]);
@@ -602,10 +581,6 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				console.log(`Please add this.route('${name}') to your ember app router.js`);
 			}
 			return 1;
-
-			function fieldparser(field) {
-				var cfg = field.split(':');
-			}
 		}
 			},
 	{
@@ -679,10 +654,12 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 
 			let build = [];
 			let watching = [];
-			var trigger = {};
 			const building = [];
+			const watch_error=function(e){
+				console.log(`Watcher error: ${e}`);
+			}
 			for (var ember_app in embercfg) {
-				const updateApp = function (dir) {
+				const updateApp = function () {
 					notifier.notify({
 						title: 'Koaton',
 						message: 'Rebuilding app: ' + ember_app,
@@ -694,8 +671,6 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					livereload.reload();
 				}
 				if (build.indexOf(ember_app) === -1) {
-
-					let a = options.build ? 1 : 0;
 					if (options.build) {
 						building.push(shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd()).then(() => {
 							return `${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`;
@@ -720,9 +695,9 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 						watcher
 						.on('change', updateApp)
 						.on('unlink', updateApp)
-						.on('ready', path => watcher.on('add', updateApp))
+						.on('ready', () => watcher.on('add', updateApp))
 						.on('unlinkDir', updateApp)
-						.on('error', error => console.log(`Watcher error: ${error}`));
+						.on('error', watch_error);
 						watching.push(watcher);
 					}
 				}
@@ -748,7 +723,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					sound: 'Hero',
 					wait: false
 				});
-			}).on('restart', function (a, b) {
+			}).on('restart', function () {
 				setTimeout(function () {
 					livereload.reload();
 				}, 1000);
@@ -780,9 +755,8 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			const app = path.basename(process.cwd());
 			const cmd = `NODE_ENV=${env.NODE_ENV} port=${env.port} forever start --colors --uid "koaton_${app}" -a app.js`;
 			if (options.logs) {
-				exec(`forever list`).then((data, data2) => {
+				exec(`forever list`).then((data) => {
 					data = data.stdout.replace("info:    Forever processes running", "").replace(/ /igm, "-").replace(/data:/igm, "").replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
-					var headers = data[1].trim().split(' ').slice(1);
 					data = data.slice(2).map((d) => {
 						return d.trim().split(' ')
 					});
@@ -796,17 +770,17 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					if (id !== null) {
 						exec(`cat ${id}`).then(data => {
 							console.log(data.stdout);
-						}).finally((a) => {
+						}).finally(() => {
 							process.exit(0);
 						});
 					}
 				});
 			} else if (options.stop) {
-				exec(`forever stop koaton_${path.basename(process.cwd())}`).then((data) => {}).finally((a) => {
+				exec(`forever stop koaton_${path.basename(process.cwd())}`).then(() => {}).finally(() => {
 					process.exit(0);
 				});
 			} else if (options.list) {
-				exec(`forever list`).then((data, data2) => {
+				exec(`forever list`).then((data) => {
 					data = data.stdout.replace("info:    Forever processes running", "").replace(/ /igm, "-").replace(/data:/igm, "").replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
 					var headers = data[1].trim().split(' ').slice(1);
 					data = data.slice(2).map((d) => {
@@ -841,16 +815,16 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 						}
 
 					}).join('\n'));
-				}).finally((a) => {
+				}).finally(() => {
 					process.exit(0);
 				});
 			} else {
 				exec(`forever stop koaton_${app}`).catch(() => {}).finally(() => {
 					exec(cmd, {
 						cwd: process.cwd()
-					}).then((data) => {
+					}).then(() => {
 						console.log(`${app} is running ... `);
-					}).finally((a, b, c) => {
+					}).finally(() => {
 						process.exit(0);
 					});
 				});

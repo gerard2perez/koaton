@@ -55,6 +55,8 @@ exports.shell = Promise.promisify((display, command, cwd, cb) => {
 		spinner.end(`+ ${display}\t${msg}`.green);
 	});
 });
+exports.koatonPath = path.resolve();
+exports.sourcePath = path.join(__dirname, '..', 'templates');
 exports.utils = {
 	info(env, promises) {
 			var jutsus = require('./jutsus');
@@ -137,13 +139,15 @@ exports.utils = {
 		 */
 		_write: Promise.promisify(fs.writeFile),
 		write(file, content, mode) {
-			return this._write(file, content, undefined).then(() => {
+			return this._write(file, content, {}).then(() => {
 				var head = path.basename(file);
 				var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
 				console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
 				return true;
+			},(e)=>{
+				console.log(e.red);
 			}).catch((e, a) => {
-				console.log(a);
+				//console.log(a);
 				console.log(e.red);
 				return false;
 			});

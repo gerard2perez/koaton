@@ -40,7 +40,7 @@
     "co-views": "^2.1.0",
     "colors": "^1.1.2",
     "commander": "^2.9.0",
-    "cross-spawn-async": "^2.2.2",
+    "cross-spawn-async": "^2.2.4",
     "gulp": "^3.9.1",
     "gulp-concat": "^2.6.0",
     "gulp-hash-filename": "^1.0.1",
