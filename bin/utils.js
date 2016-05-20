@@ -58,6 +58,8 @@ exports.shell = Promise.promisify((display, command, cwd, cb) => {
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 exports.utils = {
+	from_env: path.join(__dirname, '..', 'templates'),
+	to_env: path.resolve(),
 	info(env, promises) {
 			var jutsus = require('./jutsus');
 			jutsus = jutsus.S.concat(jutsus.A, jutsus.B, jutsus.C);
@@ -87,8 +89,6 @@ exports.utils = {
 				}
 			}
 		},
-		from_env: path.join(__dirname, '..', 'templates'),
-		to_env: path.resolve(),
 		welcome(env) {
 			console.log("Starting Server".grey + " ...".grey.dim);
 			var name = "Koaton";
@@ -145,10 +145,9 @@ exports.utils = {
 				console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
 				return true;
 			},(e)=>{
-				console.log(e.red);
-			}).catch((e, a) => {
-				//console.log(a);
-				console.log(e.red);
+				console.log(e.toString().red);
+			}).catch((e) => {
+				console.log(e.toString().red);
 				return false;
 			});
 		},

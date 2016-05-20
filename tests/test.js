@@ -10,6 +10,8 @@ const path = require('path');
 const mkdir = require('../bin/utils').utils.mkdir;
 const spawn = require('cross-spawn-async');
 const Promise = require('bluebird');
+const read = require("fs").readFileSync;
+const exists = require("fs").existsSync;
 require('colors');
 
 const testdir = "running_test";
@@ -17,7 +19,7 @@ const commands = require('../bin/commands');
 const koaton = Promise.promisify((command, cb) => {
 	let buffer = "";
 	const child = spawn("koaton", command, {
-		cwd: testdir+prefix,
+		cwd: path.join(process.cwd(),testdir,prefix),
 		shell: true
 	});
 	child.stderr.on('data', (data) => {
@@ -34,14 +36,35 @@ const koaton = Promise.promisify((command, cb) => {
 	});
 });
 const testengine = require('./engine');
+
 const help = commands[0](commands).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "") + "\n";
 testengine(function* (suite) {
+	yield suite({
+		equal:(expected,koatonresult,text,ae)=>{
+			if(koatonresult instanceof Array){
+				if(typeof(expected)==="number"){
+					ae(expected,koatonresult[0],text);
+				}else{
+					ae(expected,koatonresult[1],text);
+				}
+				if(koatonresult[0]===1){
+					console.log("koaton says:");
+					console.log(koatonresult[1]);
+				}
+			}else{
+				ae(expected,koatonresult,text);
+			}
+		}
+	});
 	yield mkdir(testdir);
 	yield suite("koaton --help", function* (assert) {
+		// console.log(".");
+		// const ae = assert.equal.bind(assert);
+		// assert.equal =
 		assert.expect(3);
-		assert.equal(help, (yield koaton([""]))[1], "Renders help if not parameters");
-		assert.equal(help, (yield koaton(["-h"]))[1], "Renders help -h");
-		assert.equal(help, (yield koaton(["--help"]))[1], "Renders help --help");
+		assert.equal(help, yield koaton([""]), "Renders help if not parameters");
+		assert.equal(help, yield koaton(["-h"]), "Renders help -h");
+		assert.equal(help, yield koaton(["--help"]), "Renders help --help");
 	});
 	yield suite("koaton new dummy",function*(assert){
 		const cachepath =path.join(path.resolve(),"/running_test/dummy/package.json");
@@ -68,7 +91,6 @@ testengine(function* (suite) {
 		assert.equal("/",require("../running_test/dummy/config/ember.js").restapi.mount,"Mount the app on /");
 		assert.ok(require("../running_test/dummy/ember/restapi/app/adapters/application.js"),"Creates the default adapter.");
 		assert.equal("/",require("../running_test/dummy/ember/restapi/config/environment.js")().baseURL,"Creates the default adapter.");
-		prefix="";
 	});
 	yield suite("koaton adapter <driver>",function*(assert){
 		const cachepath =path.join(path.resolve(),"/running_test/dummy/package.json");
@@ -78,20 +100,17 @@ testengine(function* (suite) {
 		assert.ok(require("../running_test/dummy/package.json").dependencies.couchdb,"pacakge.js is updated");
 		assert.equal(0,(yield koaton(["adapter","couchdb","-g"]))[0],"Generates the Adapter structure");
 		assert.ok(require("../running_test/dummy/config/connections.js").couchdb,"Connections file is updated.");
-
-const ccommand = yield koaton(["adapter","couchdb",
-"-g",
-"--host","192.168.0.1",
-"--port","8080",
-"--user","dummy",
-"--password","pa$$w0rd",
-"--db","awsome"
-]);
+		const ccommand = yield koaton(["adapter","couchdb",
+			"-g",
+			"--host","192.168.0.1",
+			"--port","8080",
+			"--user","dummy",
+			"--password","pa$$w0rd",
+			"--db","awsome"
+		]);
 		assert.equal(0,ccommand[0],"Command with custom paramentes");
 		delete require.cache[path.join(path.resolve(),"/running_test/dummy/config/connections.js")];
 		const dbadapter = require("../running_test/dummy/config/connections.js").couchdb;
-		//console.log(dbadapter);
-		
 		assert.equal("192.168.0.1",dbadapter.host,"Host is ok");
 		assert.equal(8080,dbadapter.port,"Port is ok");
 		assert.equal("dummy",dbadapter.user,"User is ok");
@@ -99,7 +118,28 @@ const ccommand = yield koaton(["adapter","couchdb",
 		assert.equal("awsome",dbadapter.database,"Database is awsome");
 	});
 	yield suite("koaton model <name> <fields>",function*(assert){
-		assert.ok(false,"upps");
+		let model = 'user';
+		assert.equal(0,yield koaton(['model', model, 'active:number name email password note:text created:date', '-e', 'restapi','-fr']),"Run command with full arguments");
+		const mdefinition = require(path.join(process.cwd(),"/running_test/dummy/models",`${model}.js`))({});
+		assert.equal({type:undefined},mdefinition.model.active,"active atribute added");
+		assert.equal({type:undefined},mdefinition.model.name,"name atribute added");
+		assert.equal({type:undefined},mdefinition.model.email,"email atribute added");
+		assert.equal({type:undefined},mdefinition.model.password,"password atribute added");
+		assert.equal({type:undefined},mdefinition.model.note,"note atribute added");
+		assert.equal({type:undefined},mdefinition.model.created,"created atribute added");
+		const emberdef = read(path.join(process.cwd(),"/running_test/dummy/ember/restapi/app/models",`${model}.js`),{encoding:"utf-8"})
+		const fields = ["active","name","email","password","note","created"];
+		const locs = [105,129,151,174,200,222];
+		for(let index in fields){
+			assert.equal(locs[index],emberdef.indexOf(fields[index]),`ember model constains ${fields[index]}`);
+		}
+		model = "consumer";
+		assert.equal(0,yield koaton(['model', model, 'active:number name email password note:text created:date', '-fr']),"Creates models only on the Back End");
+		//console.log(['koaton', 'model', model, '"active:number name email password note:text created:date"','-fr'].join(" "));
+		const consumerdef = require(path.join(process.cwd(),"/running_test/dummy/models",`${model}.js`))({});
+		assert.ok(consumerdef,"Model is created");
+		assert.equal(false,exists(path.join(process.cwd(),"/running_test/dummy/ember/restapi/app/models",`${model}.js`)),"No ember models created.");
+
 	});
 	yield suite("koaton build <config_file>",function*(assert){
 		assert.ok(false,"upps");

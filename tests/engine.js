@@ -3,6 +3,27 @@ const co = require("co");
 const colors = require('colors');
 let suites = [];
 class test_tools{
+
+	compare(a,b){
+		let equals = true;
+		switch (typeof(a)) {
+			case "boolean":
+			return (b ? true:false)===a;
+			case "string":
+			case "number":
+					return a===b;
+			case "object":
+				Object.keys(a).forEach((key)=>{
+					if(a[key]!==b[key]){
+						equals=false;
+					}
+				});
+			return equals;
+			default:
+				return false;
+
+		}
+	}
 	constructor(){
 		this.target = this;
 	}
@@ -10,23 +31,31 @@ class test_tools{
 		this.target.expected = n;
 	}
 	equal(expected, current, msg){
-		this.result(expected === current, msg);
+		return this.result(current,expected, msg);
 	}
 	ok(signal,msg){
-		this.result(signal ? true:false, msg);
+		return this.result(signal,true, msg);
 	}
 	model(t){
 		this.target = t;
 		return this;
 	}
-	result(res, msg) {
+	result(current,expected, msg) {
 		this.target.total++;
-		if (res) {
+		if (this.compare(expected,current)) {
 			this.target.pass++;
 			console.log("  ✓ ".green + msg.white);
+			return true;
 		} else {
 			this.target.failed++;
 			console.log("  ✗ ".red + msg.white);
+			console.log(`\tValue expected:`);
+			process.stdout.write("\t");
+			console.log(expected);
+			console.log(`\tValue received:`);
+			process.stdout.write("\t");
+			console.log(current);
+			return false;
 		}
 	}
 }
@@ -40,6 +69,17 @@ class test {
 		this.suite_result = false;
 	}
 	*suite(Name, TestGenerator) {
+		if(typeof(Name)==="object"){
+			Object.keys(Name).forEach((key)=>{
+				const old = assert[key].bind(assert);
+				assert[key]=function (){
+					var slicedArgs = Array.prototype.slice.call(arguments, 0)
+					slicedArgs.push(old);
+					Name[key].apply(old,slicedArgs);
+				};
+			});
+			return this;
+		}
 		console.log(Name.cyan.bold);
 		try {
 			yield TestGenerator(assert.model(this));
@@ -48,13 +88,14 @@ class test {
 		}
 		console.log(`    ${this.total} test runned.`.gray);
 		this.total = this.expected > -1 ? this.expected : this.total;
-		if (this.total == this.pass) {
+		if (this.total === this.pass) {
 			this.suite_result = true;
 			process.stdout.write(" ✓ ".green);
 		} else {
 			process.stdout.write(" ✗ ".red);
 		}
 		console.log(`${this.pass}/${this.total} passed.`.gray.bold);
+		return this;
 	}
 }
 const suite = function* (SuitName, FnGenerator) {

@@ -1,5 +1,4 @@
 "use strict";
-
 const colors = require('colors');
 const prompt = require('co-prompt');
 const path = require('path');
@@ -504,7 +503,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 		args: ["name", "fields"],
 		options: [
 			["-e", "--ember <app>", "Generates the model also for the app especified."],
-			["-f", "--force", "Deletes the model is exits."],
+			["-f", "--force", "Deletes the model if exists."],
 			["-r", "--rest", "Makes the model REST enabled."]
 		],
 		action: function* (name, fields, options) {
@@ -553,6 +552,12 @@ module.exports = function(schema) {
 				yield utils.write(process.cwd() + "/controllers/" + name.toLowerCase() + ".js", restcontroller);
 			}
 			if (options.ember) {
+
+				if (!fs.existsSync(path.join(process.cwd() , "/ember/" , options.ember) ) ) {
+					console.log(`The app ${options.ember} does not exists.`.red);
+					return 1;
+				}
+
 				var embermodel = "import Model from 'ember-data/model';\n";
 				embermodel += "import attr from 'ember-data/attr';\n";
 				embermodel += "export default Model.extend({\n";
@@ -560,7 +565,7 @@ module.exports = function(schema) {
 					embermodel += `\t${field[0]}:attr('${emberdatas[_camintejs.indexOf(field[1].toLowerCase())]}'),\n`
 				});
 				embermodel += "});";
-				yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/models/" + name + ".js", embermodel);
+				yield utils.write(path.join(process.cwd() , "/ember/" , options.ember , "/app/models/" , name + ".js"), embermodel);
 				if (options.rest) {
 					var embercontroller = `
 						import CTABLE from 'ember-cli-crudtable/mixins/crud-controller';
@@ -580,7 +585,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				}
 				console.log(`Please add this.route('${name}') to your ember app router.js`);
 			}
-			return 1;
+			return 0;
 		}
 			},
 	{
