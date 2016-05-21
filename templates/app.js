@@ -1,13 +1,11 @@
 "use strict";
 var config = require('./config/server');
 var koaton = require('koaton');
-const colors = require('colors');
-const join = require('path').join;
 var logger = require('koa-logger');
-const io = new(require('koa-socket'))();
+const ks = require('koa-socket');
+const io = new ks();
 const locale = require('koa-locale');
 const i18n = require('koa-i18n');
-const version = require('./package.json').version;
 const passport = require('koa-passport')
 
 locale(koaton);
@@ -20,7 +18,7 @@ koaton.use(i18n(koaton, {
         'cookie', //  optional detect cookie      - `Cookie: locale=zh-TW`
         'header', //  optional detect header      - `Accept-Language: zh-CN,zh;q=0.5`
         'url', //  optional detect url         - `/en`
-        'tld', //  optional detect tld(the last domain) - `koajs.cn`
+        'tld' //  optional detect tld(the last domain) - `koajs.cn`
     ]
 }));
 

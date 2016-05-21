@@ -2,25 +2,25 @@
 /*eslint no-empty-label: 0, no-process-exit: 0*/
 
 const program = require('commander');
-const colors = require('colors');
-const help = process.argv.slice(2)[0];
-const commands = require('./commands');
+require('colors');
+// const help = process.argv.slice(2)[0];
+// const commands = require('./commands');
 const co = require("co");
+const definition = require('./cmds/serve');
 
-if (!help || help === "-h" || help === "--help") {
-	console.log(commands[0](commands))
-	process.exit(0);
-} else {
-	delete commands[0];
-}
-commands.forEach(function (definition) {
-	try {
+try {
 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
 		//		definition.action
 		var command = program.command(`${definition.cmd} ${args}`)
 			.description(definition.description)
 			.action(co.wrap(function* (){
-				process.exit( yield definition.action.apply(command,arguments) );
+				var exitCode = 1;
+				try{
+					exitCode = yield definition.action.apply(command,arguments);
+				}catch(err){
+					console.log(err.stack);
+				}
+				process.exit( exitCode === 1 ? 1:0 );
 			}));
 		if (definition.alias) {
 			command.alias(definition.alias);
@@ -31,5 +31,37 @@ commands.forEach(function (definition) {
 	} catch (e) {
 		console.log(e);
 	}
-});
+
+
+// if (!help || help === "-h" || help === "--help") {
+// 	console.log(commands[0](commands))
+// 	process.exit(0);
+// } else {
+// 	delete commands[0];
+// }
+// commands.forEach(function (definition) {
+// 	try {
+// 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
+// 		//		definition.action
+// 		var command = program.command(`${definition.cmd} ${args}`)
+// 			.description(definition.description)
+// 			.action(co.wrap(function* (){
+// 				var exitCode = 1;
+// 				try{
+// 					exitCode = yield definition.action.apply(command,arguments);
+// 				}catch(err){
+// 					console.log(err.stack);
+// 				}
+// 				process.exit( exitCode === 1 ? 1:0 );
+// 			}));
+// 		if (definition.alias) {
+// 			command.alias(definition.alias);
+// 		}
+// 		definition.options.forEach(function (option) {
+// 			command.option(`${option[0]}, ${option[1]}`, option[2]);
+// 		});
+// 	} catch (e) {
+// 		console.log(e);
+// 	}
+// });
 program.parse(process.argv);

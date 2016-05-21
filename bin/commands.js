@@ -71,11 +71,15 @@ function* setupApplication(proyect_path, db, eg, options) {
 	yield utils.mkdir(`${proyect_path}/assets/css`);
 	yield utils.copy("../bin/koaton-char.png", "assets/img/favicon.ico");
 	yield utils.mkdir(`${proyect_path}/node_modules`);
-	try {
+	try{
+		process.stdout.write(`   ${"Linking".cyan}: global koaton"`);
 		fs.symlinkSync(path.join(__dirname , "/../"), path.join(proyect_path , "/node_modules/koaton"));
-	} catch (e) {
+		console.log(": done".green);
+	}catch(e){
 		console.log(e.toString());
+		console.log(": already exists".green);
 	}
+
 	yield utils.mkdir(`${proyect_path}/controllers`);
 	yield utils.mkdir(`${proyect_path}/models`);
 	yield utils.mkdir(`${proyect_path}/public`);
@@ -470,22 +474,17 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 						delete adapterCFG.pool;
 						delete adapterCFG.ssl;
 					}
-					try {
+
+					//tr y{
 						var connections = require(process.cwd() + "/config/connections");
-						/*if (connections[driver] === undefined) {
-							connections[driver] = adapterCFG;
-						} else {
-							console.log(`An adapter named ${driver.green} already exits in ./config/${"connections.js".green}\nPlease update it manually.`);
-							return 1;
-						}*/
 						connections[driver] = adapterCFG;
 						const output = '"use strict";\nmodule.exports=' + JSON.stringify(connections, null, '\t') + ";";
 						yield utils.write(process.cwd() + "/config/connections.js", output, true);
 						return 0;
-					} catch (e) {
-						console.log("Configuration file located at ./config/connections.js not found.");
-						return 1;
-					}
+					// } catch (e) {
+					// 	console.log("Configuration file located at ./config/connections.js not found.");
+					// 	return 1;
+					// }
 
 				}
 			}
@@ -647,6 +646,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			}
 			utils.welcome(env);
 			const nodemon = require('gulp-nodemon');
+
 			const livereload = require('gulp-livereload');
 			const notifier = require('node-notifier');
 			if (options.production) {
@@ -656,7 +656,6 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				});
 			}
 			const embercfg = require(`${process.cwd()}/config/ember`);
-
 			let build = [];
 			let watching = [];
 			const building = [];
@@ -707,6 +706,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					}
 				}
 			}
+			console.log('aasa');
 			nodemon({
 				ext: '*',
 				quiet: true,
@@ -738,6 +738,8 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					icon: path.join(__dirname, 'koaton.png'),
 					sound: 'Hero'
 				});
+			}).on('quit',()=>{
+				console.log('err');
 			});
 		}
 			},

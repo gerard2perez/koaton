@@ -84,7 +84,7 @@ class test {
 		try {
 			yield TestGenerator(assert.model(this));
 		} catch (err) {
-			console.log(err.toString().red);
+			console.log(err.stack);
 		}
 		console.log(`    ${this.total} test runned.`.gray);
 		this.total = this.expected > -1 ? this.expected : this.total;

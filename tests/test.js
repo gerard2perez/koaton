@@ -57,7 +57,7 @@ testengine(function* (suite) {
 		}
 	});
 	yield mkdir(testdir);
-	yield suite("koaton --help", function* (assert) {
+/*	yield suite("koaton --help", function* (assert) {
 		// console.log(".");
 		// const ae = assert.equal.bind(assert);
 		// assert.equal =
@@ -68,7 +68,7 @@ testengine(function* (suite) {
 	});
 	yield suite("koaton new dummy",function*(assert){
 		const cachepath =path.join(path.resolve(),"/running_test/dummy/package.json");
-		assert.equal(0,(yield koaton(["new","dummy","-fnb"]))[0],"Creates a new app");
+		assert.equal(0,yield koaton(["new","dummy","-fnb"]),"Creates a new app");
 		assert.ok(require("../running_test/dummy/package.json").dependencies.mongoose,"Mongoose is the database driver.");
 		assert.ok(require("../running_test/dummy/package.json").dependencies.handlebars,"Handlebars is the template engine.");
 		delete require.cache[cachepath];
@@ -87,7 +87,7 @@ testengine(function* (suite) {
 	yield suite("koaton ember restapi",function*(assert){
 		prefix="/dummy/";
 		process.stdout.write("    Installs the app.".white);
-		assert.equal(0,(yield koaton(["ember","restapi","-nf"]))[1],"Installs the app.");
+		assert.equal(0,yield koaton(["ember","restapi","-nf"]),"Installs the app.");
 		assert.equal("/",require("../running_test/dummy/config/ember.js").restapi.mount,"Mount the app on /");
 		assert.ok(require("../running_test/dummy/ember/restapi/app/adapters/application.js"),"Creates the default adapter.");
 		assert.equal("/",require("../running_test/dummy/ember/restapi/config/environment.js")().baseURL,"Creates the default adapter.");
@@ -144,8 +144,10 @@ testengine(function* (suite) {
 	yield suite("koaton build <config_file>",function*(assert){
 		assert.ok(false,"upps");
 	});
+	*/
 	yield suite("koaton serve",function*(assert){
-		assert.ok(false,"upps");
+		prefix="dummy";
+		assert.equal(0,yield koaton(["serve"]),"running server");
 	});
 	yield suite("koaton forever",function*(assert){
 		assert.ok(false,"upps");
