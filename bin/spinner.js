@@ -1,93 +1,87 @@
 "use strict";
-var spinners = [
-    "←↖↑↗→↘↓↙",
-    "▁▃▄▅▆▇█▇▆▅▄▃",
-    "▉▊▋▌▍▎▏▎▍▌▋▊▉",
-    "▖▘▝▗",
-    "▌▀▐▄",
-    "┤┘┴└├┌┬┐",
-    "◢◣◤◥",
-    "◰◳◲◱",
-    "◴◷◶◵",
-    "◐◓◑◒",
-    "|/-\\",
-    ".oO@*",
-    ["◡◡", "⊙⊙", "◠◠"],
-    ["◜ ", " ◝", " ◞", "◟ "],
-    "◇◈◆",
-    "⣾⣽⣻⢿⡿⣟⣯⣷",
-    "⠁⠂⠄⡀⢀⠠⠐⠈",
-    [">))'>", " >))'>", "  >))'>", "   >))'>", "    >))'>", "   <'((<", "  <'((<", " <'((<"],
-    ["    /\\O\n     /\\/\n    /\\\n   /  \\\n LOL  LOL", "     _O\n   //|_\n    |\n   /|\n   LLOL", "      O\n     /_\n     |\\\n    / |\n  LOLLOL"],
+require("colors");
+const spinners = [
+	"←↖↑↗→↘↓↙",
+	"▁▃▄▅▆▇█▇▆▅▄▃",
+	"▉▊▋▌▍▎▏▎▍▌▋▊▉",
+	"▖▘▝▗",
+	"▌▀▐▄",
+	"┤┘┴└├┌┬┐",
+	"◢◣◤◥",
+	"◰◳◲◱",
+	"◴◷◶◵",
+	"◐◓◑◒",
+	"|/-\\",
+	".oO@*", ["◡◡", "⊙⊙", "◠◠"],
+	["◜ ", " ◝", " ◞", "◟ "],
+	"◇◈◆",
+	"⣾⣽⣻⢿⡿⣟⣯⣷",
+	"⠁⠂⠄⡀⢀⠠⠐⠈", [">))'>", " >))'>", "  >))'>", "   >))'>", "    >))'>", "   <'((<", "  <'((<", " <'((<"]
 ];
-let pipeval = {
-	action: "start",
-	id: ""
-};
-const pipe = (str) => {
-	if (!!str) {
-		pipeval = str;
-	} else {
-		let p = pipeval;
-		pipeval = {};
-		//		return pipeval;
-		return p;
-	}
-
-};
-
 const co = require('co');
-const spinner = co.wrap(function* (interval, text, extra) {
+const spinner = co.wrap(function*(interval, text, extra) {
 	extra = extra === undefined ? "" : extra;
-	const spin = "◐◓◑◒";
+	const that = this;
+	const spin = spinners[9];
 	const l = spin.length;
 	let current = -1;
-	let prom = new Promise(function (resolve, reject) {
-		let i = null;
-		i = setInterval(() => {
+	that.text = text || "";
+	that.extra = extra || "";
+	return new Promise(function(resolve, reject) {
+		that.promise = resolve;
+		that.id = setInterval(() => {
 			try {
-				let pip = pipe();
-				switch (pip.action) {
-				case "end":
-					clearInterval(i);
-					i = null;
-					if (pip.id !== undefined) {
-						process.stdout.clearLine();
-						process.stdout.cursorTo(0);
-						process.stdout.write(pip.id);
-					}
-					process.stdout.write("\n");
-					resolve(true);
-					break;
-				case "text":
-					text = pip.id;
-					break;
-				case "extra":
-					extra = pip.id;
-				default:
-					process.stdout.clearLine();
-					process.stdout.cursorTo(0);
-					current++
-					if (current >= l) {
-						current = 0;
-					}
-					process.stdout.write(spin[current].green.bold + "\t" + text + "\t" + extra);
-					break;
+				process.stdout.clearLine();
+				process.stdout.cursorTo(0);
+				current++
+				if (current >= l) {
+					current = 0;
 				}
+				process.stdout.write(spin[current].green.bold + "\t" + that.text + "\t" + that.extra);
 			} catch (e) {
-				//				console.log(e);
+				console.log(e.stack.yellow);
 			}
 		}, interval);
 	});
-	return yield prom;
 });
-const close = (msg) => {
-	pipe({
-		action: "end",
-		id: msg
-	});
+
+class spin {
+	constructor() {
+		this.start = spinner.bind(this);
+	}
+	end(msg){
+		this.pipe({action:"close",msg:msg});
+	}
+	pipe(msg) {
+		if (msg !== undefined && msg !== null) {
+			switch (msg.action) {
+				case "text":
+					this.text = msg.msg;
+					break;
+				case "extra":
+					this.extra = msg.msg;
+					break;
+				case "close":
+					clearInterval(this.id);
+					this.id = null;
+					process.stdout.clearLine();
+					process.stdout.cursorTo(0);
+					process.stdout.write(msg.msg);
+					process.stdout.write("\n");
+					this.promise(true);
+					break;
+				default:
+					console.log("spinner message not recognized");
+					console.log(msg);
+					break;
+			}
+		}
+	}
 }
 
-exports.start = spinner;
+module.exports = (() => {
+	return new spin();
+})();
+/*exports.start = spinner;
 exports.pipe = pipe;
-exports.end = close;
+exports.end = close;*/

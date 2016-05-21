@@ -127,6 +127,7 @@ module.exports = {
 			yield setupConfig();
 			yield setupOthers();
 			yield setupDependencies(options,adapters[options.db||"mongo"]);
+			return 0;
 		} else {
 			utils.abort('aborting');
 			return 1;

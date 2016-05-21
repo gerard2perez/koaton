@@ -25,6 +25,7 @@ exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
 	shell: Promise.promisify((display, command, cwd, cb) => {
+		try{
 		let c = null;
 		let buffer = "";
 		const child = spawn(command[0], command.slice(1), {
@@ -37,7 +38,8 @@ module.exports = {
 			cb && cb(err, c || child.exitCode);
 		});
 		child.stderr.on('data', (data) => {
-			//		console.log(data.toString());
+			//console.log(data.toString().red);
+			//cb && cb(err, c || child.exitCode);
 		});
 		child.stdout.on('data', (data) => {
 			buffer += data.toString();
@@ -45,7 +47,7 @@ module.exports = {
 				let send = buffer.toString().split('\n');
 				spinner.pipe({
 					action: "extra",
-					id: send[0].substr(0, 150).replace(/\n/igm, "")
+					msg: send[0].substr(0, 150).replace(/\n/igm, "")
 				});
 				buffer = "";
 			}
@@ -55,6 +57,9 @@ module.exports = {
 			const msg = code === 0 ? `✓`.green : `✗`.red;
 			spinner.end(`+ ${display}\t${msg}`.green);
 		});
+}catch(err){
+	console.log(err.stack.red);
+}
 	}),
 	from_env: (()=>{return path.join(__dirname, '..', 'templates');})(),
 	to_env: (()=>{return path.resolve();})(),

@@ -33,7 +33,7 @@ commands.forEach(function (definition) {
 			command.option(`${option[0]}, ${option[1]}`, option[2]);
 		});
 	} catch (e) {
-		console.log(e);
+		console.log(e.stack);
 	}
 });
 program.parse(process.argv);
