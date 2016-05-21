@@ -1,19 +1,22 @@
 'use strict';
 const adapters = require("../adapter").adapters;
+const engines = require("../adapter").engines;
 const print = require('../console');
-const path=require("path");
+const path = require("path");
+const fs = require("graceful-fs");
+
 require('colors');
 
 let utils = null;
 const keys = Object.keys;
-let proypath="";
-let application="";
+let proypath = "";
+let application = "";
 
 const setupInit = function*() {
 	yield utils.mkdir(proypath);
-	yield utils.mkdir(path.join(proypath,"ember"));
+	yield utils.mkdir(path.join(proypath, "ember"));
 	yield utils.compile('app.js');
-	yield utils.mkdir(path.join(proypath,"config"));
+	yield utils.mkdir(path.join(proypath, "config"));
 }
 const setupConfig = function*() {
 	const secret = require('../secret');
@@ -30,28 +33,28 @@ const setupConfig = function*() {
 
 }
 const setupAssets = function*() {
-	yield utils.mkdir(path.join(proypath,"assets","img"));
+	yield utils.mkdir(path.join(proypath, "assets", "img"));
 	yield utils.copy("/public/img/koaton.png", 'assets/img/logo.png');
 	yield utils.copy("/public/img/koaton2.png", 'assets/img/logo2.png');
-	yield utils.mkdir(path.join(proypath,"assets","js"));
-	yield utils.mkdir(path.join(proypath,"assets","css"));
+	yield utils.mkdir(path.join(proypath, "assets", "js"));
+	yield utils.mkdir(path.join(proypath, "assets", "css"));
 	yield utils.copy("../bin/koaton-char.png", "assets/img/favicon.ico");
 }
 const setupOthers = function*() {
-	yield utils.mkdir(path.join(proypath,"node_modules"));
+	yield utils.mkdir(path.join(proypath, "node_modules"));
 	try {
-		process.stdout.write(`   ${"Linking".cyan}: global koaton"`);
+		process.stdout.write(`   ${"Linking".cyan}: global koaton`);
 		fs.symlinkSync(path.join(__dirname, "/../"), path.join(proypath, "/node_modules/koaton"));
 		console.log(": done".green);
 	} catch (e) {
-		console.log(e.toString());
+		// console.log(e.toString());
 		console.log(": already exists".green);
 	}
-	yield utils.mkdir(path.join(proypath,"controllers"));
-	yield utils.mkdir(path.join(proypath,"models"));
-	yield utils.mkdir(path.join(proypath,"public"));
-	yield utils.mkdir(path.join(proypath,"public","img"));
-	yield utils.mkdir(path.join(proypath,"views","layouts"));
+	yield utils.mkdir(path.join(proypath, "controllers"));
+	yield utils.mkdir(path.join(proypath, "models"));
+	yield utils.mkdir(path.join(proypath, "public"));
+	yield utils.mkdir(path.join(proypath, "public", "img"));
+	yield utils.mkdir(path.join(proypath, "views", "layouts"));
 	yield utils.copy("/views/layouts/main.handlebars");
 	yield utils.compile('/views/index.html', {
 		application: application
@@ -60,7 +63,7 @@ const setupOthers = function*() {
 		application: application
 	});
 }
-const setupDependencies = function*(options,db) {
+const setupDependencies = function*(options, db, eg) {
 	const shell = utils.shell;
 	var pk = require('../../templates/package');
 	pk.name = application;
@@ -68,18 +71,18 @@ const setupDependencies = function*(options,db) {
 		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);
 		console.log(print.line1);
 		yield shell("Installing npm dependencies", ["npm", "install", "--loglevel", "info"], application);
+		console.log(["npm", "install", db.package, "--save", "--loglevel", "info"].join(" "));
 		yield shell("Installing adapter " + db.package.green, ["npm", "install", db.package, "--save", "--loglevel", "info"], application);
-		//yield shell("Installing engine " + eg.green, eg, application);
+		yield shell("Installing engine " + eg.green, ["npm", "install", eg, "--save", "--loglevel", "info"], application);
 	} else {
-		pk.dependencies[eg[2]] = "latest";
-		pk.dependencies[db[2]] = "latest";
+		pk.dependencies[eg] = "latest";
+		pk.dependencies[db.package] = "latest";
 		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);
 	}
 	if (!options.skipBower) {
 		yield shell("Installing bower dependencies", ["bower", "install"], application);
 	}
 }
-
 module.exports = {
 	cmd: "new",
 	description: `Creates a new koaton aplication.`,
@@ -89,15 +92,22 @@ module.exports = {
 			"-d", "--db <driver>",
 			"[ ".yellow +
 			keys(adapters).map(function(tx) {
-				return tx.cyan;
+				if (tx.indexOf("is") === 0) {
+					return null;
+				} else {
+					return tx.cyan;
+				}
 			}).join(" | ".yellow) + " ]".yellow
 		],
 		[
 			"-e", "--view-engine <engine>",
-			"[ ".yellow + ["handlebars", "ejs"].map(function(tx) {
-				return tx.cyan;
+			"[ ".yellow + keys(engines).map(function(tx) {
+				if (tx.indexOf("is") === 0) {
+					return null;
+				} else {
+					return tx.cyan;
+				}
 			}).join(" | ".yellow) + " ]".yellow
-			//"[ atpl|doT|dust|dustjs-linkedin|eco|ect|ejs|haml|haml-coffee|hamlet|handlebars|hogan|htmling|jade|jazz\n\t\t\t\t jqtpl|JUST|liquor|lodash|mote|mustache|nunjucks|QEJS|ractive|react|slm|swig|templayed|twig|liquid|toffee\n\t\t\t\t underscore|vash|walrus|whiskers ]"
 		],
 		["-f", "--force", "Overrides the existing directory."],
 		["-n", "--skip-npm", "Omits npm install"],
@@ -110,13 +120,10 @@ module.exports = {
 		proypath = path.resolve(app_name);
 		if (!application) {
 			console.log(`${colors.yellow('The command requires a name to run.\n\tkoaton -h\nto see help.')}`);
-			process.die(1);
+			return 1;
 		}
-		//const db = ;/
-		const eg = "handlebars";//engine(options.viewEngine);
-		var empty = utils.isEmpty(proypath);
 		var ok = true;
-		if (!(empty || options.force)) {
+		if (!(utils.isEmpty(proypath) || options.force)) {
 			ok = yield prompt.confirm(`destination ${utils.from_env.yellow} is not empty, continue? [y/n]: `);
 		}
 		if (ok) {
@@ -126,13 +133,7 @@ module.exports = {
 			yield setupAssets();
 			yield setupConfig();
 			yield setupOthers();
-			yield setupDependencies(options,adapters[options.db||"mongo"]);
-			return 0;
-		} else {
-			utils.abort('aborting');
-			return 1;
-		}
-		process.on('exit', () => {
+			yield setupDependencies(options, adapters.isOrDef(options.db), engines.isOrDef(options.viewEngine));
 			console.log(print.line1);
 			console.log("   To run your app first: ");
 			console.log('     $' + ' cd %s '.bgWhite.black, application);
@@ -142,6 +143,10 @@ module.exports = {
 			console.log('     $' + 'cd %s && koaton serve '.bgWhite.black, application);
 			console.log();
 			console.log();
-		});
+			return 0;
+		} else {
+			utils.abort('aborting');
+			return 1;
+		}
 	}
 };

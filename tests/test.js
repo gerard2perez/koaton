@@ -69,7 +69,6 @@ testengine(function* (suite) {
 		assert.ok(require("../running_test/dummy/package.json").dependencies.mongoose,"Mongoose is the database driver.");
 		assert.ok(require("../running_test/dummy/package.json").dependencies.handlebars,"Handlebars is the template engine.");
 		delete require.cache[cachepath];
-
 		assert.equal(0,(yield koaton(["new","dummy","-fnb","-d","postgres"]))[0],"-d postgres");
 		assert.ok(require("../running_test/dummy/package.json").dependencies.pg,"Postgres is the database driver.");
 		delete require.cache[cachepath];

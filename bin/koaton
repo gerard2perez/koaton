@@ -24,7 +24,7 @@ commands.forEach(function (definition) {
 				}catch(err){
 					console.log(err.stack);
 				}
-				process.exit( exitCode === 1 ? 1:0 );
+				process.exit( exitCode === 0 ? 0:1 );
 			}));
 		if (definition.alias) {
 			command.alias(definition.alias);

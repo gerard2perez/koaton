@@ -19,7 +19,7 @@ const spinners = [
 	"⠁⠂⠄⡀⢀⠠⠐⠈", [">))'>", " >))'>", "  >))'>", "   >))'>", "    >))'>", "   <'((<", "  <'((<", " <'((<"]
 ];
 const co = require('co');
-const spinner = co.wrap(function*(interval, text, extra) {
+const spinner = co.wrap(function(interval, text, extra) {
 	extra = extra === undefined ? "" : extra;
 	const that = this;
 	const spin = spinners[9];
@@ -27,7 +27,7 @@ const spinner = co.wrap(function*(interval, text, extra) {
 	let current = -1;
 	that.text = text || "";
 	that.extra = extra || "";
-	return new Promise(function(resolve, reject) {
+	return new Promise(function(resolve) {
 		that.promise = resolve;
 		that.id = setInterval(() => {
 			try {
