@@ -4,6 +4,7 @@ const engines = require("../adapter").engines;
 const print = require('../console');
 const path = require("path");
 const fs = require("graceful-fs");
+const version = require("../utils").version;
 
 require('colors');
 
@@ -47,7 +48,7 @@ const setupOthers = function*() {
 		fs.symlinkSync(path.join(__dirname, "/../"), path.join(proypath, "/node_modules/koaton"));
 		console.log(": done".green);
 	} catch (e) {
-		// console.log(e.toString());
+		console.log(e.toString());
 		console.log(": already exists".green);
 	}
 	yield utils.mkdir(path.join(proypath, "controllers"));
@@ -66,6 +67,7 @@ const setupOthers = function*() {
 const setupDependencies = function*(options, db, eg) {
 	const shell = utils.shell;
 	var pk = require('../../templates/package');
+	pk.dependencies.koaton = version;
 	pk.name = application;
 	if (!options.skipNpm) {
 		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);

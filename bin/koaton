@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /*eslint no-process-exit: 0*/
+const path = require("path");
 const program = require('commander');
 const commands = require('./commandsv2');
 const co = require("co");
@@ -14,10 +15,23 @@ if (!help || help === "-h" || help === "--help") {
 }
 commands.forEach(function (definition) {
 	try {
+
 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
 		var command = program.command(`${definition.cmd} ${args}`)
 			.description(definition.description)
 			.action(co.wrap(function* (){
+
+				try{
+					if(definition.cmd !== "new"){
+						const localversion = require(path.join(process.cwd(),"package.json")).dependencies.koaton;
+					}
+				}catch(e){
+					console.log();
+					console.log("You must be inside a koaton proyect to run this command.")
+					console.log();
+					process.exit(1);
+				}
+
 				var exitCode = 1;
 				try{
 					exitCode = yield definition.action.apply(command,arguments);
@@ -37,3 +51,9 @@ commands.forEach(function (definition) {
 	}
 });
 program.parse(process.argv);
+process.on("beforeExit",(code)=>{
+	console.log();
+	console.log("That command does not exists.".cyan);
+	console.log();
+	process.exit(1);
+});

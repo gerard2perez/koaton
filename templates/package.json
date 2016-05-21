@@ -29,6 +29,7 @@
 		"koa-router": "^5.4.0",
 		"koa-socket": "^4.3.0",
 		"koa-static": "^2.0.0",
-		"npm": "^3.8.7"
+		"koaton":"{{kversion}}"
+
 	}
 }
