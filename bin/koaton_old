@@ -1,20 +1,25 @@
 #!/usr/bin/env node
-/*eslint no-process-exit: 0*/
+/*eslint no-empty-label: 0, no-process-exit: 0*/
+var hrTime = process.hrtime();
+var t1 = hrTime[0] * 1000000 + hrTime[1] / 1000;
 const program = require('commander');
-const commands = require('./commandsv2');
-const co = require("co");
-const help = process.argv.slice(2)[0];
-
 require('colors');
-
+const help = process.argv.slice(2)[0];
+const commands = require('./commands');
+const co = require("co");
 if (!help || help === "-h" || help === "--help") {
-	const h = require("./commandsv2/help").many;
-	console.log(h(commands));
+	//console.log(commands[0](commands));
+	hrTime = process.hrtime();
+	var t2 = hrTime[0] * 1000000 + hrTime[1] / 1000;
+	console.log(t2-t1);
 	process.exit(0);
+} else {
+	delete commands[0];
 }
 commands.forEach(function (definition) {
 	try {
 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
+		//		definition.action
 		var command = program.command(`${definition.cmd} ${args}`)
 			.description(definition.description)
 			.action(co.wrap(function* (){

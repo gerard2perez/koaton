@@ -7,7 +7,7 @@
 process.stdout.write('\x1Bc');
 let prefix = "";
 const path = require('path');
-const mkdir = require('../bin/utils').utils.mkdir;
+const mkdir = require('../bin/utils').mkdir;
 const spawn = require('cross-spawn-async');
 const Promise = require('bluebird');
 const read = require("fs").readFileSync;
@@ -57,10 +57,7 @@ testengine(function* (suite) {
 		}
 	});
 	yield mkdir(testdir);
-/*	yield suite("koaton --help", function* (assert) {
-		// console.log(".");
-		// const ae = assert.equal.bind(assert);
-		// assert.equal =
+	yield suite("koaton --help", function* (assert) {
 		assert.expect(3);
 		assert.equal(help, yield koaton([""]), "Renders help if not parameters");
 		assert.equal(help, yield koaton(["-h"]), "Renders help -h");
@@ -144,10 +141,10 @@ testengine(function* (suite) {
 	yield suite("koaton build <config_file>",function*(assert){
 		assert.ok(false,"upps");
 	});
-	*/
 	yield suite("koaton serve",function*(assert){
-		prefix="dummy";
-		assert.equal(0,yield koaton(["serve"]),"running server");
+		assert.ok(false,"upps");
+		// prefix="dummy";
+		// assert.equal(0,yield koaton(["serve"]),"running server");
 	});
 	yield suite("koaton forever",function*(assert){
 		assert.ok(false,"upps");

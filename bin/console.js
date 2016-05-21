@@ -1,4 +1,5 @@
 "use strict";
+require("colors");
 Object.defineProperty(String.prototype, 'lnf', {
 	get() {
 		return this.replace(/(=+)/igm, "$1".grey).replace(/(\-+)/igm, "$1".dim);

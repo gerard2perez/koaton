@@ -7,12 +7,12 @@ const utils = require('./utils').utils;
 const shell = require('./utils').shell;
 const exec = require('./utils').exec;
 const print = require('./console');
-const version = require(path.join(__dirname , "/../package.json")).version;
+const version = require(path.join(__dirname, "/../package.json")).version;
 const secret = require('./secret');
 const ADP = require('./adapters');
 const Handlebars = require('handlebars');
 const inflector = require('i')();
-const access = function (path) {
+const access = function(path) {
 	try {
 		fs.accessSync(path);
 		return true;
@@ -20,12 +20,12 @@ const access = function (path) {
 		return false;
 	}
 };
-const deleteFolderRecursive = function (path) {
+const deleteFolderRecursive = function(path) {
 	var files = [];
 	if (fs.existsSync(path)) {
 		files = fs.readdirSync(path);
-		files.forEach(function (file) {
-			var curPath = path.join(path,"/",file);
+		files.forEach(function(file) {
+			var curPath = path.join(path, "/", file);
 			if (fs.lstatSync(curPath).isDirectory()) { // recurse
 				deleteFolderRecursive(curPath);
 			} else { // delete file
@@ -40,8 +40,6 @@ const chokidar = require('chokidar');
 
 const camintejs = ["Number", "Integer", "Float", "Double", "Real", "Boolean", "Date", "String", "Text", "Json", "BLOB"];
 const emberdatas = ["number", "number", "number", "number", "number", "boolean", "date", "string", "string", undefined, "string"];
-
-
 
 var application = "";
 /**
@@ -71,11 +69,11 @@ function* setupApplication(proyect_path, db, eg, options) {
 	yield utils.mkdir(`${proyect_path}/assets/css`);
 	yield utils.copy("../bin/koaton-char.png", "assets/img/favicon.ico");
 	yield utils.mkdir(`${proyect_path}/node_modules`);
-	try{
+	try {
 		process.stdout.write(`   ${"Linking".cyan}: global koaton"`);
-		fs.symlinkSync(path.join(__dirname , "/../"), path.join(proyect_path , "/node_modules/koaton"));
+		fs.symlinkSync(path.join(__dirname, "/../"), path.join(proyect_path, "/node_modules/koaton"));
 		console.log(": done".green);
-	}catch(e){
+	} catch (e) {
 		console.log(e.toString());
 		console.log(": already exists".green);
 	}
@@ -109,7 +107,7 @@ function* setupApplication(proyect_path, db, eg, options) {
 	if (!options.skipBower) {
 		yield shell("Installing bower dependencies", ["bower", "install"], application);
 	}
-	process.on('exit', function () {
+	process.on('exit', function() {
 		console.log(print.line1);
 		console.log("   To run your app first: ");
 		console.log('     $' + ' cd %s '.bgWhite.black, application);
@@ -124,82 +122,82 @@ function* setupApplication(proyect_path, db, eg, options) {
 
 function engine(selection) {
 	switch (selection) {
-	case "atpl":
-	case "doT":
-	case "dust":
-	case "dustjs-linkedin":
-	case "eco":
-	case "ect":
-	case "ejs":
-	case "haml":
-	case "haml-coffee":
-	case "hamlet":
-	case "handlebars":
-	case "hogan":
-	case "htmling":
-	case "jade":
-	case "jazz":
-	case "jqtpl":
-	case "JUST":
-	case "liquor":
-	case "lodash":
-	case "mote":
-	case "mustache":
-	case "nunjucks":
-	case "QEJS":
-	case "ractive":
-	case "react":
-	case "slm":
-	case "swig":
-	case "templayed":
-	case "twig":
-	case "liquid":
-	case "toffee":
-	case "underscore":
-	case "vash":
-	case "walrus":
-	case "whiskers":
-		selection = selection.toLocaleLowerCase();
-		break;
-	case undefined:
-		selection = "handlebars";
-		break;
-	default:
-		console.log("unknow template engine".red.bold);
-		process.exit(1);
-		break;
+		case "atpl":
+		case "doT":
+		case "dust":
+		case "dustjs-linkedin":
+		case "eco":
+		case "ect":
+		case "ejs":
+		case "haml":
+		case "haml-coffee":
+		case "hamlet":
+		case "handlebars":
+		case "hogan":
+		case "htmling":
+		case "jade":
+		case "jazz":
+		case "jqtpl":
+		case "JUST":
+		case "liquor":
+		case "lodash":
+		case "mote":
+		case "mustache":
+		case "nunjucks":
+		case "QEJS":
+		case "ractive":
+		case "react":
+		case "slm":
+		case "swig":
+		case "templayed":
+		case "twig":
+		case "liquid":
+		case "toffee":
+		case "underscore":
+		case "vash":
+		case "walrus":
+		case "whiskers":
+			selection = selection.toLocaleLowerCase();
+			break;
+		case undefined:
+			selection = "handlebars";
+			break;
+		default:
+			console.log("unknow template engine".red.bold);
+			process.exit(1);
+			break;
 	}
 	return ["npm", "install", selection, "--save", "--loglevel", "info"];
 }
 
 function proxydb(driver) {
 	switch (driver) {
-	case "mariadb":
-		driver = "mysql";
-		break;
-	case "mongo":
-		driver = "mongoose";
-		break;
-	case "postgres":
-		driver = "pg";
-		break;
-	case "mongoose":
-	case "mysql":
-	case "redis":
-	case "sqlite3":
-	case "couchdb":
-	case "neo4j":
-	case "riak":
-	case "firebird":
-	case "tingodb":
-	case "rethinkdb":
-		break;
-	case undefined:
-		driver = "mongoose";
-		break;
-	default:
-		driver = null;
-		break;
+		case "mariadb":
+			driver = "mysql";
+			break;
+		case "mongo":
+			driver = "mongoose";
+			break;
+		case "postgres":
+			driver = "pg";
+			break;
+		case "mongoose":
+		case "mysql":
+		case "redis":
+		case "sqlite3":
+		case "couchdb":
+		case "neo4j":
+		case "riak":
+		case "firebird":
+		case "tingodb":
+		case "rethinkdb":
+			break;
+		case undefined:
+			driver = "mongoose";
+			break;
+		default:
+			driver = null;
+			break;
 	}
 	return driver;
 }
@@ -223,19 +221,22 @@ module.exports = [
 		delete commands[0];
 		help += `  version: ${version}\n`;
 		help += "  Command list:\n";
-		commands.forEach(function (definition) {
+		commands.forEach(function(definition) {
 			var args = definition.args.length > 0 ? `<${definition.args.join("> <")}>` : "";
 			var opts = definition.options.length > 0 ? "[options]" : "";
 			help += `    koaton ${definition.cmd} ${args.yellow} ${opts.cyan}\n`;
 			help += `      ${definition.description.replace('\n',"\n   ")}\n`;
-			definition.options.forEach(function (option) {
+
+			definition.options.forEach(function(option) {
 				var opt = option[1].split(' ');
 				opt[0] = option[0] === opt[0] ? "" : opt[0];
 				opt[1] = opt[1] || "";
-				while (opt[0].length < 13) {opt[0] = opt[0] + " "};
+				while (opt[0].length < 13) {
+					opt[0] = opt[0] + " "
+				};
 				help += `      ${option[0].cyan} ${opt[0].gray} ${opt[1].cyan} ${option[2]}\n`;
 			});
-			help +="\n\n" ;
+			help += "\n\n";
 		});
 		return help;
 	},
@@ -256,25 +257,22 @@ module.exports = [
 			[
 				"-d", "--db <driver>",
 				"[ ".yellow +
-				adapters.map(function (tx) {
+				adapters.map(function(tx) {
 					return tx.cyan;
-				}).join(" | ".yellow)
-				+ " ]".yellow
+				}).join(" | ".yellow) + " ]".yellow
 			],
 			[
 				"-e", "--view-engine <engine>",
-				"[ ".yellow +
-				["handlebars", "ejs"].map(function (tx) {
+				"[ ".yellow + ["handlebars", "ejs"].map(function(tx) {
 					return tx.cyan;
-				}).join(" | ".yellow)
-				+ " ]".yellow
-			 //"[ atpl|doT|dust|dustjs-linkedin|eco|ect|ejs|haml|haml-coffee|hamlet|handlebars|hogan|htmling|jade|jazz\n\t\t\t\t jqtpl|JUST|liquor|lodash|mote|mustache|nunjucks|QEJS|ractive|react|slm|swig|templayed|twig|liquid|toffee\n\t\t\t\t underscore|vash|walrus|whiskers ]"
+				}).join(" | ".yellow) + " ]".yellow
+				//"[ atpl|doT|dust|dustjs-linkedin|eco|ect|ejs|haml|haml-coffee|hamlet|handlebars|hogan|htmling|jade|jazz\n\t\t\t\t jqtpl|JUST|liquor|lodash|mote|mustache|nunjucks|QEJS|ractive|react|slm|swig|templayed|twig|liquid|toffee\n\t\t\t\t underscore|vash|walrus|whiskers ]"
 			],
 			["-f", "--force", "Overrides the existing directory."],
 			["-n", "--skip-npm", "Omits npm install"],
 			["-b", "--skip-bower", "Omits bower install"]
 		],
-		action: function* (app_name, options) {
+		action: function*(app_name, options) {
 			application = app_name;
 			const proypath = path.resolve(app_name);
 			utils.proyect_path = proypath;
@@ -298,8 +296,7 @@ module.exports = [
 				return 1;
 			}
 		}
-			},
-	{
+	}, {
 		cmd: "ember",
 		alias: "ex",
 		description: "If no app_name epecified it lists all the installed ember apps.",
@@ -311,7 +308,7 @@ module.exports = [
 			["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
 			["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."]
 		],
-		action: function* (app_name, options) {
+		action: function*(app_name, options) {
 			var override = false;
 			const pt = `${process.cwd()}/ember/${app_name}`;
 			if (app_name === undefined) {
@@ -336,7 +333,7 @@ module.exports = [
 				if (override || options.force) {
 					yield shell(`Installing ${app_name.green}`, ["ember", "new", app_name, "-dir", pt, "-v"], process.cwd());
 					options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);
-				}else{
+				} else {
 					return 0;
 				}
 			} else if (options.build) {
@@ -364,7 +361,7 @@ module.exports = [
 				const connection = require(`${process.cwd()}/config/models`).connection;
 				const def = connections[connection];
 				options.mount = path.join('/', options.mount);
-				options.mount = options.mount.replace(/\\/igm,"/");
+				options.mount = options.mount.replace(/\\/igm, "/");
 				console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
 				yield utils.mkdir(path.join(process.cwd(), "ember", app_name, "app", "adapters"));
 				yield utils.compile('ember_apps/adapter.js',
@@ -387,8 +384,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			}
 			return 0;
 		}
-			},
-	{
+	}, {
 		cmd: "adapter",
 		description: "Install the especified driver adapter.",
 		args: ["driver"],
@@ -402,7 +398,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			["--db", "--db <databse>", "Database name for the connection default is ''. Use this with -g"],
 			["--password", "--password <databse>", "Password to login in your database default is ''. Use this with -g"]
 		],
-		action: function* (driver, options) {
+		action: function*(driver, options) {
 			const dependencies = require(path.resolve() + "/package.json").dependencies;
 			let drivers = {};
 			adapters.map((adapter) => {
@@ -476,11 +472,11 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 					}
 
 					//tr y{
-						var connections = require(process.cwd() + "/config/connections");
-						connections[driver] = adapterCFG;
-						const output = '"use strict";\nmodule.exports=' + JSON.stringify(connections, null, '\t') + ";";
-						yield utils.write(process.cwd() + "/config/connections.js", output, true);
-						return 0;
+					var connections = require(process.cwd() + "/config/connections");
+					connections[driver] = adapterCFG;
+					const output = '"use strict";\nmodule.exports=' + JSON.stringify(connections, null, '\t') + ";";
+					yield utils.write(process.cwd() + "/config/connections.js", output, true);
+					return 0;
 					// } catch (e) {
 					// 	console.log("Configuration file located at ./config/connections.js not found.");
 					// 	return 1;
@@ -490,8 +486,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			}
 			return 0;
 		}
-	},
-	{
+	}, {
 		cmd: "model",
 		description: `Creates a new model. fields must be sourrounded by \"\".
 	${"Fields syntax".yellow}:
@@ -505,7 +500,7 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			["-f", "--force", "Deletes the model if exists."],
 			["-r", "--rest", "Makes the model REST enabled."]
 		],
-		action: function* (name, fields, options) {
+		action: function*(name, fields, options) {
 			const inflections = require(process.cwd() + '/config/inflections');
 			inflections.irregular.forEach((inflect) => {
 				inflector.inflections.irregular(inflect[0], inflect[1]);
@@ -552,7 +547,7 @@ module.exports = function(schema) {
 			}
 			if (options.ember) {
 
-				if (!fs.existsSync(path.join(process.cwd() , "/ember/" , options.ember) ) ) {
+				if (!fs.existsSync(path.join(process.cwd(), "/ember/", options.ember))) {
 					console.log(`The app ${options.ember} does not exists.`.red);
 					return 1;
 				}
@@ -564,7 +559,7 @@ module.exports = function(schema) {
 					embermodel += `\t${field[0]}:attr('${emberdatas[_camintejs.indexOf(field[1].toLowerCase())]}'),\n`
 				});
 				embermodel += "});";
-				yield utils.write(path.join(process.cwd() , "/ember/" , options.ember , "/app/models/" , name + ".js"), embermodel);
+				yield utils.write(path.join(process.cwd(), "/ember/", options.ember, "/app/models/", name + ".js"), embermodel);
 				if (options.rest) {
 					var embercontroller = `
 						import CTABLE from 'ember-cli-crudtable/mixins/crud-controller';
@@ -586,15 +581,14 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			}
 			return 0;
 		}
-			},
-	{
+	}, {
 		cmd: "build",
 		description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 		args: ["config_file"],
 		options: [
-				["-p", "--prod", "builds for production"]
-			],
-		action: function* (config_file, options) {
+			["-p", "--prod", "builds for production"]
+		],
+		action: function*(config_file, options) {
 			config_file = config_file || process.cwd() + '/config/bundles.js';
 			var gulp = require('gulp');
 			var concat = require('gulp-concat');
@@ -605,8 +599,8 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			if (Object.keys(patterns).length === 0) {
 				console.log("Nothing to compile on: " + config_file);
 			}
-			Object.keys(patterns).forEach(function (key) {
-				var info = patterns[key].map(function (file) {
+			Object.keys(patterns).forEach(function(key) {
+				var info = patterns[key].map(function(file) {
 					return path.basename(file).yellow;
 				}).join(",".yellow.dim);
 				info = "Compiling: ".green + info + " => public/js/" + key.green.bold;
@@ -625,8 +619,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				}
 			});
 		}
-			},
-	{
+	}, {
 		cmd: "serve",
 		description: "Runs your awsome Koaton applicaction using nodemon",
 		args: [],
@@ -635,7 +628,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			["-b", "--build", "Builds the ember apss."],
 			["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 		],
-		action: function* (options) {
+		action: function*(options) {
 			const env = {
 				welcome: false,
 				NODE_ENV: !options.production ? 'development' : 'production',
@@ -659,11 +652,11 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			let build = [];
 			let watching = [];
 			const building = [];
-			const watch_error=function(e){
+			const watch_error = function(e) {
 				console.log(`Watcher error: ${e}`);
 			}
 			for (var ember_app in embercfg) {
-				const updateApp = function () {
+				const updateApp = function() {
 					notifier.notify({
 						title: 'Koaton',
 						message: 'Rebuilding app: ' + ember_app,
@@ -683,12 +676,12 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					if ((yield building[building.length - 1]) === 0) {
 						var watcher = chokidar.watch(`ember/${ember_app}/**/*.js`, {
 							ignored: [
-									"**/node_modules/**",
-									"**/bower_components/**",
-									"**/tmp/**",
-									"**/vendor/**",
-									/[\/\\]\./
-								],
+								"**/node_modules/**",
+								"**/bower_components/**",
+								"**/tmp/**",
+								"**/vendor/**",
+								/[\/\\]\./
+							],
 							persistent: true,
 							alwaysStat: false,
 							awaitWriteFinish: {
@@ -697,11 +690,11 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 							}
 						});
 						watcher
-						.on('change', updateApp)
-						.on('unlink', updateApp)
-						.on('ready', () => watcher.on('add', updateApp))
-						.on('unlinkDir', updateApp)
-						.on('error', watch_error);
+							.on('change', updateApp)
+							.on('unlink', updateApp)
+							.on('ready', () => watcher.on('add', updateApp))
+							.on('unlinkDir', updateApp)
+							.on('error', watch_error);
 						watching.push(watcher);
 					}
 				}
@@ -712,13 +705,13 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				quiet: true,
 				delay: 500,
 				ignore: [
-						"**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**", "**/views/**"
-					],
+					"**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**", "**/views/**"
+				],
 				verbose: false,
 				script: 'app.js',
 				env: env,
 				stdout: true
-			}).once('start', function () {
+			}).once('start', function() {
 				utils.info(env, building);
 				notifier.notify({
 					title: 'Koaton',
@@ -728,8 +721,8 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					sound: 'Hero',
 					wait: false
 				});
-			}).on('restart', function () {
-				setTimeout(function () {
+			}).on('restart', function() {
+				setTimeout(function() {
 					livereload.reload();
 				}, 1000);
 				notifier.notify({
@@ -738,12 +731,11 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 					icon: path.join(__dirname, 'koaton.png'),
 					sound: 'Hero'
 				});
-			}).on('quit',()=>{
+			}).on('quit', () => {
 				console.log('err');
 			});
 		}
-			},
-	{
+	}, {
 		cmd: "forever",
 		description: "Runs your awsome Koaton on production mode with forever.",
 		args: [],
@@ -753,7 +745,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 			["-s", "--stop", "Stops all the forever running servers."],
 			["--port", "--port <port>", "(Default: 62626) Run on the especified port (port 80 requires sudo)."]
 		],
-		action: function* (options) {
+		action: function*(options) {
 			const env = {
 				welcome: false,
 				NODE_ENV: 'production',
@@ -837,7 +829,7 @@ export default Ember.Controller.extend(CTABLE('${name}'),{
 				});
 			}
 		}
-			}
+	}
 
 
-			];
+];
