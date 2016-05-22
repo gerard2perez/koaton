@@ -1,5 +1,5 @@
 "use strict";
-const fs = require('fs');
+const fs = require('graceful-fs');
 const mkdirp = require('mkdirp');
 const path = require('path');
 const Promise = require('bluebird');

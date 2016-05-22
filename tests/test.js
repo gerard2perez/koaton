@@ -12,7 +12,7 @@ const read = require('../bin/utils').read;
 const compile = require('../bin/utils').Compile;
 const spawn = require('cross-spawn-async');
 const Promise = require('bluebird');
-// const exists = require("fs").existsSync;
+const exists = require("fs").existsSync;
 require('colors');
 const testdir = "running_test";
 const koaton = Promise.promisify((command, cb) => {
@@ -35,8 +35,8 @@ const koaton = Promise.promisify((command, cb) => {
 	});
 });
 const testengine = require('./engine');
-const commands = require("../bin/commandsv2");
-const h = require("../bin/commandsv2/help").many;
+const commands = require("../bin/commands");
+const h = require("../bin/commands/help").many;
 const help = h(commands).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "") + "\n";
 testengine(function*(suite) {
 	yield suite({
@@ -86,14 +86,20 @@ testengine(function*(suite) {
 		assert.equal(0, yield koaton(["ember", "restapi", "-nf"]), "Installs the app.");
 		assert.equal("/", require("../running_test/dummy/config/ember.js").restapi.mount, "Mount the app on /");
 
-
 		const connections = require(`../running_test/dummy/config/connections`);
 		const connection = require(`../running_test/dummy/config/models`).connection;
 		const def = connections[connection];
 		assert.equal(
-			yield read("./running_test/dummy/ember/restapi/app/adapters/application.js",{encoding:"utf-8"}),
-			compile(yield read("./templates/ember_apps/adapter.js",{encoding:"utf-8"}),{localhost:def.host,port:def.port}),
-			 "Creates the default adapter.");
+			yield read("./running_test/dummy/ember/restapi/app/adapters/application.js", {
+				encoding: "utf-8"
+			}),
+			compile(yield read("./templates/ember_apps/adapter.js", {
+				encoding: "utf-8"
+			}), {
+				localhost: def.host,
+				port: def.port
+			}),
+			"Creates the default adapter.");
 		assert.equal("/", require("../running_test/dummy/ember/restapi/config/environment.js")().baseURL, "Mounted on the right path");
 	});
 	yield suite("koaton adapter <driver>", function*(assert) {
@@ -128,55 +134,46 @@ testengine(function*(suite) {
 		assert.equal("pa$$w0rd", dbadapter.password, "Password is secure");
 		assert.equal("awsome", dbadapter.database, "Database is awsome");
 	});
-	// yield suite("koaton model <name> <fields>", function*(assert) {
-	// 	let model = 'user';
-	// 	assert.equal(0, yield koaton(['model', model, 'active:number name email password note:text created:date', '-e', 'restapi', '-fr']), "Run command with full arguments");
-	// 	const mdefinition = require(path.join(process.cwd(), "/running_test/dummy/models", `${model}.js`))({});
-	// 	assert.equal({
-	// 		type: undefined
-	// 	}, mdefinition.model.active, "active atribute added");
-	// 	assert.equal({
-	// 		type: undefined
-	// 	}, mdefinition.model.name, "name atribute added");
-	// 	assert.equal({
-	// 		type: undefined
-	// 	}, mdefinition.model.email, "email atribute added");
-	// 	assert.equal({
-	// 		type: undefined
-	// 	}, mdefinition.model.password, "password atribute added");
-	// 	assert.equal({
-	// 		type: undefined
-	// 	}, mdefinition.model.note, "note atribute added");
-	// 	assert.equal({
-	// 		type: undefined
-	// 	}, mdefinition.model.created, "created atribute added");
-	// 	const emberdef = read(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`), {
-	// 		encoding: "utf-8"
-	// 	})
-	// 	const fields = ["active", "name", "email", "password", "note", "created"];
-	// 	const locs = [105, 129, 151, 174, 200, 222];
-	// 	for (let index in fields) {
-	// 		assert.equal(locs[index], emberdef.indexOf(fields[index]), `ember model constains ${fields[index]}`);
-	// 	}
-	// 	model = "consumer";
-	// 	assert.equal(0, yield koaton(['model', model, 'active:number name email password note:text created:date', '-fr']), "Creates models only on the Back End");
-	// 	//console.log(['koaton', 'model', model, '"active:number name email password note:text created:date"','-fr'].join(" "));
-	// 	const consumerdef = require(path.join(process.cwd(), "/running_test/dummy/models", `${model}.js`))({});
-	// 	assert.ok(consumerdef, "Model is created");
-	// 	assert.equal(false, exists(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`)), "No ember models created.");
-	//
-	// });
-	// yield suite("koaton build <config_file>", function*(assert) {
-	// 	assert.ok(false, "upps");
-	// });
-	// yield suite("koaton serve", function*(assert) {
-	// 	assert.ok(false, "upps");
-	// 	// prefix="dummy";
-	// 	// assert.equal(0,yield koaton(["serve"]),"running server");
-	// });
-	// yield suite("koaton forever", function*(assert) {
-	// 	assert.ok(false, "upps");
-	// });
+	yield suite("koaton model <name> <fields>", function*(assert) {
+		let model = 'user';
+		const testType = {
+			type: undefined
+		};
+		assert.equal(0, yield koaton(['model', model, 'active:number name email password note:text created:date', '-e', 'restapi', '-fr']), "Run command with full arguments");
+		const mdefinition = require(path.join(process.cwd(), "/running_test/dummy/models", `${model}.js`))({});
+		assert.equal(testType, mdefinition.model.active, "active atribute added");
+		assert.equal(testType, mdefinition.model.name, "name atribute added");
+		assert.equal(testType, mdefinition.model.email, "email atribute added");
+		assert.equal(testType, mdefinition.model.password, "password atribute added");
+		assert.equal(testType, mdefinition.model.note, "note atribute added");
+		assert.equal(testType, mdefinition.model.created, "created atribute added");
+		let emberdef = yield read(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`), {encoding: "utf-8"});
+		// console.log(emberdef);JSON.parse()
+		emberdef = emberdef.replace(/\n/igm,"").match(/{(.*)}/igm)[0].replace(/\t+/igm,"").replace(/\{|\}/igm,"").replace(/([^:]*):([^,]*),/g,"\"$1\":\"$1\",");
+		emberdef=JSON.parse("{"+emberdef.substr(0,emberdef.length-1)+"}");
+		const fields = ["active", "name", "email", "password", "note", "created"];
+		for (let index in fields) {
+			assert.ok(emberdef[fields[index]], `ember model constains ${fields[index]}`);
+		}
+		model = "consumer";
+		assert.equal(0, yield koaton(['model', model, 'active:number name email password note:text created:date', '-fr']), "Creates models only on the Back End");
+		//console.log(['koaton', 'model', model, '"active:number name email password note:text created:date"','-fr'].join(" "));
+		const consumerdef = require(path.join(process.cwd(), "/running_test/dummy/models", `${model}.js`))({});
+		assert.ok(consumerdef, "Model is created");
+		assert.equal(false, exists(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`)), "No ember models created.");
+
+	});
+	yield suite("koaton build <config_file>", function*(assert) {
+		assert.ok(false, "upps");
+	});
+	yield suite("koaton serve", function*(assert) {
+		assert.ok(false, "upps");
+		// prefix="dummy";
+		// assert.equal(0,yield koaton(["serve"]),"running server");
+	});
+	yield suite("koaton forever", function*(assert) {
+		assert.ok(false, "upps");
+	});
 }).then((a) => {
 	process.exit(a);
 }).catch((err) => {

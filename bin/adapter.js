@@ -32,7 +32,7 @@ const dt = {
 	"String": 'string',
 	"Text": 'string',
 	"Json": undefined,
-	"BLOB": 'string'
+	"Blob": 'string'
 };
 let datatypes = {};
 let adapters = {};
@@ -44,6 +44,7 @@ for (let type in dt) {
 			return dt[type];
 		}
 	});
+	// datatypes[type.toLowerCase()] = datatypes[type];
 }
 const getPort=function(adapter){
 	return ports[adapter];

@@ -2,14 +2,13 @@
 /*eslint no-process-exit: 0*/
 const path = require("path");
 const program = require('commander');
-const commands = require('./commandsv2');
+const commands = require('./commands');
 const co = require("co");
 const help = process.argv.slice(2)[0];
-
 require('colors');
 
 if (!help || help === "-h" || help === "--help") {
-	const h = require("./commandsv2/help").many;
+	const h = require("./commands/help").many;
 	console.log(h(commands));
 	process.exit(0);
 }
@@ -24,6 +23,7 @@ commands.forEach(function (definition) {
 				try{
 					if(definition.cmd !== "new"){
 						const localversion = require(path.join(process.cwd(),"package.json")).dependencies.koaton;
+						console.log(`koaton ${require('../package.json').version} -> ${localversion}`);
 					}
 				}catch(e){
 					console.log();
@@ -51,7 +51,7 @@ commands.forEach(function (definition) {
 	}
 });
 program.parse(process.argv);
-process.on("beforeExit",(code)=>{
+process.on("beforeExit",()=>{
 	console.log();
 	console.log("That command does not exists.".cyan);
 	console.log();
