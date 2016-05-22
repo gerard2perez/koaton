@@ -100,7 +100,7 @@ class test {
 }
 const suite = function* (SuitName, FnGenerator) {
 		let t = new test();
-		suites.push(t);
+		if(FnGenerator!==undefined){suites.push(t);}
 		yield t.suite(SuitName, FnGenerator);
 		console.log();
 }

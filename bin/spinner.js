@@ -31,8 +31,12 @@ const spinner = co.wrap(function(interval, text, extra) {
 		that.promise = resolve;
 		that.id = setInterval(() => {
 			try {
-				process.stdout.clearLine();
-				process.stdout.cursorTo(0);
+				try {
+					process.stdout.clearLine();
+					process.stdout.cursorTo(0);
+				} catch (e) {
+					process.stdout.write("TODO: clearLine undefined (1)");
+				}
 				current++
 				if (current >= l) {
 					current = 0;
@@ -49,8 +53,11 @@ class spin {
 	constructor() {
 		this.start = spinner.bind(this);
 	}
-	end(msg){
-		this.pipe({action:"close",msg:msg});
+	end(msg) {
+		this.pipe({
+			action: "close",
+			msg: msg
+		});
 	}
 	pipe(msg) {
 		if (msg !== undefined && msg !== null) {
@@ -64,8 +71,12 @@ class spin {
 				case "close":
 					clearInterval(this.id);
 					this.id = null;
-					process.stdout.clearLine();
-					process.stdout.cursorTo(0);
+					try {
+						process.stdout.clearLine();
+						process.stdout.cursorTo(0);
+					} catch (e) {
+						process.stdout.write("TODO: clearLine undefined");
+					}
 					process.stdout.write(msg.msg);
 					process.stdout.write("\n");
 					this.promise(true);

@@ -49,7 +49,6 @@
     "gulp-livereload": "^3.8.1",
     "gulp-sourcemaps": "^2.0.0-alpha",
     "gulp-uglify": "^1.5.3",
-    "handlebars": "^4.0.5",
     "i": "^0.3.4",
     "koa-send": "^3.2.0",
     "livereload": "^0.4.1",

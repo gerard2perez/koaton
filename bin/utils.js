@@ -1,7 +1,6 @@
 "use strict";
 const fs = require('fs');
 const mkdirp = require('mkdirp');
-const Handlebars = require('handlebars');
 const path = require('path');
 const Promise = require('bluebird');
 const spawn = require('cross-spawn-async');
@@ -25,44 +24,48 @@ exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
 	shell: Promise.promisify((display, command, cwd, cb) => {
-		try{
-		let c = null;
-		let buffer = "";
-		const child = spawn(command[0], command.slice(1), {
-			cwd: path.join(cwd, "/"),
-			shell: true
-		});
-		spinner.start(50, display).then(() => {
-			cb && cb(null, c || child.exitCode);
-		}, (err) => {
-			cb && cb(err, c || child.exitCode);
-		});
-		child.stderr.on('data', (data) => {
-			//console.log(data.toString().red);
-			//cb && cb(err, c || child.exitCode);
-		});
-		child.stdout.on('data', (data) => {
-			buffer += data.toString();
-			if (buffer.indexOf('\n') > -1) {
-				let send = buffer.toString().split('\n');
-				spinner.pipe({
-					action: "extra",
-					msg: send[0].substr(0, 150).replace(/\n/igm, "")
-				});
-				buffer = "";
-			}
-		});
-		child.on('close', function(code, signal) {
-			c = code;
-			const msg = code === 0 ? `✓`.green : `✗`.red;
-			spinner.end(`+ ${display}\t${msg}`.green);
-		});
-}catch(err){
-	console.log(err.stack.red);
-}
+		try {
+			let c = null;
+			let buffer = "";
+			const child = spawn(command[0], command.slice(1), {
+				cwd: path.join(cwd, "/"),
+				shell: true
+			});
+			spinner.start(50, display).then(() => {
+				(cb || (()=>{console.log("No Callback".red)}))(null, c || child.exitCode);
+			}, (err) => {
+				(cb || (()=>{console.log("No Callback".red)}))(err, c || child.exitCode);
+			});
+			// child.stderr.on('data', (data) => {
+				//console.log(data.toString().red);
+				//cb && cb(err, c || child.exitCode);
+			// });
+			child.stdout.on('data', (data) => {
+				buffer += data.toString();
+				if (buffer.indexOf('\n') > -1) {
+					let send = buffer.toString().split('\n');
+					spinner.pipe({
+						action: "extra",
+						msg: send[0].substr(0, 150).replace(/\n/igm, "")
+					});
+					buffer = "";
+				}
+			});
+			child.on('close', function(code) {
+				c = code;
+				const msg = code === 0 ? `✓`.green : `✗`.red;
+				spinner.end(`+ ${display}\t${msg}`.green);
+			});
+		} catch (err) {
+			console.log(err.stack.red);
+		}
 	}),
-	from_env: (()=>{return path.join(__dirname, '..', 'templates');})(),
-	to_env: (()=>{return path.resolve();})(),
+	from_env: (() => {
+		return path.join(__dirname, '..', 'templates');
+	})(),
+	to_env: (() => {
+		return path.resolve();
+	})(),
 	info(env, promises) {
 		var jutsus = require('./jutsus');
 		jutsus = jutsus.S.concat(jutsus.A, jutsus.B, jutsus.C);
@@ -72,7 +75,7 @@ module.exports = {
 		function center(text) {
 			var m = Math.floor((total - text.length) / 2);
 			var r = "";
-			while (r.length < m) r += " ";
+			while (r.length < m) {r += " ";}
 			return r + text;
 		}
 		if (env.NODE_ENV !== 'production') {
@@ -143,6 +146,12 @@ module.exports = {
 		});
 	},
 	read: Promise.promisify(fs.readFile),
+	Compile(text,options){
+		for(let prop in options){
+			text=text.replace("{{"+prop+"}}",options[prop]);
+		}
+		return text;
+	},
 	compile(from, to, options) {
 		if (options === undefined) {
 			options = to;
@@ -152,7 +161,7 @@ module.exports = {
 		return this.read(path.join(this.from_env, from), {
 			encoding: this.encoding(path.extname(from))
 		}).then((data) => {
-			return this.write(to, Handlebars.compile(data)(options || {}));
+			return this.write(to, this.Compile(data)(options || {}));
 		}).catch((e) => {
 			console.log(e.red);
 			return false;
@@ -165,25 +174,39 @@ module.exports = {
 	 * @param {String} path
 	 * @param {Function} fn
 	 */
-	mkdir: Promise.promisify(function(file, fn) {
+	mkdir: Promise.promisify(function(file, cb) {
 		mkdirp(file, '0755', function(err) {
-			if (err) throw err;
-			file = file.replace(path.join(process.cwd(),"/"), "");
+			if (err){ throw err;}
+			file = file.replace(path.join(process.cwd(), "/"), "");
 			var head = path.basename(file);
 			file = file.replace(head, "");
 
 			console.log('   create'.cyan + ': ' + file + head.green);
-			fn && fn();
+			(cb || (()=>{console.log("No Callback".red)}))();
 		});
 	}),
-	/**
-	 * Exit with the given `str`.
-	 *
-	 * @param {String} str
-	 */
-	abort(str) {
-		console.error(str);
-		process.exit(1);
+	canAccess(path) {
+		try {
+			fs.accessSync(path);
+			return true;
+		} catch (e) {
+			return false;
+		}
+	},
+	deleteFolderRecursive(path) {
+		var files = [];
+		if (fs.existsSync(path)) {
+			files = fs.readdirSync(path);
+			files.forEach(function(file) {
+				var curPath = path.join(path, "/", file);
+				if (fs.lstatSync(curPath).isDirectory()) { // recurse
+					deleteFolderRecursive(curPath);
+				} else { // delete file
+					fs.unlinkSync(curPath);
+				}
+			});
+			fs.rmdirSync(path);
+		}
 	},
 	/**
 	 *
