@@ -77,8 +77,8 @@ const setupDependencies = function*(options, db, eg) {
 		yield shell("Installing adapter " + db.package.green, ["npm", "install", db.package, "--save", "--loglevel", "info"], application);
 		yield shell("Installing engine " + eg.green, ["npm", "install", eg, "--save", "--loglevel", "info"], application);
 	} else {
-		pk.dependencies[eg] = "latest";
-		pk.dependencies[db.package] = "latest";
+		pk.dependencies[eg] = "x.x.x";
+		pk.dependencies[db.package] = "x.x.x";
 		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);
 	}
 	if (!options.skipBower) {

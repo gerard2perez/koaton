@@ -148,7 +148,7 @@ module.exports = {
 	read: Promise.promisify(fs.readFile),
 	Compile(text,options){
 		for(let prop in options){
-			text=text.replace("{{"+prop+"}}",options[prop]);
+			text=text.split("{{"+prop+"}}").join(options[prop]);
 		}
 		return text;
 	},

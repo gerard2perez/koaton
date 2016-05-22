@@ -35,7 +35,7 @@ const spinner = co.wrap(function(interval, text, extra) {
 					process.stdout.clearLine();
 					process.stdout.cursorTo(0);
 				} catch (e) {
-					process.stdout.write("TODO: clearLine undefined (1)");
+					//process.stdout.write("TODO: clearLine undefined (1)");
 				}
 				current++
 				if (current >= l) {
@@ -75,7 +75,7 @@ class spin {
 						process.stdout.clearLine();
 						process.stdout.cursorTo(0);
 					} catch (e) {
-						process.stdout.write("TODO: clearLine undefined");
+						//process.stdout.write("TODO: clearLine undefined");
 					}
 					process.stdout.write(msg.msg);
 					process.stdout.write("\n");

@@ -97,3 +97,5 @@ avaliablengines.isOrDef=function(adpt){
 exports.engines = avaliablengines;
 module.exports.datatypes = datatypes;
 module.exports.adapters = adapters;
+module.exports.template=
+	'{"driver": "{{driver}}","user": "{{user}}","database": "{{application}}","password": "{{password}}","port": {{port}},"host": "{{host}}","pool": false,"ssl": false}';

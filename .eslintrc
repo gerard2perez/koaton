@@ -43,7 +43,7 @@ rules:
   # Best Practices
   accessor-pairs: 2
   block-scoped-var: 0
-  complexity: [2, 30]
+  complexity: [2, 20]
   consistent-return: 1
   curly: 1
   default-case: 1

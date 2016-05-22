@@ -12,7 +12,7 @@ const read = require('../bin/utils').read;
 const compile = require('../bin/utils').Compile;
 const spawn = require('cross-spawn-async');
 const Promise = require('bluebird');
-const exists = require("fs").existsSync;
+// const exists = require("fs").existsSync;
 require('colors');
 const testdir = "running_test";
 const koaton = Promise.promisify((command, cb) => {
@@ -43,11 +43,11 @@ testengine(function*(suite) {
 		equal: (expected, koatonresult, text, ae) => {
 			if (koatonresult instanceof Array) {
 				if (typeof(expected) === "number") {
-					ae(expected, koatonresult[0], text);
+					expected = ae(expected, koatonresult[0], text);
 				} else {
-					ae(expected, koatonresult[1], text);
+					expected = ae(expected, koatonresult[1], text);
 				}
-				if (koatonresult[0] === 1) {
+				if (!expected) {
 					console.log("koaton says:");
 					console.log(koatonresult[1]);
 				}
@@ -96,31 +96,38 @@ testengine(function*(suite) {
 			 "Creates the default adapter.");
 		assert.equal("/", require("../running_test/dummy/ember/restapi/config/environment.js")().baseURL, "Mounted on the right path");
 	});
-	// yield suite("koaton adapter <driver>", function*(assert) {
-	// 	const cachepath = path.join(path.resolve(), "/running_test/dummy/package.json");
-	// 	const r1 = yield koaton(["adapter", "couchdb"]);
-	// 	assert.equal(0, r1[0], "Installs CouchDb Adapter");
-	// 	delete require.cache[cachepath];
-	// 	assert.ok(require("../running_test/dummy/package.json").dependencies.couchdb, "pacakge.js is updated");
-	// 	assert.equal(0, (yield koaton(["adapter", "couchdb", "-g"]))[0], "Generates the Adapter structure");
-	// 	assert.ok(require("../running_test/dummy/config/connections.js").couchdb, "Connections file is updated.");
-	// 	const ccommand = yield koaton(["adapter", "couchdb",
-	// 		"-g",
-	// 		"--host", "192.168.0.1",
-	// 		"--port", "8080",
-	// 		"--user", "dummy",
-	// 		"--password", "pa$$w0rd",
-	// 		"--db", "awsome"
-	// 	]);
-	// 	assert.equal(0, ccommand[0], "Command with custom paramentes");
-	// 	delete require.cache[path.join(path.resolve(), "/running_test/dummy/config/connections.js")];
-	// 	const dbadapter = require("../running_test/dummy/config/connections.js").couchdb;
-	// 	assert.equal("192.168.0.1", dbadapter.host, "Host is ok");
-	// 	assert.equal(8080, dbadapter.port, "Port is ok");
-	// 	assert.equal("dummy", dbadapter.user, "User is ok");
-	// 	assert.equal("pa$$w0rd", dbadapter.password, "Password is secure");
-	// 	assert.equal("awsome", dbadapter.database, "Database is awsome");
-	// });
+	yield suite("koaton adapter <driver>", function*(assert) {
+		const cachepath = path.join(path.resolve(), "/running_test/dummy/package.json");
+		process.stdout.write("    Installing Couch Adapter (way take a while)".white);
+		assert.equal(0, yield koaton(["adapter", "couchdb"]), "Installs CouchDb Adapter");
+
+		delete require.cache[cachepath];
+		assert.ok(require("../running_test/dummy/package.json").dependencies.couchdb, "pacakge.js is updated");
+
+		delete require.cache[cachepath];
+		assert.equal(0, yield koaton(["adapter", "riak", "-g"]), "Generates the Adapter structure for riak");
+		assert.ok(require("../running_test/dummy/config/connections.js").riak, "Connections file is updated.");
+
+		process.stdout.write("Installs a wrong adapter");
+		assert.equal(1, yield koaton(["adapter", "postgress"]), "Installs a wrong adapter");
+
+		const ccommand = yield koaton(["adapter", "couchdb",
+			"-g",
+			"--host", "192.168.0.1",
+			"--port", "8080",
+			"--user", "dummy",
+			"--password", "pa$$w0rd",
+			"--db", "awsome"
+		]);
+		assert.equal(0, ccommand[0], "Command with custom paramentes");
+		delete require.cache[path.join(path.resolve(), "/running_test/dummy/config/connections.js")];
+		const dbadapter = require("../running_test/dummy/config/connections.js").couchdb;
+		assert.equal("192.168.0.1", dbadapter.host, "Host is ok");
+		assert.equal(8080, dbadapter.port, "Port is ok");
+		assert.equal("dummy", dbadapter.user, "User is ok");
+		assert.equal("pa$$w0rd", dbadapter.password, "Password is secure");
+		assert.equal("awsome", dbadapter.database, "Database is awsome");
+	});
 	// yield suite("koaton model <name> <fields>", function*(assert) {
 	// 	let model = 'user';
 	// 	assert.equal(0, yield koaton(['model', model, 'active:number name email password note:text created:date', '-e', 'restapi', '-fr']), "Run command with full arguments");
