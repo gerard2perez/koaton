@@ -14,14 +14,13 @@ if (!help || help === "-h" || help === "--help") {
 }
 commands.forEach(function (definition) {
 	try {
-
 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
 		var command = program.command(`${definition.cmd} ${args}`)
 			.description(definition.description)
 			.action(co.wrap(function* (){
 
 				try{
-					if(definition.cmd !== "new"){
+					if(definition.cmd !== "new" && definition.cmd !== "barebone"){
 						const localversion = require(path.join(process.cwd(),"package.json")).dependencies.koaton;
 						console.log(`koaton ${require('../package.json').version} -> ${localversion}`);
 					}

@@ -37,7 +37,6 @@
     "chokidar": "^1.5.0",
     "co": "^4.6.0",
     "co-prompt": "^1.0.0",
-    "co-views": "^2.1.0",
     "colors": "^1.1.2",
     "commander": "^2.9.0",
     "cross-spawn-async": "^2.2.4",
@@ -54,6 +53,7 @@
     "livereload": "^0.4.1",
     "mkdirp": "^0.5.1",
     "node-notifier": "^4.5.0",
-    "nodemon": "^1.9.2"
+    "nodemon": "^1.9.2",
+    "upath": "^0.1.7"
   }
 }

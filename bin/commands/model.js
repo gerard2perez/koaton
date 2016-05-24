@@ -2,6 +2,7 @@
 const datatypes = require("../adapter").datatypes;
 const fs = require('graceful-fs');
 const path = require('path');
+const prompt = require('co-prompt');
 let utils;
 module.exports = {
 	cmd: "model",

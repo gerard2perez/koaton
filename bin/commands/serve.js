@@ -1,5 +1,6 @@
 "use strict";
 const screen = require('../../lib/welcome');
+const path = require('path');
 module.exports = {
 	cmd: "serve",
 	description: "Runs your awsome Koaton applicaction using nodemon",
@@ -16,7 +17,7 @@ module.exports = {
 		const notifier = require('node-notifier');
 		const shell = require('../utils').shell;
 		const chokidar = require('chokidar');
-		
+
 		const embercfg = require(`${process.cwd()}/config/ember`);
 		const env = {
 			welcome: false,
@@ -89,6 +90,7 @@ module.exports = {
 		}
 		screen.start();
 		for (var ember_app in embercfg) {
+			console.log(ember_app);
 			if (build.indexOf(ember_app) === -1) {
 				const update = updateApp.bind(null, ember_app);
 				if (options.build) {
@@ -102,14 +104,14 @@ module.exports = {
 			nodemon(cfg).once('start', function() {
 
 				screen.lift(env, building);
-				// notifier.notify({
-				//     title: 'Koaton',
-				//     message: `Server running on localhost: ${env.port}`,
-				//     open: `http://localhost: ${env.port}`,
-				//     //icon: path.join(__dirname, 'koaton.png'),
-				//     sound: 'Hero',
-				//     wait: false
-				// });
+				notifier.notify({
+				    title: 'Koaton',
+				    message: `Server running on localhost: ${env.port}`,
+				    open: `http://localhost: ${env.port}`,
+				    icon: path.join(__dirname, 'koaton.png'),
+				    sound: 'Hero',
+				    wait: false
+				});
 			}).on('restart', function() {
 				setTimeout(function() {
 					livereload.reload();

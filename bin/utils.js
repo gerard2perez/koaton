@@ -24,33 +24,35 @@ exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
 	shell: Promise.promisify((display, command, cwd, cb) => {
+		let buffer = "";
+		let c = null;
+		const output = function(data) {
+			buffer += data.toString();
+			if (buffer.indexOf('\n') > -1) {
+				let send = buffer.toString().split('\n');
+				spinner.pipe({
+					action: "extra",
+					msg: send[0].substr(0, 150).replace(/\n/igm, "")
+				});
+				buffer = "";
+			}
+		};
 		try {
-			let c = null;
-			let buffer = "";
 			const child = spawn(command[0], command.slice(1), {
 				cwd: path.join(cwd, "/"),
 				shell: true
 			});
 			spinner.start(50, display).then(() => {
-				(cb || (()=>{console.log("No Callback".red)}))(null, c || child.exitCode);
+				(cb || (() => {
+					console.log("No Callback".red)
+				}))(null, c || child.exitCode);
 			}, (err) => {
-				(cb || (()=>{console.log("No Callback".red)}))(err, c || child.exitCode);
+				(cb || (() => {
+					console.log("No Callback".red)
+				}))(err, c || child.exitCode);
 			});
-			// child.stderr.on('data', (data) => {
-				//console.log(data.toString().red);
-				//cb && cb(err, c || child.exitCode);
-			// });
-			child.stdout.on('data', (data) => {
-				buffer += data.toString();
-				if (buffer.indexOf('\n') > -1) {
-					let send = buffer.toString().split('\n');
-					spinner.pipe({
-						action: "extra",
-						msg: send[0].substr(0, 150).replace(/\n/igm, "")
-					});
-					buffer = "";
-				}
-			});
+			child.stderr.on('data', output);
+			child.stdout.on('data', output);
 			child.on('close', function(code) {
 				c = code;
 				const msg = code === 0 ? `✓`.green : `✗`.red;
@@ -75,7 +77,9 @@ module.exports = {
 		function center(text) {
 			var m = Math.floor((total - text.length) / 2);
 			var r = "";
-			while (r.length < m) {r += " ";}
+			while (r.length < m) {
+				r += " ";
+			}
 			return r + text;
 		}
 		if (env.NODE_ENV !== 'production') {
@@ -146,9 +150,9 @@ module.exports = {
 		});
 	},
 	read: Promise.promisify(fs.readFile),
-	Compile(text,options){
-		for(let prop in options){
-			text=text.split("{{"+prop+"}}").join(options[prop]);
+	Compile(text, options) {
+		for (let prop in options) {
+			text = text.split("{{" + prop + "}}").join(options[prop]);
 		}
 		return text;
 	},
@@ -161,7 +165,7 @@ module.exports = {
 		return this.read(path.join(this.from_env, from), {
 			encoding: this.encoding(path.extname(from))
 		}).then((data) => {
-			return this.write(to, this.Compile(data)(options || {}));
+			return this.write(to, this.Compile(data, options || {}));
 		}).catch((e) => {
 			console.log(e.red);
 			return false;
@@ -176,13 +180,17 @@ module.exports = {
 	 */
 	mkdir: Promise.promisify(function(file, cb) {
 		mkdirp(file, '0755', function(err) {
-			if (err){ throw err;}
+			if (err) {
+				throw err;
+			}
 			file = file.replace(path.join(process.cwd(), "/"), "");
 			var head = path.basename(file);
 			file = file.replace(head, "");
 
 			console.log('   create'.cyan + ': ' + file + head.green);
-			(cb || (()=>{console.log("No Callback".red)}))();
+			(cb || (() => {
+				console.log("No Callback".red)
+			}))();
 		});
 	}),
 	canAccess(path) {
@@ -193,19 +201,20 @@ module.exports = {
 			return false;
 		}
 	},
-	deleteFolderRecursive(path) {
+	deleteFolderRecursive(folder) {
 		var files = [];
-		if (fs.existsSync(path)) {
-			files = fs.readdirSync(path);
+		var that = this;
+		if (fs.existsSync(folder)) {
+			files = fs.readdirSync(folder);
 			files.forEach(function(file) {
-				var curPath = path.join(path, "/", file);
+				var curPath = path.join(folder, "/", file);
 				if (fs.lstatSync(curPath).isDirectory()) { // recurse
-					deleteFolderRecursive(curPath);
+					that.deleteFolderRecursive(curPath);
 				} else { // delete file
 					fs.unlinkSync(curPath);
 				}
 			});
-			fs.rmdirSync(path);
+			fs.rmdirSync(folder);
 		}
 	},
 	/**

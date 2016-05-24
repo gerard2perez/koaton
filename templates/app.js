@@ -6,7 +6,7 @@ const ks = require('koa-socket');
 const io = new ks();
 const locale = require('koa-locale');
 const i18n = require('koa-i18n');
-const passport = require('koa-passport')
+const passport = require('koa-passport');
 
 locale(koaton);
 koaton.use(i18n(koaton, {

@@ -44,8 +44,9 @@ const setupAssets = function*() {
 const setupOthers = function*() {
 	yield utils.mkdir(path.join(proypath, "node_modules"));
 	try {
+		console.log(path.join(__dirname, "/../"));
 		process.stdout.write(`   ${"Linking".cyan}: global koaton`);
-		fs.symlinkSync(path.join(__dirname, "/../"), path.join(proypath, "/node_modules/koaton"));
+		fs.symlinkSync(path.join(__dirname, "/../../"), path.join(proypath, "/node_modules/koaton"));
 		console.log(": done".green);
 	} catch (e) {
 		console.log(e.toString());
@@ -70,19 +71,18 @@ const setupDependencies = function*(options, db, eg) {
 	pk.dependencies.koaton = version;
 	pk.name = application;
 	if (!options.skipNpm) {
-		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);
+		yield utils.write(path.join(proypath, "package.json"), JSON.stringify(pk, null, '\t'), null);
 		console.log(print.line1);
-		yield shell("Installing npm dependencies", ["npm", "install", "--loglevel", "info"], application);
-		console.log(["npm", "install", db.package, "--save", "--loglevel", "info"].join(" "));
+		yield shell("Installing npm dependencies", ["npm", "install", "--loglevel", "info"], proypath);
 		yield shell("Installing adapter " + db.package.green, ["npm", "install", db.package, "--save", "--loglevel", "info"], application);
-		yield shell("Installing engine " + eg.green, ["npm", "install", eg, "--save", "--loglevel", "info"], application);
+		yield shell("Installing engine " + eg.green, ["npm", "install", eg, "--save", "--loglevel", "info"], proypath);
 	} else {
 		pk.dependencies[eg] = "x.x.x";
 		pk.dependencies[db.package] = "x.x.x";
-		yield utils.write(path.join(application, "package.json"), JSON.stringify(pk, null, '\t'), null);
+		yield utils.write(path.join(proypath, "package.json"), JSON.stringify(pk, null, '\t'), null);
 	}
 	if (!options.skipBower) {
-		yield shell("Installing bower dependencies", ["bower", "install"], application);
+		yield shell("Installing bower dependencies", ["bower", "install"], proypath);
 	}
 }
 module.exports = {

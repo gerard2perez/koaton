@@ -21,7 +21,7 @@ module.exports = {
 	//https://github.com/koajs/generic-session#options
 	session: {
 		maxAge: 1000 * 60 * 60 * 24,
-		key:{{{key}}}
+		key:{{key}}
 	},
 	//https://github.com/rkusa/koa-passport
 	auth: {

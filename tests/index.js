@@ -1,5 +1,5 @@
 "use strict";
-const nodemon = require('gulp-nodemon');
+const nodemon = require('nodemon');
 const notifier = require('node-notifier');
 const path = require('path');
 // process.stdout.write('clear');
