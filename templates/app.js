@@ -34,6 +34,7 @@ koaton.use(passport.session());
 
 koaton.use(koaton.views);
 koaton.use(koaton.router);
+koaton.use(koaton.protectedRouter);
 
 //============================================
 io.attach(koaton);
