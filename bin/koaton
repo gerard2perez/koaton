@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+
 /*eslint no-process-exit: 0*/
-const path = require("path");
+const path = require("upath");
 const program = require('commander');
 const commands = require('./commands');
 const co = require("co");
+const utils = require('./utils');
 const help = process.argv.slice(2)[0];
 require('colors');
 
@@ -12,19 +14,29 @@ if (!help || help === "-h" || help === "--help") {
 	console.log(h(commands));
 	process.exit(0);
 }
-commands.forEach(function (definition) {
+commands.forEach(function(definition) {
 	try {
 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
 		var command = program.command(`${definition.cmd} ${args}`)
 			.description(definition.description)
-			.action(co.wrap(function* (){
+			.action(co.wrap(function*() {
 
-				try{
-					if(definition.cmd !== "new" && definition.cmd !== "barebone"){
-						const localversion = require(path.join(process.cwd(),"package.json")).dependencies.koaton;
+				try {
+					if (!(
+							utils.canAccess('public') &&
+							utils.canAccess('app.js') &&
+							utils.canAccess('bower.json') &&
+							utils.canAccess('package.json') &&
+							utils.canAccess('routes') &&
+							utils.canAccess('config')
+						)) {
+						throw "BAD";
+					}
+					if (definition.cmd !== "new" && definition.cmd !== "barebone") {
+						const localversion = require(path.join(process.cwd(), "package.json")).dependencies.koaton;
 						console.log(`koaton ${require('../package.json').version} -> ${localversion}`);
 					}
-				}catch(e){
+				} catch (e) {
 					console.log();
 					console.log("You must be inside a koaton proyect to run this command.")
 					console.log();
@@ -32,17 +44,17 @@ commands.forEach(function (definition) {
 				}
 
 				var exitCode = 1;
-				try{
-					exitCode = yield definition.action.apply(command,arguments);
-				}catch(err){
+				try {
+					exitCode = yield definition.action.apply(command, arguments);
+				} catch (err) {
 					console.log(err.stack);
 				}
-				process.exit( exitCode === 0 ? 0:1 );
+				process.exit(exitCode === 0 ? 0 : 1);
 			}));
 		if (definition.alias) {
 			command.alias(definition.alias);
 		}
-		definition.options.forEach(function (option) {
+		definition.options.forEach(function(option) {
 			command.option(`${option[0]}, ${option[1]}`, option[2]);
 		});
 	} catch (e) {
@@ -50,7 +62,7 @@ commands.forEach(function (definition) {
 	}
 });
 program.parse(process.argv);
-process.on("beforeExit",()=>{
+process.on("beforeExit", () => {
 	console.log();
 	console.log("That command does not exists.".cyan);
 	console.log();

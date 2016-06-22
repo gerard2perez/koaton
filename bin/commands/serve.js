@@ -90,19 +90,19 @@ module.exports = {
 		}
 		screen.start();
 		for (var ember_app in embercfg) {
-			console.log(ember_app);
 			if (build.indexOf(ember_app) === -1) {
-				const update = updateApp.bind(null, ember_app);
 				if (options.build) {
+					const update = updateApp.bind(null, ember_app);
 					const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 					building.push(stbuild.then(onBuild.bind(null, update)));
 					yield stbuild;
+				}else{
+					building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 				}
 			}
 		}
 		return new Promise(function(resolve) {
 			nodemon(cfg).once('start', function() {
-
 				screen.lift(env, building);
 				notifier.notify({
 				    title: 'Koaton',
@@ -126,7 +126,6 @@ module.exports = {
 
 			});
 			const exitHandler = function(options) {
-				console.log(options);
 				if (options.exit) {
 					nodemon.emit('exit');
 				}
