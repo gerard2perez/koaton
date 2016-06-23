@@ -1,6 +1,7 @@
 "use strict";
 const screen = require('../../lib/welcome');
 const path = require('path');
+let building=[];
 module.exports = {
 	cmd: "serve",
 	description: "Runs your awsome Koaton applicaction using nodemon",
@@ -44,7 +45,6 @@ module.exports = {
 		}
 		let build = [];
 		let watching = [];
-		const building = [];
 		const watch_error = function(e) {
 			console.log(`Watcher error: ${e}`);
 		}
