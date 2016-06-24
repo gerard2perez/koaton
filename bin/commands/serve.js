@@ -103,7 +103,7 @@ module.exports = {
 				}
 			}
 		}
-		yield shell("Building Bundles", ["koaton", "build"], process.cwd());
+		// yield shell("Building Bundles", ["koaton", "build"], process.cwd());
 		return new Promise(function(resolve) {
 			nodemon(cfg).once('start', function() {
 				screen.lift(env, building);
