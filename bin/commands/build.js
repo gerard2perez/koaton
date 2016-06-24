@@ -1,4 +1,8 @@
 'use strict';
+const path = require('upath');
+const crypto = require("crypto");
+const fs = require("graceful-fs");
+const Promise = require("Bluebird");
 module.exports = {
 	cmd: "build",
 	description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
@@ -8,33 +12,58 @@ module.exports = {
 	],
 	action: function*(config_file, options) {
 		config_file = config_file || process.cwd() + '/config/bundles.js';
-		var gulp = require('gulp');
-		var concat = require('gulp-concat');
-		var sourcemaps = require('gulp-sourcemaps');
-		var uglify = require('gulp-uglify');
-		var hash = require('gulp-hash-filename');
+		const utils = require('../utils');
+		const glob = require('glob');
+		const uglify = require("uglify-js");
+		const compressor = require("node-minify");
 		var patterns = require(config_file);
 		if (Object.keys(patterns).length === 0) {
 			console.log("Nothing to compile on: " + config_file);
 		}
-		Object.keys(patterns).forEach(function(key) {
-			var info = patterns[key].map(function(file) {
-				return path.basename(file).yellow;
-			}).join(",".yellow.dim);
-			info = "Compiling: ".green + info + " => public/js/" + key.green.bold;
-			console.log(info);
-			if (!options.prod) {
-				gulp.src(patterns[key])
-					.pipe(sourcemaps.init())
-					.pipe(uglify())
-					.pipe(concat(key))
-					.pipe(sourcemaps.write())
-					.pipe(hash())
-					.pipe(gulp.dest('./public/js'));
+		yield utils.mkdir(path.join(process.cwd(), "public", "js"));
+		let AllFiles = [];
+		let koatonhide = {};
+		if (utils.canAccess(path.join(process.cwd(), ".koaton_bundle"))) {
+			koatonhide = JSON.parse(fs.readFileSync(path.join(process.cwd(), ".koaton_bundle")));
+		}
+		for (let index in koatonhide) {
+			try {
+				fs.unlinkSync(path.join("public", path.normalize(koatonhide[index])));
+			} catch (e) {
 
-			} else {
-				console.log(options.prod);
 			}
-		});
+		}
+		koatonhide={};
+		for (var key in patterns) {
+			AllFiles = [];
+			for (var index in patterns[key]) {
+				AllFiles = AllFiles.concat(glob.sync(path.normalize(patterns[key][index])));
+			}
+			const dest = key.split(".");
+			if (key.indexOf(".js") > -1) {
+				let result = uglify.minify(AllFiles, {
+					outSourceMap: dest[0] + ".map",
+					sourceRoot: "http://localhost:62626/js/"
+				});
+				var hasher = crypto.createHash('sha1');
+				hasher.update(result.code);
+				const hash = hasher.digest('hex').slice(0, 20);
+				const desfile = dest[0] + "_" + hash;
+				yield utils.write(path.join("public", "js", desfile + "." + dest[1]), result.code);
+				yield utils.write(path.join("public", "js", dest[0] + ".map"), result.map);
+				koatonhide[key] = "/js/" + desfile + "." + dest[1];
+			} else {
+				let minified = new compressor.minify({
+					type: 'clean-css',
+					fileIn: AllFiles,
+					fileOut: 'public/css/' + dest[0] + ".min.css",
+					sync: true
+				});
+				koatonhide[key] = "/css/" + dest[0] + ".min.css";
+			}
+
+		}
+		yield utils.write(path.join(process.cwd(), ".koaton_bundle"), JSON.stringify(koatonhide));
+		return 0;
 	}
 };

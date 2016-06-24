@@ -1,7 +1,7 @@
 "use strict";
 const screen = require('../../lib/welcome');
 const path = require('path');
-let building=[];
+let building = [];
 module.exports = {
 	cmd: "serve",
 	description: "Runs your awsome Koaton applicaction using nodemon",
@@ -30,14 +30,14 @@ module.exports = {
 			quiet: true,
 			delay: 500,
 			ignore: [
-				"**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**", "**/views/**"
+				"**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**","*.tmp" //, "**/views/**"
 			],
 			verbose: false,
 			script: 'app.js',
 			env: env,
 			stdout: true
 		};
-		if (options.production) {
+		if (!options.production) {
 			livereload.listen({
 				port: 62627,
 				quiet: true
@@ -67,6 +67,8 @@ module.exports = {
 						"**/bower_components/**",
 						"**/tmp/**",
 						"**/vendor/**",
+						"**/public/**",
+						"**/**.tmp",
 						/[\/\\]\./
 					],
 					persistent: true,
@@ -96,31 +98,37 @@ module.exports = {
 					const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 					building.push(stbuild.then(onBuild.bind(null, update)));
 					yield stbuild;
-				}else{
+				} else {
 					building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 				}
 			}
 		}
+		yield shell("Building Bundles", ["koaton", "build"], process.cwd());
 		return new Promise(function(resolve) {
 			nodemon(cfg).once('start', function() {
 				screen.lift(env, building);
 				notifier.notify({
-				    title: 'Koaton',
-				    message: `Server running on localhost: ${env.port}`,
-				    open: `http://localhost: ${env.port}`,
-				    icon: path.join(__dirname, 'koaton.png'),
-				    sound: 'Hero',
-				    wait: false
+					title: 'Koaton',
+					message: `Server running on localhost: ${env.port}`,
+					open: `http://localhost: ${env.port}`,
+					icon: path.join(__dirname, 'koaton.png'),
+					sound: 'Hero',
+					wait: false
 				});
-			}).on('restart', function() {
 				setTimeout(function() {
 					livereload.reload();
 				}, 1000);
-				notifier.notify({
-					title: 'Koaton',
-					message: 'restarting server...',
-					icon: path.join(__dirname, 'koaton.png'),
-					sound: 'Hero'
+			}).on('restart', function() {
+				shell("Building Bundles", ["koaton", "build"], process.cwd()).then(() => {
+					setTimeout(function() {
+						livereload.reload();
+					}, 1000);
+					notifier.notify({
+						title: 'Koaton',
+						message: 'restarting server...',
+						icon: path.join(__dirname, 'koaton.png'),
+						sound: 'Hero'
+					});
 				});
 			}).on('crash', () => {
 
