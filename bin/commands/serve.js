@@ -39,13 +39,6 @@ const WactchAndCompressImages = function*(watcher) {
 		.on('change', compress)
 		.on('unlink', deleted)
 		.on('add', compress);
-	// .on('raw', (event, path, details) => {
-	// 	console.log('Raw event info:', event, path, details);
-	// }).on('all', (event, path, details) => {
-	// 	console.log('All event info:', event, path, details);
-	// });
-	//.on('unlinkDir', updateApp)
-	//.on('error', watch_error);
 }
 module.exports = {
 	cmd: "serve",
@@ -62,6 +55,7 @@ module.exports = {
 		livereload = require('gulp-livereload');
 		const notifier = require('node-notifier');
 		const shell = require('../utils').shell;
+		const utils = require('../utils');
 		const chokidar = require('chokidar');
 		const embercfg = require(`${process.cwd()}/config/ember`);
 		imagemin = require('imagemin');
@@ -71,23 +65,6 @@ module.exports = {
 			welcome: false,
 			NODE_ENV: !options.production ? 'development' : 'production',
 			port: options.port || 62626
-		};
-		const cfg = {
-			ext: '*',
-			quiet: true,
-			delay: 500,
-			ignore: [
-				"**/node_modules/**",
-				"**/bower_components/**",
-				"**/ember/**",
-				"**/assets/**",
-				"**/public/**",
-				"*.tmp"
-			],
-			verbose: false,
-			script: 'app.js',
-			env: env,
-			stdout: true
 		};
 		if (!options.production) {
 			livereload.listen({
@@ -113,7 +90,7 @@ module.exports = {
 		}
 		const onBuild = function(update, result) {
 			if (result === 0) {
-				const watcher = chokidar.watch(`ember/${ember_app}/**/*.js`, {
+				const watcher = chokidar.watch(path.join("ember",ember_app,"**","*.js"), {
 					ignored: [
 						"**/node_modules/**",
 						"**/bower_components/**",
@@ -123,6 +100,7 @@ module.exports = {
 						/[\/\\]\./
 					],
 					persistent: true,
+					ignoreInitial: true,
 					alwaysStat: false,
 					awaitWriteFinish: {
 						stabilityThreshold: 1000,
@@ -142,19 +120,36 @@ module.exports = {
 			}
 		}
 		screen.start();
+		const inflections = require(path.join(process.cwd(),"config","inflections.js"));
+		let irregular = (inflections.plural|| [])
+		.concat(inflections.singular|| [])
+		.concat(inflections.irregular|| []) ;
+		let uncontable = (inflections.uncountable || []).map((inflection)=>{return `/${inflection}/`});
 		for (var ember_app in embercfg) {
 			if (build.indexOf(ember_app) === -1) {
+
+				let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
+					encoding: "utf-8"
+				}), {
+					irregular: JSON.stringify(irregular),
+					uncontable:JSON.stringify(uncontable)
+
+				});
+				yield utils.write(path.join("ember",ember_app,"app","initializers","inflector.js"),inflector,true);
+				const update = updateApp.bind(null, ember_app);
 				if (options.build) {
-					const update = updateApp.bind(null, ember_app);
 					const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 					building.push(stbuild.then(onBuild.bind(null, update)));
 					yield stbuild;
 				} else {
+					if(!options.production){
+						onBuild(update,0);
+					}
 					building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 				}
 			}
 		}
-		//yield shell("Building Bundles", ["koaton", "build"], process.cwd());
+		yield shell("Building Bundles", ["koaton", "build"], process.cwd());
 		const patterns = require(path.join(process.cwd(), "config", "bundles.js"));
 		const build_bundles = require('./build').rebuild;
 		for (let key in patterns) {
@@ -162,6 +157,7 @@ module.exports = {
 			const bundles = new chokidar.watch(patterns[key], {
 				persistent: true,
 				alwaysStat: false,
+				ignoreInitial: true,
 				awaitWriteFinish: {
 					stabilityThreshold: 1000,
 					pollInterval: 100
@@ -184,7 +180,23 @@ module.exports = {
 		}));
 
 		return new Promise(function(resolve) {
-			nodemon(cfg).once('start', function() {
+			nodemon({
+				ext: '*',
+				quiet: true,
+				delay: 500,
+				ignore: [
+					"**/node_modules/**",
+					"**/bower_components/**",
+					"**/ember/**",
+					"**/assets/**",
+					"**/public/**",
+					"*.tmp"
+				],
+				verbose: false,
+				script: 'app.js',
+				env: env,
+				stdout: true
+			}).once('start', function() {
 				screen.lift(env, building);
 				notifier.notify({
 					title: 'Koaton',
