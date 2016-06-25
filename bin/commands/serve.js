@@ -1,7 +1,52 @@
 "use strict";
 const screen = require('../../lib/welcome');
 const path = require('path');
+let imagemin = null;
+let imageminMozjpeg = null;
+let imageminPngquant = null;
 let building = [];
+let livereload = null;
+const deleted = function(file) {
+	const remove = require("graceful-fs").unlinkSync;
+	try {
+		remove(file.replace("assets", "public"));
+	} catch(e) {
+		console.log(file.replace("assets", "public"));
+	}
+}
+const compress = function(file) {
+	console.log(file);
+	imagemin([file], file.replace(path.basename(file), "").replace("assets", "public"), {
+		plugins: [
+			imageminMozjpeg({}),
+			imageminPngquant({
+				quality: '80-90'
+			})
+		]
+	});
+	livereload.reload();
+}
+const WactchAndCompressImages = function*(watcher) {
+	yield imagemin([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'), {
+		plugins: [
+			imageminMozjpeg({}),
+			imageminPngquant({
+				quality: '80-90'
+			})
+		]
+	});
+	watcher
+		.on('change', compress)
+		.on('unlink', deleted)
+		.on('add', compress);
+	// .on('raw', (event, path, details) => {
+	// 	console.log('Raw event info:', event, path, details);
+	// }).on('all', (event, path, details) => {
+	// 	console.log('All event info:', event, path, details);
+	// });
+	//.on('unlinkDir', updateApp)
+	//.on('error', watch_error);
+}
 module.exports = {
 	cmd: "serve",
 	description: "Runs your awsome Koaton applicaction using nodemon",
@@ -14,12 +59,14 @@ module.exports = {
 	action: function*(options) {
 		const Promise = require('bluebird');
 		const nodemon = require('nodemon');
-		const livereload = require('gulp-livereload');
+		livereload = require('gulp-livereload');
 		const notifier = require('node-notifier');
 		const shell = require('../utils').shell;
 		const chokidar = require('chokidar');
-
 		const embercfg = require(`${process.cwd()}/config/ember`);
+		imagemin = require('imagemin');
+		imageminMozjpeg = require('imagemin-mozjpeg');
+		imageminPngquant = require('imagemin-pngquant');
 		const env = {
 			welcome: false,
 			NODE_ENV: !options.production ? 'development' : 'production',
@@ -32,10 +79,10 @@ module.exports = {
 			ignore: [
 				"**/node_modules/**",
 				"**/bower_components/**",
-				 "**/ember/**",
-				 "**/assets/**",
-				 "**/public/**",
-				 "*.tmp"
+				"**/ember/**",
+				"**/assets/**",
+				"**/public/**",
+				"*.tmp"
 			],
 			verbose: false,
 			script: 'app.js',
@@ -107,7 +154,7 @@ module.exports = {
 				}
 			}
 		}
-		yield shell("Building Bundles", ["koaton", "build"], process.cwd());
+		//yield shell("Building Bundles", ["koaton", "build"], process.cwd());
 		const patterns = require(path.join(process.cwd(), "config", "bundles.js"));
 		const build_bundles = require('./build').rebuild;
 		for (let key in patterns) {
@@ -126,30 +173,15 @@ module.exports = {
 				.on('ready', () => bundles.on('add', rebuild))
 				.on('unlinkDir', rebuild);
 		}
-
-
-		const watcher = chokidar.watch(path.join('assets','img'), {
-			ignored: [
-				"**/node_modules/**",
-				"**/bower_components/**",
-				"**/tmp/**",
-				"**/vendor/**",
-				"**/**.tmp",
-				/[\/\\]\./
-			],
+		yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
 			persistent: true,
+			ignoreInitial: true,
 			alwaysStat: false,
 			awaitWriteFinish: {
-				stabilityThreshold: 1000,
-				pollInterval: 100
+				stabilityThreshold: 2000,
+				pollInterval: 50
 			}
-		});
-		watcher
-			.on('change', update)
-			.on('unlink', update)
-			.on('ready', () => watcher.on('add', updateApp))
-			.on('unlinkDir', updateApp)
-			.on('error', watch_error);
+		}));
 
 		return new Promise(function(resolve) {
 			nodemon(cfg).once('start', function() {
