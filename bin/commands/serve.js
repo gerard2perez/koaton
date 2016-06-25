@@ -30,7 +30,12 @@ module.exports = {
 			quiet: true,
 			delay: 500,
 			ignore: [
-				"**/node_modules/**", "**/bower_components/**", "**/ember/**", "**/public/**","*.tmp" //, "**/views/**"
+				"**/node_modules/**",
+				"**/bower_components/**",
+				 "**/ember/**",
+				 "**/assets/**",
+				 "**/public/**",
+				 "*.tmp"
 			],
 			verbose: false,
 			script: 'app.js',
@@ -67,7 +72,6 @@ module.exports = {
 						"**/bower_components/**",
 						"**/tmp/**",
 						"**/vendor/**",
-						"**/public/**",
 						"**/**.tmp",
 						/[\/\\]\./
 					],
@@ -103,7 +107,50 @@ module.exports = {
 				}
 			}
 		}
-		// yield shell("Building Bundles", ["koaton", "build"], process.cwd());
+		yield shell("Building Bundles", ["koaton", "build"], process.cwd());
+		const patterns = require(path.join(process.cwd(), "config", "bundles.js"));
+		const build_bundles = require('./build').rebuild;
+		for (let key in patterns) {
+			const rebuild = build_bundles.bind(null, key, patterns[key]);
+			const bundles = new chokidar.watch(patterns[key], {
+				persistent: true,
+				alwaysStat: false,
+				awaitWriteFinish: {
+					stabilityThreshold: 1000,
+					pollInterval: 100
+				}
+			});
+			bundles
+				.on('change', rebuild)
+				.on('unlink', rebuild)
+				.on('ready', () => bundles.on('add', rebuild))
+				.on('unlinkDir', rebuild);
+		}
+
+
+		const watcher = chokidar.watch(path.join('assets','img'), {
+			ignored: [
+				"**/node_modules/**",
+				"**/bower_components/**",
+				"**/tmp/**",
+				"**/vendor/**",
+				"**/**.tmp",
+				/[\/\\]\./
+			],
+			persistent: true,
+			alwaysStat: false,
+			awaitWriteFinish: {
+				stabilityThreshold: 1000,
+				pollInterval: 100
+			}
+		});
+		watcher
+			.on('change', update)
+			.on('unlink', update)
+			.on('ready', () => watcher.on('add', updateApp))
+			.on('unlinkDir', updateApp)
+			.on('error', watch_error);
+
 		return new Promise(function(resolve) {
 			nodemon(cfg).once('start', function() {
 				screen.lift(env, building);
@@ -119,16 +166,15 @@ module.exports = {
 					livereload.reload();
 				}, 1000);
 			}).on('restart', function() {
-				shell("Building Bundles", ["koaton", "build"], process.cwd()).then(() => {
-					setTimeout(function() {
-						livereload.reload();
-					}, 1000);
-					notifier.notify({
-						title: 'Koaton',
-						message: 'restarting server...',
-						icon: path.join(__dirname, 'koaton.png'),
-						sound: 'Hero'
-					});
+
+				setTimeout(function() {
+					livereload.reload();
+				}, 1000);
+				notifier.notify({
+					title: 'Koaton',
+					message: 'restarting server...',
+					icon: path.join(__dirname, 'koaton.png'),
+					sound: 'Hero'
 				});
 			}).on('crash', () => {
 

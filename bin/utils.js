@@ -111,13 +111,16 @@ module.exports = {
 	_write: Promise.promisify(fs.writeFile),
 	write(file, content, mode) {
 		return this._write(file, content, {}).then(() => {
+			console.log("b");
 			var head = path.basename(file);
 			var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
 			console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
 			return true;
 		}, (e) => {
+			console.log("c");
 			console.log(e.toString().red);
 		}).catch((e) => {
+			console.log("d");
 			console.log(e.toString().red);
 			return false;
 		});
