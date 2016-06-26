@@ -79,7 +79,8 @@ module.exports = {
 		const watch_error = function(e) {
 			console.log(`Watcher error: ${e}`);
 		}
-		const updateApp = function(app) {
+		const updateApp = function(app,file) {
+			console.log(file);
 			notifier.notify({
 				title: 'Koaton',
 				message: 'Rebuilding app: ' + app,
@@ -93,15 +94,19 @@ module.exports = {
 		}
 		const onBuild = function(update, result) {
 			if (result === 0) {
-				const watcher = chokidar.watch(path.join("ember", ember_app, "**", "*.js"), {
+				const watcher = chokidar.watch(path.join(
+					"ember", ember_app
+				), {
 					ignored: [
-						"**/**/ember-cli-build.js",
-						"**/**/testem.js",
-						"**/node_modules/**",
-						"**/bower_components/**",
-						"**/tmp/**",
-						"**/vendor/**",
-						"**/**.tmp",
+						`ember/${ember_app}/app/initializers/inflector.js`,
+						`ember/${ember_app}/app/templates`,
+						`ember/${ember_app}/node_modules`,
+						`ember/${ember_app}/bower_components`,
+						`ember/${ember_app}/dist`,
+						`ember/${ember_app}/.git`,
+						`ember/${ember_app}/vendor`,
+						`ember/${ember_app}/public`,
+						`ember/${ember_app}/tmp`,
 						/[\/\\]\./
 					],
 					persistent: true,
@@ -112,6 +117,7 @@ module.exports = {
 						pollInterval: 100
 					}
 				});
+
 				watcher
 					.on('change', update)
 					.on('unlink', update)
@@ -153,13 +159,13 @@ module.exports = {
 					yield stbuild;
 				} else {
 					if (!options.production) {
-						// onBuild(update, 0);
+						onBuild(update, 0);
 					}
 					building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 				}
 			}
 		}
-		yield shell("Building Bundles", ["koaton", "build"], process.cwd());
+		// yield shell("Building Bundles", ["koaton", "build"], process.cwd());
 		const patterns = require(path.join(process.cwd(), "config", "bundles.js"));
 		const build_bundles = require('./build').rebuild;
 		const rebuild = function(){
@@ -199,13 +205,15 @@ module.exports = {
 				quiet: true,
 				delay: 500,
 				ignore: [
-					"**/node_modules/**",
-					"**/bower_components/**",
-					"**/ember/**",
-					"**/assets/**",
-					"**/public/**",
-					"**/views/**",
-					"*.tmp"
+					"/views/*.*",
+					"/node_modules/*.*",
+					"/bower_components/*.*",
+					"/ember/*.*",
+					"/assets/*.*",
+					"/public/*.*",
+					"*.tmp",
+					"*.json"
+					// ,".*"
 				],
 				verbose: false,
 				script: 'app.js',

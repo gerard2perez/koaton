@@ -55,8 +55,18 @@ module.exports = {
 			// process.exit(0);
 			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name];
 			const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/"));
-			const mount_public = path.normalize(path.join(process.cwd(), "public", embercfg.mount, "/"));
-			if (yield utils.shell(`Building ... ${app_name.yellow}->${embercfg.mount.green}`, ["ember", "build", "--environment", options.build, "-o", path.join("../../public/", embercfg.mount)],
+			const mount_css = path.normalize(path.join(process.cwd(), "public", embercfg.mount));
+			const mount_public = path.normalize(path.join(process.cwd(),
+			"ember", app_name,"dist"
+			 ));
+			if (yield utils.shell(
+					`Building ... ${app_name.yellow}->${embercfg.mount.green}`, [
+						"ember",
+						"build",
+						"--environment",
+						options.build
+						// , "-o", path.join("../../public/", embercfg.mount)
+				],
 					path.join(process.cwd(), "ember", app_name)
 				)) {
 				console.log(logstring.red);
@@ -64,7 +74,7 @@ module.exports = {
 			}
 			yield utils.mkdir(mount_views);
 			if (options.build === "development") {
-				let text = yield utils.read(`${mount_public}index.html`, {
+				let text = yield utils.read(path.join(mount_public,"index.html"), {
 					encoding: 'utf-8'
 				});
 				let indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8');
@@ -73,16 +83,18 @@ module.exports = {
 					app_name: app_name,
 					meta: text.match(meta)[0]
 				});
-				fs.unlinkSync(`${mount_public}index.html`);
-				yield utils.write(`${mount_views}index.handlebars`, text, true);
+				fs.unlinkSync(path.join(mount_public,"index.html"));
+				yield utils.write(path.join(mount_views,"index.handlebars"), text, true);
 			} else {
-				fs.renameSync(`${mount_public}index.html`, `${mount_views}index.html`);
+				fs.renameSync(path.join(mount_public,"index.html"), path.join(mount_views,"index.html"));
 			}
-			fs.renameSync(`${mount_public}crossdomain.xml`, `${mount_views}crossdomain.xml`);
-			fs.renameSync(`${mount_public}robots.txt`, `${mount_views}robots.txt`);
-			fs.unlinkSync(`${mount_public}testem.js`);
-			fs.unlinkSync(`${mount_public}tests/index.html`);
-			fs.rmdirSync(`${mount_public}tests/`);
+			fs.renameSync(path.join(mount_public,"crossdomain.xml"), path.join(mount_views,"crossdomain.xml"));
+			fs.renameSync(path.join(mount_public,"robots.txt"), path.join(mount_views,"robots.txt"));
+			fs.unlinkSync(path.join(mount_public,"tests","index.html"));
+			fs.rmdirSync(path.join(mount_public,"tests"));
+			fs.unlinkSync(path.join(mount_public,"testem.js"));
+			utils.deleteFolderRecursive(mount_css);
+			fs.renameSync(path.join(mount_public), path.join(mount_css));
 		}
 		if (!options.build) {
 			const connections = require(`${process.cwd()}/config/connections`);

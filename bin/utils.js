@@ -54,7 +54,6 @@ module.exports = {
 			child.stderr.on('data', output);
 			child.stdout.on('data', output);
 			child.on('close', function(code) {
-				console.log("\n\nfinsh\n\n");
 				c = code;
 				const msg = code === 0 ? `✓`.green : `✗`.red;
 				spinner.end(`+ ${display}\t${msg}`.green);
