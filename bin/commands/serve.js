@@ -1,6 +1,7 @@
 "use strict";
 const screen = require('../../lib/welcome');
 const path = require('path');
+const watching = [];
 let imagemin = null;
 let imageminMozjpeg = null;
 let imageminPngquant = null;
@@ -10,7 +11,7 @@ const deleted = function(file) {
 	const remove = require("graceful-fs").unlinkSync;
 	try {
 		remove(file.replace("assets", "public"));
-	} catch(e) {
+	} catch (e) {
 		console.log(file.replace("assets", "public"));
 	}
 }
@@ -27,6 +28,7 @@ const compress = function(file) {
 	livereload.reload();
 }
 const WactchAndCompressImages = function*(watcher) {
+	watching.push(watcher);
 	yield imagemin([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'), {
 		plugins: [
 			imageminMozjpeg({}),
@@ -53,6 +55,7 @@ module.exports = {
 		const Promise = require('bluebird');
 		const nodemon = require('nodemon');
 		livereload = require('gulp-livereload');
+
 		const notifier = require('node-notifier');
 		const shell = require('../utils').shell;
 		const utils = require('../utils');
@@ -73,7 +76,6 @@ module.exports = {
 			});
 		}
 		let build = [];
-		let watching = [];
 		const watch_error = function(e) {
 			console.log(`Watcher error: ${e}`);
 		}
@@ -85,13 +87,16 @@ module.exports = {
 				sound: 'Hero',
 				wait: false
 			});
-			shell("Building " + ember_app.green, ["koaton", "ember", app, "-b", env.NODE_ENV], process.cwd());
-			livereload.reload();
+			shell("Building " + ember_app.green, ["koaton", "ember", app, "-b", env.NODE_ENV], process.cwd()).then(() => {
+				livereload.reload();
+			});
 		}
 		const onBuild = function(update, result) {
 			if (result === 0) {
-				const watcher = chokidar.watch(path.join("ember",ember_app,"**","*.js"), {
+				const watcher = chokidar.watch(path.join("ember", ember_app, "**", "*.js"), {
 					ignored: [
+						"**/**/ember-cli-build.js",
+						"**/**/testem.js",
 						"**/node_modules/**",
 						"**/bower_components/**",
 						"**/tmp/**",
@@ -110,8 +115,8 @@ module.exports = {
 				watcher
 					.on('change', update)
 					.on('unlink', update)
-					.on('ready', () => watcher.on('add', updateApp))
-					.on('unlinkDir', updateApp)
+					.on('add', update)
+					.on('unlinkDir', update)
 					.on('error', watch_error);
 				watching.push(watcher);
 				return `${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`;
@@ -120,30 +125,35 @@ module.exports = {
 			}
 		}
 		screen.start();
-		const inflections = require(path.join(process.cwd(),"config","inflections.js"));
-		let irregular = (inflections.plural|| [])
-		.concat(inflections.singular|| [])
-		.concat(inflections.irregular|| []) ;
-		let uncontable = (inflections.uncountable || []).map((inflection)=>{return `/${inflection}/`});
+		const inflections = require(path.join(process.cwd(), "config", "inflections.js"));
+		let irregular = (inflections.plural || [])
+			.concat(inflections.singular || [])
+			.concat(inflections.irregular || []);
+		let uncontable = (inflections.uncountable || []).map((inflection) => {
+			return `/${inflection}/`
+		});
+
+		let ignoreemberdirs = [];
 		for (var ember_app in embercfg) {
+			ignoreemberdirs.push(path.join("**", "public", ember_app, "**"));
 			if (build.indexOf(ember_app) === -1) {
 
 				let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
 					encoding: "utf-8"
 				}), {
 					irregular: JSON.stringify(irregular),
-					uncontable:JSON.stringify(uncontable)
+					uncontable: JSON.stringify(uncontable)
 
 				});
-				yield utils.write(path.join("ember",ember_app,"app","initializers","inflector.js"),inflector,true);
+				yield utils.write(path.join("ember", ember_app, "app", "initializers", "inflector.js"), inflector, true);
 				const update = updateApp.bind(null, ember_app);
 				if (options.build) {
 					const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 					building.push(stbuild.then(onBuild.bind(null, update)));
 					yield stbuild;
 				} else {
-					if(!options.production){
-						onBuild(update,0);
+					if (!options.production) {
+						// onBuild(update, 0);
 					}
 					building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 				}
@@ -152,8 +162,11 @@ module.exports = {
 		yield shell("Building Bundles", ["koaton", "build"], process.cwd());
 		const patterns = require(path.join(process.cwd(), "config", "bundles.js"));
 		const build_bundles = require('./build').rebuild;
+		const rebuild = function(){
+			build_bundles(key, patterns[key]);
+			livereload.reload();
+		}
 		for (let key in patterns) {
-			const rebuild = build_bundles.bind(null, key, patterns[key]);
 			const bundles = new chokidar.watch(patterns[key], {
 				persistent: true,
 				alwaysStat: false,
@@ -166,8 +179,9 @@ module.exports = {
 			bundles
 				.on('change', rebuild)
 				.on('unlink', rebuild)
-				.on('ready', () => bundles.on('add', rebuild))
+				.on('add', rebuild)
 				.on('unlinkDir', rebuild);
+			watching.push(bundles);
 		}
 		yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
 			persistent: true,
@@ -175,7 +189,7 @@ module.exports = {
 			alwaysStat: false,
 			awaitWriteFinish: {
 				stabilityThreshold: 2000,
-				pollInterval: 50
+				pollInterval: 100
 			}
 		}));
 
@@ -190,6 +204,7 @@ module.exports = {
 					"**/ember/**",
 					"**/assets/**",
 					"**/public/**",
+					"**/views/**",
 					"*.tmp"
 				],
 				verbose: false,
@@ -210,7 +225,6 @@ module.exports = {
 					livereload.reload();
 				}, 1000);
 			}).on('restart', function() {
-
 				setTimeout(function() {
 					livereload.reload();
 				}, 1000);
@@ -218,25 +232,16 @@ module.exports = {
 					title: 'Koaton',
 					message: 'restarting server...',
 					icon: path.join(__dirname, 'koaton.png'),
-					sound: 'Hero'
+					sound: 'Basso'
 				});
 			}).on('crash', () => {
 
 			});
-			const exitHandler = function(options) {
-				if (options.exit) {
-					nodemon.emit('exit');
-				}
-				if (options.quit) {
-					resolve(0);
-				}
+			const exitHandler = function() {
+				nodemon.emit('exit');
+				resolve(0);
 			};
-			process.once('exit', exitHandler.bind(null, {
-				exit: true
-			}));
-			process.once('SIGINT', exitHandler.bind(null, {
-				quit: true
-			}));
+			process.once('SIGINT', exitHandler);
 		});
 	}
 };

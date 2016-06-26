@@ -20,7 +20,6 @@ commands.forEach(function(definition) {
 		var command = program.command(`${definition.cmd} ${args}`)
 			.description(definition.description)
 			.action(co.wrap(function*() {
-
 				try {
 					if (!(
 							utils.canAccess('public') &&
@@ -48,6 +47,7 @@ commands.forEach(function(definition) {
 					exitCode = yield definition.action.apply(command, arguments);
 				} catch (err) {
 					console.log(err.stack);
+					process.exit(1);
 				}
 				process.exit(exitCode === 0 ? 0 : 1);
 			}));

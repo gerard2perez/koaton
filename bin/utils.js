@@ -54,6 +54,7 @@ module.exports = {
 			child.stderr.on('data', output);
 			child.stdout.on('data', output);
 			child.on('close', function(code) {
+				console.log("\n\nfinsh\n\n");
 				c = code;
 				const msg = code === 0 ? `✓`.green : `✗`.red;
 				spinner.end(`+ ${display}\t${msg}`.green);
@@ -111,16 +112,13 @@ module.exports = {
 	_write: Promise.promisify(fs.writeFile),
 	write(file, content, mode) {
 		return this._write(file, content, {}).then(() => {
-			console.log("b");
 			var head = path.basename(file);
 			var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
 			console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
 			return true;
 		}, (e) => {
-			console.log("c");
 			console.log(e.toString().red);
 		}).catch((e) => {
-			console.log("d");
 			console.log(e.toString().red);
 			return false;
 		});

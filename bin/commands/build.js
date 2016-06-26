@@ -17,7 +17,7 @@ const loadConfig = function() {
 	}
 }
 const _rebuild = function(key, patterns, reload) {
-	console.log(`Building ${key}`);
+	console.log(`Making bundle ${key}`);
 	const dest = key.split(".");
 	if (reload !== false) {
 		loadConfig();

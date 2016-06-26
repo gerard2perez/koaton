@@ -1,9 +1,9 @@
 'use strict';
-const path = require("path");
+const path = require("upath");
 const fs = require('graceful-fs');
 let ember_proyect_path;
 let utils;
-const newproyect = function*(app_name,options) {
+const newproyect = function*(app_name, options) {
 	const prompt = require("co-prompt");
 	let override = !utils.canAccess(ember_proyect_path);
 	if (!override && app_name && !options.force) {
@@ -43,28 +43,41 @@ module.exports = {
 			return 1;
 		}
 		ember_proyect_path = path.join(process.cwd(), "ember", app_name);
-		 if (options.use) {
+		if (options.use) {
 			let res = yield utils.shell(`Installing ${options.use.green} addon on ${app_name.cyan}`, ["ember", "i", options.use], ember_proyect_path);
 			console.log(!res ? "Success".green : "Failed".red);
 			return res;
 		} else if (options.new) {
-			if(yield newproyect(app_name,options)){
+			if (yield newproyect(app_name, options)) {
 				return 0;
 			}
 		} else if (options.build) {
-			const embercfg = require(`${process.cwd()}/config/ember`)[app_name];
-			const publicdir = path.join(process.cwd(), "public", app_name, "/");
-			const mount_views = path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/");
-			const mount_public = path.join(process.cwd(), "public", embercfg.mount, "/");
+			// process.exit(0);
+			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name];
+			const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/"));
+			const mount_public = path.normalize(path.join(process.cwd(), "public", embercfg.mount, "/"));
 			if (yield utils.shell(`Building ... ${app_name.yellow}->${embercfg.mount.green}`, ["ember", "build", "--environment", options.build, "-o", path.join("../../public/", embercfg.mount)],
-					process.cwd() + "/ember/" + app_name
+					path.join(process.cwd(), "ember", app_name)
 				)) {
 				console.log(logstring.red);
 				return 1;
 			}
 			yield utils.mkdir(mount_views);
-			console.log(`${publicdir}index.html`, `${mount_views}index.html`);
-			fs.renameSync(`${mount_public}index.html`, `${mount_views}index.html`);
+			if (options.build === "development") {
+				let text = yield utils.read(`${mount_public}index.html`, {
+					encoding: 'utf-8'
+				});
+				let indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8');
+				let meta = new RegExp(`<meta ?name="${app_name}.*" ?content=".*" ?/>`);
+				text = utils.Compile(indextemplate, {
+					app_name: app_name,
+					meta: text.match(meta)[0]
+				});
+				fs.unlinkSync(`${mount_public}index.html`);
+				yield utils.write(`${mount_views}index.handlebars`, text, true);
+			} else {
+				fs.renameSync(`${mount_public}index.html`, `${mount_views}index.html`);
+			}
 			fs.renameSync(`${mount_public}crossdomain.xml`, `${mount_views}crossdomain.xml`);
 			fs.renameSync(`${mount_public}robots.txt`, `${mount_views}robots.txt`);
 			fs.unlinkSync(`${mount_public}testem.js`);
@@ -83,7 +96,7 @@ module.exports = {
 			yield utils.compile('ember_apps/adapter.js',
 				path.join("ember", app_name, "app", "adapters", "application.js"), {
 					localhost: host,
-					port:port
+					port: port
 				});
 			var emberjs = require(`${process.cwd()}/config/ember.js`);
 
