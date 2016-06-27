@@ -6,25 +6,25 @@ const Promise = require('bluebird');
 const spawn = require('cross-spawn-async');
 const spinner = require('./spinner');
 const exec = require('child_process').exec;
-exports.exec = (cmd, opts) => {
-	return new Promise((resolve, reject) => {
-		const child = exec(cmd, opts, (err, stdout, stderr) => err ? reject(err) : resolve({
-			stdout: stdout,
-			stderr: stderr
-		}));
-		if (opts.stdout) {
-			child.stdout.pipe(opts.stdout);
-		}
-		if (opts.stderr) {
-			child.stderr.pipe(opts.stderr);
-		}
-	});
-}
 let log = "";
 let lastchild=null;
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
+	exec:(cmd, opts) => {
+		return new Promise((resolve, reject) => {
+			const child = exec(cmd, opts, (err, stdout, stderr) => err ? reject(err) : resolve({
+				stdout: stdout,
+				stderr: stderr
+			}));
+			if (opts.stdout) {
+				child.stdout.pipe(opts.stdout);
+			}
+			if (opts.stderr) {
+				child.stderr.pipe(opts.stderr);
+			}
+		});
+	},
 	shell_log:()=>{
 		return log;
 	},
