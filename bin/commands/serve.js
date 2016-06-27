@@ -88,18 +88,17 @@ module.exports = {
 				sound: 'Hero',
 				wait: false
 			});
-			shell("Building " + ember_app.green, ["koaton", "ember", app, "-b", env.NODE_ENV], process.cwd()).then(() => {
-				livereload.reload();
-			});
+			// shell("Building " + ember_app.green, ["koaton", "ember", app, "-b", env.NODE_ENV], process.cwd()).then(() => {
+			// 	livereload.reload();
+			// });
 		}
 		const onBuild = function(update, result) {
 			if (result === 0) {
 				const watcher = chokidar.watch(path.join(
-					"ember", ember_app
+					"ember", ember_app,"/"
 				), {
 					ignored: [
 						`ember/${ember_app}/app/initializers/inflector.js`,
-						`ember/${ember_app}/app/templates`,
 						`ember/${ember_app}/node_modules`,
 						`ember/${ember_app}/bower_components`,
 						`ember/${ember_app}/dist`,
@@ -107,6 +106,11 @@ module.exports = {
 						`ember/${ember_app}/vendor`,
 						`ember/${ember_app}/public`,
 						`ember/${ember_app}/tmp`,
+						`ember/${ember_app}/ember-cli-build.js`,
+						`ember/${ember_app}/bower.json`,
+						`ember/${ember_app}/package.json`,
+						`ember/${ember_app}/testem.js`,
+						`ember/${ember_app}/*.md`,
 						/[\/\\]\./
 					],
 					persistent: true,
@@ -117,12 +121,11 @@ module.exports = {
 						pollInterval: 100
 					}
 				});
-
 				watcher
 					.on('change', update)
 					.on('unlink', update)
 					.on('add', update)
-					.on('unlinkDir', update)
+					.on('unlinkDir', update)//.on('ready',()=>{console.log(watcher.getWatched());})
 					.on('error', watch_error);
 				watching.push(watcher);
 				return `${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`;
@@ -168,8 +171,8 @@ module.exports = {
 		// yield shell("Building Bundles", ["koaton", "build"], process.cwd());
 		const patterns = require(path.join(process.cwd(), "config", "bundles.js"));
 		const build_bundles = require('./build').rebuild;
-		const rebuild = function(){
-			build_bundles(key, patterns[key]);
+		const _rebuild = function(key,patterns){
+			build_bundles(key, patterns);
 			livereload.reload();
 		}
 		for (let key in patterns) {
@@ -182,6 +185,7 @@ module.exports = {
 					pollInterval: 100
 				}
 			});
+			const rebuild = _rebuild.bind(_rebuild,key,patterns[key]);
 			bundles
 				.on('change', rebuild)
 				.on('unlink', rebuild)
@@ -210,7 +214,7 @@ module.exports = {
 					"/bower_components/*.*",
 					"/ember/*.*",
 					"/assets/*.*",
-					"/public/*.*",
+					"/public/",
 					"*.tmp",
 					"*.json"
 					// ,".*"

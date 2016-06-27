@@ -20,13 +20,19 @@ exports.exec = (cmd, opts) => {
 		}
 	});
 }
+let log = "";
+let lastchild=null;
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
+	shell_log:()=>{
+		return log;
+	},
 	shell: Promise.promisify((display, command, cwd, cb) => {
 		let buffer = "";
 		let c = null;
 		const output = function(data) {
+			log += data.toString();
 			buffer += data.toString();
 			if (buffer.indexOf('\n') > -1) {
 				let send = buffer.toString().split('\n');

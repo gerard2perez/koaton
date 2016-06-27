@@ -54,11 +54,11 @@ module.exports = {
 		} else if (options.build) {
 			// process.exit(0);
 			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name];
-			const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.mount, "/"));
-			const mount_css = path.normalize(path.join(process.cwd(), "public", embercfg.mount));
+			const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.physicalPat, "/"));
+			const mount_css = path.normalize(path.join(process.cwd(), "public", embercfg.physicalPat));
 			const mount_public = path.normalize(path.join(process.cwd(),
-			"ember", app_name,"dist"
-			 ));
+				"ember", app_name, "dist"
+			));
 			if (yield utils.shell(
 					`Building ... ${app_name.yellow}->${embercfg.mount.green}`, [
 						"ember",
@@ -66,35 +66,40 @@ module.exports = {
 						"--environment",
 						options.build
 						// , "-o", path.join("../../public/", embercfg.mount)
-				],
+					],
 					path.join(process.cwd(), "ember", app_name)
 				)) {
-				console.log(logstring.red);
+				console.log("error happend");
+				console.log(utils.shell_log().red);
 				return 1;
 			}
 			yield utils.mkdir(mount_views);
 			if (options.build === "development") {
-				let text = yield utils.read(path.join(mount_public,"index.html"), {
+				let text = yield utils.read(path.join(mount_public, "index.html"), {
 					encoding: 'utf-8'
 				});
 				let indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8');
 				let meta = new RegExp(`<meta ?name="${app_name}.*" ?content=".*" ?/>`);
 				text = utils.Compile(indextemplate, {
+					path:embercfg.physicalPat,
+					mount:embercfg.mount,
 					app_name: app_name,
 					meta: text.match(meta)[0]
 				});
-				fs.unlinkSync(path.join(mount_public,"index.html"));
-				yield utils.write(path.join(mount_views,"index.handlebars"), text, true);
+				fs.unlinkSync(path.join(mount_public, "index.html"));
+				yield utils.write(path.join(mount_views, "index.handlebars"), text, true);
 			} else {
-				fs.renameSync(path.join(mount_public,"index.html"), path.join(mount_views,"index.html"));
+				fs.renameSync(path.join(mount_public, "index.html"), path.join(mount_views, "index.html"));
 			}
-			fs.renameSync(path.join(mount_public,"crossdomain.xml"), path.join(mount_views,"crossdomain.xml"));
-			fs.renameSync(path.join(mount_public,"robots.txt"), path.join(mount_views,"robots.txt"));
-			fs.unlinkSync(path.join(mount_public,"tests","index.html"));
-			fs.rmdirSync(path.join(mount_public,"tests"));
-			fs.unlinkSync(path.join(mount_public,"testem.js"));
+			fs.unlinkSync(path.join(mount_public, "tests", "index.html"));
+			fs.rmdirSync(path.join(mount_public, "tests"));
+			fs.renameSync(path.join(mount_public, "crossdomain.xml"), path.join(mount_views, "crossdomain.xml"));
+			fs.renameSync(path.join(mount_public, "robots.txt"), path.join(mount_views, "robots.txt"));
+			fs.unlinkSync(path.join(mount_public, "testem.js"));
 			utils.deleteFolderRecursive(mount_css);
-			fs.renameSync(path.join(mount_public), path.join(mount_css));
+			var copy = require('recursive-copy');
+			yield copy(mount_public, mount_css);
+			return 0;
 		}
 		if (!options.build) {
 			const connections = require(`${process.cwd()}/config/connections`);

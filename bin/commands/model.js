@@ -6,12 +6,20 @@ const prompt = require('co-prompt');
 let inflector = null;
 let inflections = null;
 let utils = null;
+let koaton_database = null;
+const emberrel=[
+	"",
+	"hasMany",
+	"belongsTo"
+];
 const linkactions = {
 	no: 0,
-	hasMany: 1,
-	belongsTo: 2
+	hasmany: 1,
+	belongsto: 2
 };
-const makerelation = function*(SourceModel, LinkAction, DestModel, relation_property, foreign_key) {
+const makerelation = function*(SourceModel, LinkAction, DestModel, relation_property, foreign_key,options) {
+	koaton_database.relations[`${SourceModel}.${relation_property}`]=`${emberrel[LinkAction]} ${DestModel} ${relation_property} ${foreign_key}`;
+	yield utils.write(path.join(process.cwd(), ".koaton_database"), JSON.stringify(koaton_database,null,4), true);
 	let destfile = path.join("models", SourceModel + ".js");
 	if (utils.canAccess(destfile)) {
 		let content = yield utils.read(destfile, {
@@ -20,7 +28,7 @@ const makerelation = function*(SourceModel, LinkAction, DestModel, relation_prop
 		const expresion = /"relations.*{([^}]*)/igm;
 		const find = expresion.exec(content);
 		let text = "";
-		if (LinkAction === linkactions.belongsTo) {
+		if (LinkAction === linkactions.belongsto) {
 			text = `"${relation_property}":relation.belongsTo("${DestModel}.${foreign_key}")`;
 		} else {
 			text = `"${relation_property}":relation.hasMany("${DestModel}.${foreign_key}")`;
@@ -29,17 +37,57 @@ const makerelation = function*(SourceModel, LinkAction, DestModel, relation_prop
 		let line = find[1].length === 0 ? "\n\t" : "";
 		if (content.indexOf(`"${relation_property}"`) === -1) {
 			content = content.replace(expresion, `"relations":{${line}$1\t${comma}${text}\n\t`)
-			yield utils.write(destfile, content,true);
+			yield utils.write(destfile, content, true);
+		}
+		if(options.ember){
+			const source = yield utils.read(process.cwd() + "/ember/" + options.ember + "/app/models/" + SourceModel + ".js",{encoding:'utf-8'});
+			let reg = new RegExp(`${relation_property}.*?,`);
+			let replace = `${relation_property}:DS.${emberrel[LinkAction]}("${DestModel}"),`;
+			yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/models/" + SourceModel + ".js",source.replace(reg,replace),true);
 		}
 		return 0;
 	}
 	return 1;
 }
+const makeembermodel=function*(definition,fields,name,options){
+	if (!fs.existsSync(path.join(process.cwd(), "/ember/", options.ember))) {
+		console.log(`The app ${options.ember} does not exists.`.red);
+		return 1;
+	}
+	definition = "";
+	fields.forEach((field) => {
+		field[1] = inflector.titleize(field[1] || "String");
+		definition += `\t${inflector.underscore(field[0])}:attr('${datatypes[field[1]].ember}'),\n`
+	});
+	definition = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_model"), {
+		encoding: "utf-8"
+	}), {
+		definition: definition
+	});
+	yield utils.write(path.join(process.cwd(), "/ember/", options.ember, "/app/models/", name + ".js"), definition);
+	if (options.rest) {
+		definition = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_controller"), {
+			encoding: "utf-8"
+		}), {
+			model: name,
+			definition: `${fields.map((f)=>{return f[0];}).join(':{},\n\t\t')}:{}`
+		});
+		yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/controllers/" + name + ".js", definition);
+		yield utils.write(
+			process.cwd() + "/ember/" + options.ember + "/app/templates/" + name + ".hbs",
+			`{{crud-table\n\tfields=this.fieldDefinition\n}}`
+		);
+	}
+	console.log(`Please add this.route('${name}') to your ember app router.js`);
+	return 0;
+}
 const makemodel = function*(name, fields, options) {
-	var definition = {
+	koaton_database.model[name] = fields;
+	yield utils.write(path.join(process.cwd(), ".koaton_database"), JSON.stringify(koaton_database,null,4), true);
+	let definition = {
 		model: {},
 		extra: {},
-		relations:{}
+		relations: {}
 	};
 	if (fields !== undefined) {
 		fields = fields.split(' ').map((field) => {
@@ -56,7 +104,6 @@ const makemodel = function*(name, fields, options) {
 	}), {
 		definition: definition
 	});
-
 	var ok = true;
 	console.log(`${process.cwd()}/models/${name.toLowerCase()}.js`);
 	console.log();
@@ -72,37 +119,7 @@ const makemodel = function*(name, fields, options) {
 		yield utils.write(process.cwd() + "/controllers/" + name.toLowerCase() + ".js", restcontroller);
 	}
 	if (options.ember) {
-
-		if (!fs.existsSync(path.join(process.cwd(), "/ember/", options.ember))) {
-			console.log(`The app ${options.ember} does not exists.`.red);
-			return 1;
-		}
-		definition = "";
-		fields.forEach((field) => {
-			field[1] = inflector.titleize(field[1] || "String");
-			definition += `\t${inflector.underscore(field[0])}:attr('${datatypes[field[1]].ember}'),\n`
-		});
-		definition = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_model"), {
-			encoding: "utf-8"
-		}), {
-			definition: definition
-		});
-		yield utils.write(path.join(process.cwd(), "/ember/", options.ember, "/app/models/", name + ".js"), definition);
-
-		if (options.rest) {
-			definition = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_controller"), {
-				encoding: "utf-8"
-			}), {
-				model: name,
-				definition: `${fields.map((f)=>{return f[0];}).join(':{},\n\t\t')}:{}`
-			});
-			yield utils.write(process.cwd() + "/ember/" + options.ember + "/app/controllers/" + name + ".js", definition);
-			yield utils.write(
-				process.cwd() + "/ember/" + options.ember + "/app/templates/" + name + ".hbs",
-				`{{crud-table\n\tfields=this.fieldDefinition\n}}`
-			);
-		}
-		console.log(`Please add this.route('${name}') to your ember app router.js`);
+		yield makeembermodel(definition,fields,name,options);
 	}
 	return 0;
 }
@@ -125,10 +142,17 @@ module.exports = {
 		inflections = require(process.cwd() + '/config/inflections');
 		let linkaction = null;
 		if (destmodel) {
-			linkaction = linkactions[fields]
+			linkaction = linkactions[fields.toLowerCase()]
 			destmodel = inflector.singularize(destmodel.toLowerCase());
 		}
 		utils = require('../utils');
+		try {
+			koaton_database = JSON.parse(yield utils.read(path.join(process.cwd(), ".koaton_database"), 'utf-8'));
+		} catch (e) {
+			koaton_database = {};
+		}
+		koaton_database.model = koaton_database.model || {};
+		koaton_database.relations = koaton_database.relations || {};
 		inflections.irregular.forEach((inflect) => {
 			inflector.inflections.irregular(inflect[0], inflect[1]);
 		});
@@ -140,7 +164,14 @@ module.exports = {
 		if (linkaction === null) {
 			return yield makemodel(name, fields, options);
 		} else {
-			return yield makerelation(name, linkaction, destmodel, relation_property, foreign_key);
+			return yield makerelation(
+				name,
+				linkaction,
+				destmodel,
+				inflector.underscore(relation_property),
+				inflector.underscore(foreign_key),
+				options
+			);
 		}
 	}
 };

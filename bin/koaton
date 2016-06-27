@@ -34,9 +34,10 @@ commands.forEach(function(definition) {
 					if (definition.cmd !== "new" && definition.cmd !== "barebone") {
 						const localversion = require(path.join(process.cwd(), "package.json")).dependencies.koaton;
 						console.log(`koaton ${require('../package.json').version} -> ${localversion}`);
+						console.log((new Date()).toString());
 					}
 				} catch (e) {
-					console.log();
+					console.log(e);
 					console.log("You must be inside a koaton proyect to run this command.")
 					console.log();
 					process.exit(1);
