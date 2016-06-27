@@ -9,6 +9,6 @@ fs.readdirSync(__dirname)
 	.filter(item => item !== "index.js")
 	.filter(item => item !== "help.js")
 	.forEach((file) => {
-		mods.push(require(path.join(__dirname, "\\", file)));
+		mods.push(require(path.join(__dirname, file)));
 	});
 module.exports=mods;
