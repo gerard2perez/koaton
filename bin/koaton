@@ -21,7 +21,7 @@ commands.forEach(function(definition) {
 			.description(definition.description)
 			.action(co.wrap(function*() {
 				try {
-					if (!(
+					if (definition.cmd !== "new" && !(
 							utils.canAccess('public') &&
 							utils.canAccess('app.js') &&
 							utils.canAccess('bower.json') &&
@@ -29,7 +29,7 @@ commands.forEach(function(definition) {
 							utils.canAccess('routes') &&
 							utils.canAccess('config')
 						)) {
-						throw "BAD";
+						throw definition.cmd;
 					}
 					if (definition.cmd !== "new" && definition.cmd !== "barebone") {
 						const localversion = require(path.join(process.cwd(), "package.json")).dependencies.koaton;
