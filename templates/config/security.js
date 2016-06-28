@@ -1,15 +1,17 @@
 "use-strict";
-
+const getuser = require("koaton/lib/auth").getuser;
 module.exports = {
 	model: "user",
+	username: "username",
+	password: "password",
 	strategies: {
 		local: {
-			user:"user",
-			password:"password",
-			callback:function*(err,user,info){
-				console.log("user");
-			}
+			package: "passport-local",
+			identifier: "local",
+			options: {
+				session: true
+			},
+			secret: getuser
 		}
 	}
-
 };

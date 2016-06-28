@@ -3,10 +3,45 @@ const path = require('upath');
 const crypto = require("crypto");
 const fs = require("graceful-fs");
 const utils = require('../utils');
-const glob = require('glob');
+const readSync = require('glob').sync;
 const uglify = require("uglify-js");
 const compressor = require("node-minify");
 let koatonhide = {};
+const buildCss = function*(target, source) {
+	console.log(target);
+	const less = require('less');
+	for (let index in source) {
+		let file = path.normalize(source[index]);
+		let basename = path.basename(file);
+		if (file.indexOf(".less") > -1) {
+			console.log(process.cwd(), file);
+			let content = fs.readFileSync(file, 'utf-8');
+			content = yield less.render(content, {
+				filename: file,
+				sourceMap:{
+					outputSourceFiles:true,
+					sourceMapBasepath:path.normalize(file.replace(basename,"")),
+					sourceMapFileInline: true,
+					sourceMapRootpath:"/"+basename
+				}
+			});
+			var hasher = crypto.createHash('sha1');
+			hasher.update(content.css);
+			const hash = hasher.digest('hex').slice(0, 20);
+			file = target.replace(".css",`_${hash}.css`);
+			yield utils.write(path.join("public","css",file),content.css,'utf-8',true);
+			koatonhide[target] = `/css/${file}`;
+			// console.log(content);
+			// let r = yield lesspreprocessor.render(fs.readFileSync(file,'utf-8')).then(function(output){
+			// 	console.log(output);
+			// 	return 1;
+			// });
+			// console.log(r);
+		}
+		fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
+
+	}
+}
 const loadConfig = function() {
 	if (utils.canAccess(path.join(process.cwd(), ".koaton_bundle"))) {
 		try {
@@ -24,7 +59,7 @@ const _rebuild = function(key, patterns, reload) {
 	}
 	let AllFiles = [];
 	for (var index in patterns) {
-		AllFiles = AllFiles.concat(glob.sync(path.normalize(patterns[index])));
+		AllFiles = AllFiles.concat(readSync(path.normalize(patterns[index])));
 	}
 
 	if (key.indexOf(".js") > -1) {
@@ -70,15 +105,18 @@ module.exports = {
 			try {
 				fs.unlinkSync(path.join("public", path.normalize(koatonhide[index])));
 			} catch (e) {
-
+				// console.log(e);
 			}
 		}
 		for (var key in patterns) {
-			try {
-				_rebuild(key, patterns[key], false);
-			} catch (e) {
-				console.log(e);
+			if (key.indexOf(".css") > -1) {
+				yield buildCss(key, patterns[key]);
 			}
+			// 	try {
+			// 		_rebuild(key, patterns[key], false);
+			// 	} catch (e) {
+			// 		console.log(e);
+			// 	}
 		}
 		return 0;
 	}

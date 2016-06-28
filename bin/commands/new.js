@@ -17,6 +17,7 @@ const setupInit = function*() {
 	yield utils.mkdir(proypath);
 	yield utils.mkdir(path.join(proypath, "ember"));
 	yield utils.compile('app.js');
+	yield utils.copy("./.gitignore", './.gitignore');
 	yield utils.mkdir(path.join(proypath, "config"));
 }
 const setupConfig = function*() {
@@ -31,6 +32,7 @@ const setupConfig = function*() {
 	yield utils.compile('config/connections.js');
 	yield utils.compile('config/bundles.js');
 	yield utils.compile('config/routes.js');
+	yield utils.compile('config/security.js');
 
 }
 const setupAssets = function*() {
@@ -52,6 +54,8 @@ const setupOthers = function*() {
 		console.log(e.toString());
 		console.log(": already exists".green);
 	}
+	yield utils.mkdir(path.join(proypath, "routes"));
+	yield utils.copy("/routes/index.js");
 	yield utils.mkdir(path.join(proypath, "controllers"));
 	yield utils.mkdir(path.join(proypath, "models"));
 	yield utils.mkdir(path.join(proypath, "public"));
@@ -76,8 +80,14 @@ const setupDependencies = function*(options, db, eg) {
 		yield shell("Installing npm dependencies", ["npm", "install", "--loglevel", "info"], proypath);
 		yield shell("Installing adapter " + db.package.green, ["npm", "install", db.package, "--save", "--loglevel", "info"], application);
 		yield shell("Installing engine " + eg.green, ["npm", "install", eg, "--save", "--loglevel", "info"], proypath);
+		if(eg === "handlebars"){
+			yield shell("Installing engine " + "handlebars-layouts".green, ["npm", "install", "handlebars-layouts", "--save", "--loglevel", "info"], proypath);
+		}
 	} else {
 		pk.dependencies[eg] = "x.x.x";
+		if(eg === "handlebars"){
+			pk.dependencies[ "handlebars-layouts"] = "x.x.x";
+		}
 		pk.dependencies[db.package] = "x.x.x";
 		yield utils.write(path.join(proypath, "package.json"), JSON.stringify(pk, null, '\t'), null);
 	}

@@ -27,14 +27,16 @@ koaton.use(require('koa-bodyparser')(config.bodyparser));
 koaton.use(require('koa-static')(config.static.directory, config.static));
 // //app.use(require('koa-etag')());
 
-koaton.use(require('koa-session')(config.session,koaton));
+koaton.keys = config.keys;
+koaton.use(require('koa-session')(koaton));
 
 koaton.use(passport.initialize());
 koaton.use(passport.session());
-
+koaton.use(koaton.oAuth2Server);
 koaton.use(koaton.views);
-koaton.use(koaton.router);
-koaton.use(koaton.protectedRouter);
+koaton.use(koaton.router.protected);
+koaton.use(koaton.router.public);
+
 
 //============================================
 io.attach(koaton);
