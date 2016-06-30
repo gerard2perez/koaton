@@ -10,166 +10,109 @@ const Promise = require('bluebird').promisify;
 const Concat = require('concat-with-sourcemaps');
 
 let koatonhide = {};
-const buildCss = function*(target, source) {
-	console.log("Start building",target,"---------------------------------------");
-	const less = require('less');
-	const sass = Promise(require('node-sass').render);
-	const CssImporter = require('node-sass-css-importer')();
-	console.log(target+".map");
-	const concat = new Concat(true,path.join("css",target+".map"),'\n');
-
-	koatonhide[target]=[];
-	for (let index in source) {
-		let file = path.normalize(source[index]);
-		let basename = path.basename(file);
-		if (file.indexOf(".less") > -1) {
-			let content = fs.readFileSync(file, 'utf-8');
-			content = yield less.render(content, {
-				filename: file,
-				sourceMap: {
-					outputSourceFiles: true,
-					sourceMapBasepath: path.normalize(file.replace(basename, "")),
-					sourceMapFileInline: true,
-					sourceMapRootpath: "/" + basename
-				}
-			});
-			// concat.add(basename,content.css,content.map);
-			// concat.add(basename,content.css);
-
-			// console.log(content.css);
-			// var hasher = crypto.createHash('sha1');
-			// hasher.update(content.css);
-			// const hash = hasher.digest('hex').slice(0, 20);
-			// file = target.replace(".css", `_${hash}.css`);
-			// yield utils.write(path.join("public", "css", file), content.css, 'utf-8', true);
-			yield utils.write(path.join("public", "css", index+target), content.css.toString(), 'utf-8', true);
-			// yield utils.write(path.join("public", "css", target+".map"), content.map, 'utf-8', true);
-			koatonhide[target].push(`/css/${index+target}`);
-
-			// let encoded = (new Buffer(content.map)).toString('base64');
-			// encoded = `\n/*# sourceMappingURL=data:application/json;base64,${encoded} */`;
-			// concat.add(basename,content.css.toString()+encoded,content.map);
-
-		} else if (file.indexOf(".scss") > -1 || file.indexOf(".sass") > -1) {
-			let content = fs.readFileSync(file, 'utf-8');
-			content = yield sass({
-				sourceMap: "/",
-				sourceMapRoot:"/"+target+"/",
-				sourceMapContents: true,
-				// omitSourceMapUrl:true,
-				sourceMapEmbed: true,
-				file: file,
-				importer:[CssImporter]
-				// ,outFile: "/public/css/"+target+".map"
-			});
-			// let rrr= (new RegExp("/*# .*,([^ ]*).*/")).exec(content.css.toString());
-			// let buf = new Buffer(rrr[1], 'base64');
-			// console.log(rrr[rrr.length-3],rrr[rrr.length-1]);
-			// concat.add(basename,content.css.toString().replace(rrr[0],"")+"# sourceMappingURL=css/flatadmin.css.map */",buf);
-			// concat.add(basename,content.css,concat.map);
-			// yield utils.write(path.join("public", "css", target), content.css, 'utf-8', true);
-
-			// console.log(content.map.toString('base64'));
-			// let encoded = (new Buffer(concat.map.toString())).toString('base64');
-
-			// let encoded = content.map.toString('base64');
-			// encoded = `\n/*# sourceMappingURL=data:application/json;base64,${encoded} */`;
-			// concat.add(basename,content.css+encoded,concat.map);
-			yield utils.write(path.join("public", "css", index+target), content.css.toString(), 'utf-8', true);
-			// concat.add(basename,content.css,concat.map);
-			koatonhide[target].push(`/css/${index+target}`);
-		}
-	}
-	let encoded = (new Buffer(concat.sourceMap.toString())).toString('base64');
-	encoded = `\n/*# sourceMappingURL=data:application/json;base64,${encoded} */`;
-	// concat.add(basename,content.css+encoded,concat.map);
-	// yield utils.write(
-	// 	path.join("public", "css", target),
-	// 	concat.content.toString()+encoded,// +"/*# sourceMappingURL=/css/flatadmin.css.map */",
-	// 	'utf-8', true);
-	// yield utils.write(path.join("public", "css", target+".map"), concat.sourceMap, 'utf-8', true);
-	// koatonhide[target] = `/css/${target}`;
-	fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
+const hasFileName = function(file, content) {
+	const basename = path.trimExt(file);
+	const ext = file.replace(basename, "");
+	const hasher = crypto.createHash('sha1');
+	hasher.update(content);
+	const hash = hasher.digest('hex').slice(0, 20);
+	return basename + "_" + hash + ext;
 }
-
-const buildCss2 = function*(target, source) {
-	console.log("Start building",target,"---------------------------------------");
-	const less = require('less');
-	const sass = Promise(require('node-sass').render);
-	const CssImporter = require('node-sass-css-importer')();
-	console.log(target+".map");
-	const concat = new Concat(true,path.join("css",target+".map"),'\n');
+const buildCss = function*(target, source, development) {
+	const less = require('less'),
+		sass = Promise(require('node-sass').render),
+		CssImporter = require('node-sass-css-importer')(),
+		concat = new Concat(true, path.join("css", target + ".map"), '\n'),
+		LessPluginCleanCSS = require('less-plugin-clean-css'),
+		cleanCSSPlugin = new LessPluginCleanCSS({
+			advanced: true
+		}),
+		watchinFiles=[];
+	koatonhide[target] = [];
 	for (let index in source) {
-		let file = path.normalize(source[index]);
-		let basename = path.basename(file);
+		if (!development) {
+			utils.rmdir(path.join("public", "css", index + target));
+		}
+		let file = path.normalize(source[index]),basename = path.basename(file);
 		if (file.indexOf(".less") > -1) {
-			let content = fs.readFileSync(file, 'utf-8');
-			content = yield less.render(content, {
+			let content = yield less.render(fs.readFileSync(file, 'utf-8'), {
+				plugins: [cleanCSSPlugin],
 				filename: file,
+				compres: true,
 				sourceMap: {
 					outputSourceFiles: true,
 					sourceMapBasepath: path.normalize(file.replace(basename, "")),
-					// sourceMapFileInline: true,
+					sourceMapFileInline: development,
 					sourceMapRootpath: "/" + basename
 				}
 			});
-
-			// concat.add(basename,content.css,content.map);
-			concat.add(basename,content.css);
-
-			// console.log(content.css);
-			// var hasher = crypto.createHash('sha1');
-			// hasher.update(content.css);
-			// const hash = hasher.digest('hex').slice(0, 20);
-			// file = target.replace(".css", `_${hash}.css`);
-			// yield utils.write(path.join("public", "css", file), content.css, 'utf-8', true);
-			// yield utils.write(path.join("public", "css", target), content.css.toString()+"/*# sourceMappingURL=/css/flatadmin.css.map */", 'utf-8', true);
-			// yield utils.write(path.join("public", "css", target+".map"), content.map, 'utf-8', true);
-
-
-			// let encoded = (new Buffer(content.map)).toString('base64');
-			// encoded = `\n/*# sourceMappingURL=data:application/json;base64,${encoded} */`;
-			// concat.add(basename,content.css.toString()+encoded,content.map);
-
+			if (development) {
+				watchinFiles[index+target] = content.imports;
+				yield utils.write(path.join("public", "css", index + target), content.css.toString(), 'utf-8', true);
+				koatonhide[target].push(`/css/${index+target}`);
+			} else {
+				concat.add(basename, content.css, concat.map);
+			}
 		} else if (file.indexOf(".scss") > -1 || file.indexOf(".sass") > -1) {
-			let content = fs.readFileSync(file, 'utf-8');
-			content = yield sass({
+			let content = yield sass({
 				sourceMap: "/",
-				sourceMapRoot:"/"+target+"/",
+				sourceMapRoot: "/" + target + "/",
 				sourceMapContents: true,
-				omitSourceMapUrl:true,
-				// sourceMapEmbed: true,
+				sourceMapEmbed: development,
+				outputStyle:"compressed",
 				file: file,
-				importer:[CssImporter]
-				// ,outFile: "/public/css/"+target+".map"
+				importer: [CssImporter]
 			});
-			// let rrr= (new RegExp("/*# .*,([^ ]*).*/")).exec(content.css.toString());
-			// let buf = new Buffer(rrr[1], 'base64');
-			// console.log(rrr[rrr.length-3],rrr[rrr.length-1]);
-			// concat.add(basename,content.css.toString().replace(rrr[0],"")+"# sourceMappingURL=css/flatadmin.css.map */",buf);
-			// concat.add(basename,content.css,concat.map);
-			// yield utils.write(path.join("public", "css", target), content.css, 'utf-8', true);
-
-			// console.log(content.map.toString('base64'));
-			// let encoded = (new Buffer(concat.map.toString())).toString('base64');
-
-			// let encoded = content.map.toString('base64');
-			// encoded = `\n/*# sourceMappingURL=data:application/json;base64,${encoded} */`;
-			// concat.add(basename,content.css+encoded,concat.map);
-
-			concat.add(basename,content.css,concat.map);
+			if (development) {
+				watchinFiles[index+target] = content.stats.includedFiles;
+				yield utils.write(path.join("public", "css", index + target), content.css.toString(), 'utf-8', true);
+				koatonhide[target].push(`/css/${index+target}`);
+			} else {
+				concat.add(basename, content.css, concat.map);
+			}
+		} else if (file.indexOf(".css")) {
+			if (development) {
+				watchinFiles[index+target] = file;
+				yield utils.write(path.join("public", "css", index + target), fs.readFileSync(file, 'utf-8'), 'utf-8', true);
+				koatonhide[target].push(`/css/${index+target}`);
+			} else {
+				concat.add(basename, content.css, concat.map);
+			}
 		}
 	}
-	let encoded = (new Buffer(concat.sourceMap.toString())).toString('base64');
-	encoded = `\n/*# sourceMappingURL=data:application/json;base64,${encoded} */`;
-	// concat.add(basename,content.css+encoded,concat.map);
-	yield utils.write(
-		path.join("public", "css", target),
-		concat.content.toString()+encoded,// +"/*# sourceMappingURL=/css/flatadmin.css.map */",
-		'utf-8', true);
-	// yield utils.write(path.join("public", "css", target+".map"), concat.sourceMap, 'utf-8', true);
-	koatonhide[target] = `/css/${target}`;
+	if (!development) {
+		const file = hasFileName(target, concat.content.toString());
+		yield utils.write(
+			path.join("public", "css", file),
+			concat.content.toString(),
+			'utf-8', true);
+		koatonhide[target] = `/css/${file}`;
+	}
 	fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
+	return watchinFiles;
+}
+const buildJS = function*(target, source, development) {
+	let AllFiles = [];
+	for (var index in source) {
+		AllFiles = AllFiles.concat(readSync(path.normalize(source[index])));
+	}
+	let result = uglify.minify(AllFiles, {
+		outSourceMap: " /js/" + target + ".map",
+		sourceMapIncludeSources: development,
+		sourceRoot: "/" + target,
+		compress: true
+			// ,mangle:true
+	});
+	const file = hasFileName(target, result.code.toString());
+	yield utils.write(path.join("public", "js", file), result.code, {
+		encoding: 'utf-8'
+	}, true);
+	if (development) {
+		fs.writeFileSync(path.join("public", "js", target + ".map"), result.map, 'utf8');
+	}
+	koatonhide[target] = "/js/" + file;
+	fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
+	return AllFiles;
 }
 const loadConfig = function() {
 	if (utils.canAccess(path.join(process.cwd(), ".koaton_bundle"))) {
@@ -180,42 +123,10 @@ const loadConfig = function() {
 		}
 	}
 }
-const _rebuild = function(key, patterns, reload) {
-	console.log(`Making bundle ${key}`);
-	const dest = key.split(".");
-	if (reload !== false) {
-		loadConfig();
-	}
-	let AllFiles = [];
-	for (var index in patterns) {
-		AllFiles = AllFiles.concat(readSync(path.normalize(patterns[index])));
-	}
 
-	if (key.indexOf(".js") > -1) {
-		let result = uglify.minify(AllFiles, {
-			outSourceMap: dest[0] + ".map",
-			sourceRoot: "http://localhost:62626/js/"
-		});
-		var hasher = crypto.createHash('sha1');
-		hasher.update(result.code);
-		const hash = hasher.digest('hex').slice(0, 20);
-		const desfile = dest[0] + "_" + hash;
-		fs.writeFileSync(path.join("public", "js", desfile + "." + dest[1]), result.code, 'utf8');
-		fs.writeFileSync(path.join("public", "js", dest[0] + ".map"), result.map, 'utf8');
-		koatonhide[key] = "/js/" + desfile + "." + dest[1];
-	} else {
-		let minified = new compressor.minify({
-			type: 'clean-css',
-			fileIn: AllFiles,
-			fileOut: path.join(process.cwd(), 'public', 'css', dest[0] + ".min.css"),
-			sync: true
-		});
-		koatonhide[key] = "/css/" + dest[0] + ".min.css";
-	}
-	fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
-}
 module.exports = {
-	rebuild: _rebuild,
+	buildCSS: buildCss,
+	buildJS:buildJS,
 	cmd: "build",
 	description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 	args: ["config_file"],
@@ -231,21 +142,22 @@ module.exports = {
 		yield utils.mkdir(path.join(process.cwd(), "public", "js"));
 		loadConfig();
 		for (let index in koatonhide) {
-			try {
-				fs.unlinkSync(path.join("public", path.normalize(koatonhide[index])));
-			} catch (e) {
-				// console.log(e);
+			if (koatonhide[index] instanceof Array) {
+				koatonhide[index].forEach((file) => {
+					utils.rmdir(path.join("public", path.normalize(file)));
+				});
+			} else {
+				utils.rmdir(path.join("public", path.normalize(koatonhide[index])));
+				utils.rmdir(path.join("public", "css", index.replace(".css", ".css.map")));
 			}
 		}
+		// return 0;
 		for (var key in patterns) {
 			if (key.indexOf(".css") > -1) {
-				yield buildCss(key, patterns[key]);
+				yield buildCss(key, patterns[key], !options.prod);
+			} else if (key.indexOf(".js") > -1) {
+				yield buildJS(key, patterns[key], !options.prod);
 			}
-			// 	try {
-			// 		_rebuild(key, patterns[key], false);
-			// 	} catch (e) {
-			// 		console.log(e);
-			// 	}
 		}
 		return 0;
 	}

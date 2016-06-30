@@ -107,6 +107,14 @@ module.exports = {
 	},
 	version: require('../package.json').version,
 	proyect_path: path.resolve(),
+	rmdir(folder){
+		try {
+			fs.unlinkSync(folder);
+		} catch (e) {
+			return false;
+		}
+		return true;
+	},
 	source_path: path.join(__dirname, '..', 'templates'),
 	/**
 	 * echo str > path.
