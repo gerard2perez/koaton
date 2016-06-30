@@ -7,6 +7,9 @@ let imageminMozjpeg = null;
 let imageminPngquant = null;
 let building = [];
 let livereload = null;
+const addBundleWatcher=function(chokidar){
+	
+}
 const deleted = function(file) {
 	const remove = require("graceful-fs").unlinkSync;
 	try {

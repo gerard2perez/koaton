@@ -35,6 +35,39 @@ koaton model user "active:number name email password note:text created:date" -e 
 koaton serve
 ```
 
+## Do it with style
+**CSS, LESS and SASS/SCSS**
+
+Every Framework should include an efficient way of working with *css*, well, i'm working to make it as easy as posible at the moment, so, koaton has a way to work with css pre-processors.
+
+```zsh
+koaton build
+```
+
+This commands reads the file **/config/bundle.js** and outputs the content in **/public/css/**
+
+The bundle.js files is a exports a json object which contains an array of files:
+
+```
+	"dest_file":[ARRAY_OF_SOURCES]
+```
+
+** *dest_file* ** can be defined as a javascript or css file.
+** *ARRAY_OF_SOURCES* ** can contain a glob patter if we're defined a javascript file or any css/less/sass/scss files if we're defining a css file.
+
+### Develop easily
+All the files are automatically watched and rebuild if we're running in the **development** environment.
+Any file which if defined in the bundle file would be watched as well as any file which is required in the files defined in the bundle.js.
+
+Koaton uses livereload, so, after a source file is changed, Koaton would rebuild the *dest_file* and will notify the browser to reload the file.
+
+### Fast Fast Fast
+Debugin a UI can be hard if we don't have the right tools, that's why Koaton makes SourceMaps of all the bundle files (javascript or css).
+
+SourceMaps will be always be built in **development** environment, but **not** in **production** environment (like it should be).
+
+> Rigth now I don't know hot to concat the SourceMaps for css files so instead of building one single file a file for every element in *ARRAY_OF_SOURCES* would e built **ONLY IN DEVELOPMENT ENVIROMENT** *and for LESS/SASS/SCSS/CSS files*, javascript its fine.
+
 ## Contributors
 
 1. Gerardo Pérez Pérez <gerard2perez@outllok.com>
