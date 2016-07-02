@@ -7,9 +7,7 @@ let imageminMozjpeg = null;
 let imageminPngquant = null;
 let building = [];
 let livereload = null;
-const addBundleWatcher=function(chokidar){
-	
-}
+let utils = null;
 const deleted = function(file) {
 	const remove = require("graceful-fs").unlinkSync;
 	try {
@@ -17,9 +15,9 @@ const deleted = function(file) {
 	} catch (e) {
 		console.log(file.replace("assets", "public"));
 	}
+	livereload.reload(file);
 }
 const compress = function(file) {
-	console.log(file);
 	imagemin([file], file.replace(path.basename(file), "").replace("assets", "public"), {
 		plugins: [
 			imageminMozjpeg({}),
@@ -28,7 +26,7 @@ const compress = function(file) {
 			})
 		]
 	});
-	livereload.reload();
+	livereload.reload(file);
 }
 const WactchAndCompressImages = function*(watcher) {
 	watching.push(watcher);
@@ -45,6 +43,71 @@ const WactchAndCompressImages = function*(watcher) {
 		.on('unlink', deleted)
 		.on('add', compress);
 }
+
+const checkAssetsToBuild = function*(production, isbuild, watch) {
+	const co = require('co'),
+		assets = require('./build'),
+		bundles = JSON.parse(yield utils.read(path.join(process.cwd(), "./.koaton_bundle"))),
+		bundlescfg = require(path.join(process.cwd(), "config", "bundles.js"));
+	let files = {};
+	for (const file in bundles) {
+		if (file.indexOf(".css") > -1) {
+			console.log(!production,isbuild , utils.canAccess(path.join(process.cwd(), "public", file)));
+			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(isbuild || utils.canAccess(path.join(process.cwd(), "public", file))));
+			for (let f in ffs) {
+				files[f] = {
+					Paths: ffs[f],
+					Target: file,
+					Sources: bundlescfg[file],
+					Build: assets.buildCSS
+				};
+			}
+		} else {
+			files[path.basename(bundles[file])] = {
+				Paths: yield assets.buildJS(file, bundlescfg[file], !production, !production && !(isbuild||utils.canAccess(path.join(process.cwd(), "public", file)))),
+				Target: file,
+				Sources: bundlescfg[file],
+				Build: assets.buildJS
+			};
+		}
+	}
+	if (!production) {
+		const RebuildAndReload = function(compiledFile, target, sources, build) {
+			co(function*() {
+				yield build(target, sources, !production);
+			}).then(() => {
+				livereload.reload(compiledFile);
+			});
+		}
+		for (const watchfile in files) {
+			const element = files[watchfile];
+			let rebuild = RebuildAndReload.bind(null, watchfile, element.Target, element.Sources, element.Build);
+			const watcher = new watch(element.Paths, {
+				persistent: true,
+				ignoreInitial: true,
+				alwaysStat: false,
+				awaitWriteFinish: {
+					stabilityThreshold: 1000,
+					pollInterval: 100
+				}
+			});
+			watcher
+				.on('change', rebuild)
+				.on('unlink', rebuild)
+				.on('add', rebuild)
+				.on('unlinkDir', rebuild) //.on('ready',()=>{console.log(watcher.getWatched());})
+				// .on('error', watch_error);
+			;
+		}
+	}
+	return true;
+}
+
+
+const buildEmberApps=function*(){
+
+}
+
 module.exports = {
 	cmd: "serve",
 	description: "Runs your awsome Koaton applicaction using nodemon",
@@ -55,23 +118,23 @@ module.exports = {
 		["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 	],
 	action: function*(options) {
-		const Promise = require('bluebird');
-		const nodemon = require('nodemon');
+		const Promise = require('bluebird'),
+			nodemon = require('nodemon'),
+			notifier = require('node-notifier'),
+			shell = require('../utils').shell,
+			chokidar = require('chokidar'),
+			embercfg = require(`${process.cwd()}/config/ember`),
+			env = {
+				welcome: false,
+				NODE_ENV: !options.production ? 'development' : 'production',
+				port: options.port || 62626
+			};
+		utils = require('../utils');
 		livereload = require('gulp-livereload');
-
-		const notifier = require('node-notifier');
-		const shell = require('../utils').shell;
-		const utils = require('../utils');
-		const chokidar = require('chokidar');
-		const embercfg = require(`${process.cwd()}/config/ember`);
 		imagemin = require('imagemin');
 		imageminMozjpeg = require('imagemin-mozjpeg');
 		imageminPngquant = require('imagemin-pngquant');
-		const env = {
-			welcome: false,
-			NODE_ENV: !options.production ? 'development' : 'production',
-			port: options.port || 62626
-		};
+
 		if (!options.production) {
 			livereload.listen({
 				port: 62627,
@@ -82,7 +145,7 @@ module.exports = {
 		const watch_error = function(e) {
 			console.log(`Watcher error: ${e}`);
 		}
-		const updateApp = function(app,file) {
+		const updateApp = function(app, file) {
 			console.log(file);
 			notifier.notify({
 				title: 'Koaton',
@@ -98,7 +161,7 @@ module.exports = {
 		const onBuild = function(update, result) {
 			if (result === 0) {
 				const watcher = chokidar.watch(path.join(
-					"ember", ember_app,"/"
+					"ember", ember_app, "/"
 				), {
 					ignored: [
 						`ember/${ember_app}/app/initializers/inflector.js`,
@@ -128,7 +191,7 @@ module.exports = {
 					.on('change', update)
 					.on('unlink', update)
 					.on('add', update)
-					.on('unlinkDir', update)//.on('ready',()=>{console.log(watcher.getWatched());})
+					.on('unlinkDir', update) //.on('ready',()=>{console.log(watcher.getWatched());})
 					.on('error', watch_error);
 				watching.push(watcher);
 				return `${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`;
@@ -149,7 +212,6 @@ module.exports = {
 		for (var ember_app in embercfg) {
 			ignoreemberdirs.push(path.join("**", "public", ember_app, "**"));
 			if (build.indexOf(ember_app) === -1) {
-
 				let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
 					encoding: "utf-8"
 				}), {
@@ -171,41 +233,18 @@ module.exports = {
 				}
 			}
 		}
-		// yield shell("Building Bundles", ["koaton", "build"], process.cwd());
-		const patterns = require(path.join(process.cwd(), "config", "bundles.js"));
-		const build_bundles = require('./build').rebuild;
-		const _rebuild = function(key,patterns){
-			build_bundles(key, patterns);
-			livereload.reload();
-		}
-		for (let key in patterns) {
-			const bundles = new chokidar.watch(patterns[key], {
+		if (!options.production) {
+			yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
 				persistent: true,
-				alwaysStat: false,
 				ignoreInitial: true,
+				alwaysStat: false,
 				awaitWriteFinish: {
-					stabilityThreshold: 1000,
+					stabilityThreshold: 2000,
 					pollInterval: 100
 				}
-			});
-			const rebuild = _rebuild.bind(_rebuild,key,patterns[key]);
-			bundles
-				.on('change', rebuild)
-				.on('unlink', rebuild)
-				.on('add', rebuild)
-				.on('unlinkDir', rebuild);
-			watching.push(bundles);
+			}));
 		}
-		yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
-			persistent: true,
-			ignoreInitial: true,
-			alwaysStat: false,
-			awaitWriteFinish: {
-				stabilityThreshold: 2000,
-				pollInterval: 100
-			}
-		}));
-
+		yield checkAssetsToBuild(options.production, options.build, chokidar.watch);
 		return new Promise(function(resolve) {
 			nodemon({
 				ext: '*',

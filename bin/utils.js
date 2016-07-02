@@ -7,7 +7,6 @@ const spawn = require('cross-spawn-async');
 const spinner = require('./spinner');
 const exec = require('child_process').exec;
 let log = "";
-let lastchild=null;
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
