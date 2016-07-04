@@ -3,7 +3,7 @@ const path = require('upath');
 const crypto = require("crypto");
 const fs = require("graceful-fs");
 const utils = require('../utils');
-const readSync = require('glob').sync;
+const readSync = require('node-glob').sync;
 const uglify = require("uglify-js");
 const Promise = require('bluebird').promisify;
 const Concat = require('concat-with-sourcemaps');
@@ -17,6 +17,7 @@ const hasFileName = function(file, content) {
 	const hash = hasher.digest('hex').slice(0, 20);
 	return basename + "_" + hash + ext;
 }
+
 const buildCss = function*(target, source, development, onlypaths) {
 	const less = require('less'),
 		sass = Promise(require('node-sass').render),
@@ -140,10 +141,38 @@ const loadConfig = function() {
 		}
 	}
 }
+const buildEmber = function*(ember_app, options) {
+	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
+		irregular = (inflections.plural || [])
+		.concat(inflections.singular || [])
+		.concat(inflections.irregular || []),
+		uncontable = (inflections.uncountable || []).map((inflection) => {
+			return `/${inflection}/`
+		}),
+		inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
+			encoding: "utf-8"
+		}), {
+			irregular: JSON.stringify(irregular),
+			uncontable: JSON.stringify(uncontable)
 
+		});
+	yield utils.write(path.join("ember", ember_app, "app", "initializers", "inflector.js"), inflector, true);
+	const update = updateApp.bind(null, ember_app);
+	if (options.build) {
+		const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+		building.push(stbuild.then(onBuild.bind(null, update)));
+		yield stbuild;
+	} else {
+		if (!options.production) {
+			onBuild(update, 0);
+		}
+		building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
+	}
+}
 module.exports = {
 	buildCSS: buildCss,
 	buildJS: buildJS,
+	buildEmber: buildEmber,
 	cmd: "build",
 	description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 	args: ["config_file"],

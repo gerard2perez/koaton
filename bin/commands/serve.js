@@ -1,5 +1,6 @@
 "use strict";
 const screen = require('../../lib/welcome');
+const chokidar = require('chokidar');
 const path = require('path');
 const watching = [];
 let imagemin = null;
@@ -17,6 +18,7 @@ const deleted = function(file) {
 	}
 	livereload.reload(file);
 }
+
 const compress = function(file) {
 	imagemin([file], file.replace(path.basename(file), "").replace("assets", "public"), {
 		plugins: [
@@ -28,6 +30,7 @@ const compress = function(file) {
 	});
 	livereload.reload(file);
 }
+
 const WactchAndCompressImages = function*(watcher) {
 	watching.push(watcher);
 	yield imagemin([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'), {
@@ -52,7 +55,7 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 	let files = {};
 	for (const file in bundles) {
 		if (file.indexOf(".css") > -1) {
-			console.log(!production,isbuild , utils.canAccess(path.join(process.cwd(), "public", file)));
+			console.log(!production, isbuild, utils.canAccess(path.join(process.cwd(), "public", file)));
 			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(isbuild || utils.canAccess(path.join(process.cwd(), "public", file))));
 			for (let f in ffs) {
 				files[f] = {
@@ -64,7 +67,7 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 			}
 		} else {
 			files[path.basename(bundles[file])] = {
-				Paths: yield assets.buildJS(file, bundlescfg[file], !production, !production && !(isbuild||utils.canAccess(path.join(process.cwd(), "public", file)))),
+				Paths: yield assets.buildJS(file, bundlescfg[file], !production, !production && !(isbuild || utils.canAccess(path.join(process.cwd(), "public", file)))),
 				Target: file,
 				Sources: bundlescfg[file],
 				Build: assets.buildJS
@@ -95,17 +98,50 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 				.on('change', rebuild)
 				.on('unlink', rebuild)
 				.on('add', rebuild)
-				.on('unlinkDir', rebuild) //.on('ready',()=>{console.log(watcher.getWatched());})
-				// .on('error', watch_error);
-			;
+				.on('unlinkDir', rebuild);
 		}
 	}
 	return true;
 }
 
-
-const buildEmberApps=function*(){
-
+const watchEmber = function(app, mount, updatefn, result) {
+	if (result === 0) {
+		const watcher = chokidar.watch(path.join(
+			"ember", app, "/"
+		), {
+			ignored: [
+				`ember/${app}/app/initializers/inflector.js`,
+				`ember/${app}/node_modules`,
+				`ember/${app}/bower_components`,
+				`ember/${app}/dist`,
+				`ember/${app}/.git`,
+				`ember/${app}/vendor`,
+				`ember/${app}/public`,
+				`ember/${app}/tmp`,
+				`ember/${app}/ember-cli-build.js`,
+				`ember/${app}/bower.json`,
+				`ember/${app}/package.json`,
+				`ember/${app}/testem.js`,
+				`ember/${app}/*.md`,
+				/[\/\\]\./
+			],
+			persistent: true,
+			ignoreInitial: true,
+			alwaysStat: false,
+			awaitWriteFinish: {
+				stabilityThreshold: 1000,
+				pollInterval: 100
+			}
+		});
+		watcher
+			.on('change', updatefn)
+			.on('unlink', updatefn)
+			.on('add', updatefn)
+			.on('unlinkDir', updatefn);
+		return `${app.yellow} → ${mount.cyan}`;
+	} else {
+		return "";
+	}
 }
 
 module.exports = {
@@ -122,7 +158,6 @@ module.exports = {
 			nodemon = require('nodemon'),
 			notifier = require('node-notifier'),
 			shell = require('../utils').shell,
-			chokidar = require('chokidar'),
 			embercfg = require(`${process.cwd()}/config/ember`),
 			env = {
 				welcome: false,
@@ -141,10 +176,6 @@ module.exports = {
 				quiet: true
 			});
 		}
-		let build = [];
-		const watch_error = function(e) {
-			console.log(`Watcher error: ${e}`);
-		}
 		const updateApp = function(app, file) {
 			console.log(file);
 			notifier.notify({
@@ -154,50 +185,9 @@ module.exports = {
 				sound: 'Hero',
 				wait: false
 			});
-			// shell("Building " + ember_app.green, ["koaton", "ember", app, "-b", env.NODE_ENV], process.cwd()).then(() => {
-			// 	livereload.reload();
-			// });
-		}
-		const onBuild = function(update, result) {
-			if (result === 0) {
-				const watcher = chokidar.watch(path.join(
-					"ember", ember_app, "/"
-				), {
-					ignored: [
-						`ember/${ember_app}/app/initializers/inflector.js`,
-						`ember/${ember_app}/node_modules`,
-						`ember/${ember_app}/bower_components`,
-						`ember/${ember_app}/dist`,
-						`ember/${ember_app}/.git`,
-						`ember/${ember_app}/vendor`,
-						`ember/${ember_app}/public`,
-						`ember/${ember_app}/tmp`,
-						`ember/${ember_app}/ember-cli-build.js`,
-						`ember/${ember_app}/bower.json`,
-						`ember/${ember_app}/package.json`,
-						`ember/${ember_app}/testem.js`,
-						`ember/${ember_app}/*.md`,
-						/[\/\\]\./
-					],
-					persistent: true,
-					ignoreInitial: true,
-					alwaysStat: false,
-					awaitWriteFinish: {
-						stabilityThreshold: 1000,
-						pollInterval: 100
-					}
-				});
-				watcher
-					.on('change', update)
-					.on('unlink', update)
-					.on('add', update)
-					.on('unlinkDir', update) //.on('ready',()=>{console.log(watcher.getWatched());})
-					.on('error', watch_error);
-				watching.push(watcher);
-				return `${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`;
-			} else {
-				return "";
-			}
+			shell("Building " + ember_app.green, ["koaton", "ember", app, "-b", env.NODE_ENV], process.cwd()).then(() => {
+				livereload.reload();
+			});
 		}
 		screen.start();
 		const inflections = require(path.join(process.cwd(), "config", "inflections.js"));
@@ -207,30 +197,28 @@ module.exports = {
 		let uncontable = (inflections.uncountable || []).map((inflection) => {
 			return `/${inflection}/`
 		});
+		let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
+			encoding: "utf-8"
+		}), {
+			irregular: JSON.stringify(irregular),
+			uncontable: JSON.stringify(uncontable)
 
+		});
 		let ignoreemberdirs = [];
 		for (var ember_app in embercfg) {
-			ignoreemberdirs.push(path.join("**", "public", ember_app, "**"));
-			if (build.indexOf(ember_app) === -1) {
-				let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
-					encoding: "utf-8"
-				}), {
-					irregular: JSON.stringify(irregular),
-					uncontable: JSON.stringify(uncontable)
-
-				});
+			ignoreemberdirs.push(path.join("public", ember_app, "/"));
+			if (options.build) {
 				yield utils.write(path.join("ember", ember_app, "app", "initializers", "inflector.js"), inflector, true);
-				const update = updateApp.bind(null, ember_app);
-				if (options.build) {
-					const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
-					building.push(stbuild.then(onBuild.bind(null, update)));
-					yield stbuild;
-				} else {
-					if (!options.production) {
-						onBuild(update, 0);
-					}
-					building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
+				const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
+				building.push(
+					stbuild.then(
+						watchEmber.bind(null, ember_app, embercfg[ember_app].mount,
+							updateApp.bind(null, ember_app))));
+			} else {
+				if (!options.production) {
+					watchEmber(ember_app, embercfg[ember_app].mount,updateApp.bind(null, ember_app), 0);
 				}
+				building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 			}
 		}
 		if (!options.production) {

@@ -15,6 +15,22 @@ const newproyect = function*(app_name, options) {
 	if (override || options.force) {
 		yield utils.shell(`Installing ${app_name.green}`, ["ember", "new", app_name, "-dir", ember_proyect_path], process.cwd());
 		options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);
+		const inflections = require(path.join(process.cwd(), "config", "inflections.js"));
+		let irregular = (inflections.plural || [])
+			.concat(inflections.singular || [])
+			.concat(inflections.irregular || []);
+		let uncontable = (inflections.uncountable || []).map((inflection) => {
+			return `/${inflection}/`
+		});
+		let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
+			encoding: "utf-8"
+		}), {
+			irregular: JSON.stringify(irregular),
+			uncontable: JSON.stringify(uncontable)
+
+		});
+		utils.mkdir(path.join("ember", app_name, "app", "initializers"));
+		yield utils.write(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, true);
 		return false;
 	} else {
 		return true;
@@ -53,12 +69,12 @@ module.exports = {
 			}
 		} else if (options.build) {
 			// process.exit(0);
-			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name];
-			const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.physicalPat, "/"));
-			const mount_css = path.normalize(path.join(process.cwd(), "public", embercfg.physicalPat));
-			const mount_public = path.normalize(path.join(process.cwd(),
-				"ember", app_name, "dist"
-			));
+			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name],
+				mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.directory, "/")),
+				mount_css = path.normalize(path.join(process.cwd(), "public", embercfg.directory)),
+				mount_public = path.normalize(path.join(process.cwd(),
+					"ember", app_name, "dist"
+				));
 			if (yield utils.shell(
 					`Building ... ${app_name.yellow}->${embercfg.mount.green}`, [
 						"ember",
@@ -76,13 +92,13 @@ module.exports = {
 			yield utils.mkdir(mount_views);
 			if (options.build === "development") {
 				let text = yield utils.read(path.join(mount_public, "index.html"), {
-					encoding: 'utf-8'
-				});
-				let indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8');
-				let meta = new RegExp(`<meta ?name="${app_name}.*" ?content=".*" ?/>`);
+						encoding: 'utf-8'
+					}),
+					indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8'),
+					meta = new RegExp(`<meta ?name="${app_name}.*" ?content=".*" ?/>`);
 				text = utils.Compile(indextemplate, {
-					path:embercfg.physicalPat,
-					mount:embercfg.mount,
+					path: embercfg.directory,
+					mount: embercfg.mount,
 					app_name: app_name,
 					meta: text.match(meta)[0]
 				});
@@ -118,7 +134,9 @@ module.exports = {
 			var emberjs = require(`${process.cwd()}/config/ember.js`);
 
 			emberjs[app_name] = {
-				mount: options.mount
+				mount: options.mount,
+				directory: app_name,
+				access: "public"
 			};
 			yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
 module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);

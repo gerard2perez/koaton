@@ -18,6 +18,7 @@ const setupInit = function*() {
 	yield utils.mkdir(path.join(proypath, "ember"));
 	yield utils.compile('app.js');
 	yield utils.copy("./.gitignore", './.gitignore');
+	yield utils.copy("./.koaton_bundle", './.koaton_bundle');
 	yield utils.mkdir(path.join(proypath, "config"));
 }
 const setupConfig = function*() {
@@ -31,7 +32,6 @@ const setupConfig = function*() {
 	});
 	yield utils.compile('config/connections.js');
 	yield utils.compile('config/bundles.js');
-	yield utils.compile('config/routes.js');
 	yield utils.compile('config/security.js');
 
 }
@@ -46,7 +46,6 @@ const setupAssets = function*() {
 const setupOthers = function*() {
 	yield utils.mkdir(path.join(proypath, "node_modules"));
 	try {
-		console.log(path.join(__dirname, "/../"));
 		process.stdout.write(`   ${"Linking".cyan}: global koaton`);
 		fs.symlinkSync(path.join(__dirname, "/../../"), path.join(proypath, "/node_modules/koaton"));
 		console.log(": done".green);
