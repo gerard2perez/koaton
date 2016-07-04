@@ -21,26 +21,21 @@ module.exports = {
 		const cmd = `NODE_ENV=${env.NODE_ENV} port=${env.port} forever start --colors --uid "koaton_${app}" -a app.js`;
 		const cmdwin = `cmd /c "set NODE_ENV=production & set port=${env.port} & forever start --colors --uid \"koaton_${app}\" -a app.js"`;
 		if (options.logs) {
-			exec(`forever list`).then((data) => {
-				data = data.stdout.replace("info:    Forever processes running", "").replace(/ /igm, "-").replace(/data:/igm, "").replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
-				data = data.slice(2).map((d) => {
-					return d.trim().split(' ')
-				});
-				for (let i in data) {
-					if (data[i].indexOf(options.logs) > -1) {
-						return data[i][6];
-					}
-				}
-				return null;
-			}).done(id => {
-				if (id !== null) {
-					exec(`cat ${id}`).then(data => {
-						console.log(data.stdout);
-					}).finally(() => {
-						process.exit(0);
-					});
-				}
+			let data = yield exec(`forever list`),id=null;
+			data = data.stdout.replace("info:    Forever processes running", "").replace(/ /igm, "-").replace(/data:/igm, "").replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
+			data = data.slice(2).map((d) => {
+				return d.trim().split(' ')
 			});
+			for (let i in data) {
+				if (data[i].indexOf(options.logs) > -1) {
+					id= data[i][6];
+				}
+			}
+			if (id !== null) {
+				data = yield exec(`cat ${id}`);
+				console.log(data.stdout);
+			}
+			return 0;
 		} else if (options.stop) {
 			yield exec(`forever stop koaton_${path.basename(process.cwd())}`,{});
 		} else if (options.list) {

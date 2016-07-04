@@ -187,11 +187,12 @@ module.exports = {
 		}
 		yield utils.mkdir(path.join(process.cwd(), "public", "js"));
 		loadConfig();
+		const clean = function(file){
+			utils.rmdir(path.join("public", path.normalize(file)));
+		}
 		for (let index in koatonhide) {
 			if (koatonhide[index] instanceof Array) {
-				koatonhide[index].forEach((file) => {
-					utils.rmdir(path.join("public", path.normalize(file)));
-				});
+				koatonhide[index].forEach(clean);
 			} else {
 				utils.rmdir(path.join("public", path.normalize(koatonhide[index])));
 				utils.rmdir(path.join("public", "css", index.replace(".css", ".css.map")));
