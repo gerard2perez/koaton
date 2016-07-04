@@ -6,6 +6,13 @@ engines:
     - 75482e36b2a61b803d0f2bd1b2a1850c
     - 631e101a0a1ea6fe8122daaf91d6532d
     - 6cfac5dbfb935ae391ba6b266238ccde
+    - bf09f6cc08caf4577b9d5e4168e7bc69
+    - c6aee1f503a1b590c929893e3fcd792b
+    - b817f63feb4d13fcf2cbfbd6f3693047
+    - adde4ea72fb21ddab2d71e43ad9ac329
+    - 5cf1e97b71d2375e6cdc0f0fe1a99bd7
+    - b62ce1cafcb8628482e772cf66f44b59
+    - 11a60711cde39ea644f0bda2acb15924
     config:
       languages:
       - javascript

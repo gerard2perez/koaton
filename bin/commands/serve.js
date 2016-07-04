@@ -55,7 +55,6 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 	let files = {};
 	for (const file in bundles) {
 		if (file.indexOf(".css") > -1) {
-			console.log(!production, isbuild, utils.canAccess(path.join(process.cwd(), "public", file)));
 			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(isbuild || utils.canAccess(path.join(process.cwd(), "public", file))));
 			for (let f in ffs) {
 				files[f] = {
