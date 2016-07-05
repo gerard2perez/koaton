@@ -84,7 +84,9 @@ testengine(function*(suite) {
 	yield suite("koaton ember restapi", function*(assert) {
 		prefix = "/dummy/";
 		process.stdout.write("    Installs the app.".white);
-		assert.equal(0, yield koaton(["ember", "restapi", "-nf"]), "Installs the app.");
+		let res = yield koaton(["ember", "restapi", "-nf"]);
+		console.log(res);
+		assert.equal(0, res[0], "Installs the app.");
 		assert.equal("/", require("../running_test/dummy/config/ember.js").restapi.mount, "Mount the app on /");
 
 		const def = require(`../running_test/dummy/config/server`);
