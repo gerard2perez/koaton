@@ -213,6 +213,7 @@ module.exports = {
 					stbuild.then(
 						watchEmber.bind(null, ember_app, embercfg[ember_app].mount,
 							updateApp.bind(null, ember_app))));
+				yield stbuild;
 			} else {
 				if (!options.production) {
 					watchEmber(ember_app, embercfg[ember_app].mount,updateApp.bind(null, ember_app), 0);

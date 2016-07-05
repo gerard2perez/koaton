@@ -29,10 +29,11 @@ npm i koaton -g
 ## Usage
 ```zsh
 koaton new myfirstapp
+cd myfirstapp
 koaton ember restapp -n -m /panel
 koaton model user "active:number name email password note:text created:date" -e restapp -r
 
-koaton serve
+koaton serve -b
 ```
 
 ## Do it with style
