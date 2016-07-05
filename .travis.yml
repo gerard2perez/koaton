@@ -23,7 +23,7 @@ before_install:
 
 install:
   - npm install . -g
-  - mdkir secondtest
+  - mkdir secondtest
   - cd secondtest
   - koaton new testapp
   - cd testapp
