@@ -19,6 +19,8 @@ engines:
     - 70d2c37bcd1231ef09a354488e68af18
     - 3afc1181baa03ac7ec9b5e1292898a1a
     - 5c3e2c0b173890fc5c9c59d6db8cb981
+    - fca86fa9535a2bc557f94df20e3a6c0c
+    - b5fe0d3d968954ea1a3acc2f349797fe
     config:
       languages:
       - javascript
