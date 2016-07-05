@@ -65,7 +65,7 @@ testengine(function*(suite) {
 	});
 	yield suite("koaton new dummy", function*(assert) {
 		const cachepath = path.join(path.resolve(), "/running_test/dummy/package.json");
-		assert.equal(0, yield koaton(["new", "dummy", "-fnb"]), "Creates a new app");
+		assert.equal(0, yield koaton(["new", "dummy", "-f"]), "Creates a new app");
 		assert.ok(require("../running_test/dummy/package.json").dependencies.mongoose, "Mongoose is the database driver.");
 		assert.ok(require("../running_test/dummy/package.json").dependencies.handlebars, "Handlebars is the template engine.");
 		delete require.cache[cachepath];
@@ -86,19 +86,18 @@ testengine(function*(suite) {
 		assert.equal(0, yield koaton(["ember", "restapi", "-nf"]), "Installs the app.");
 		assert.equal("/", require("../running_test/dummy/config/ember.js").restapi.mount, "Mount the app on /");
 
-		const connections = require(`../running_test/dummy/config/connections`);
-		const connection = require(`../running_test/dummy/config/models`).connection;
-		const def = connections[connection];
+		const def = require(`../running_test/dummy/config/server`);
 		assert.equal(
-			yield read("./running_test/dummy/ember/restapi/app/adapters/application.js", {
-				encoding: "utf-8"
-			}),
 			compile(yield read("./templates/ember_apps/adapter.js", {
 				encoding: "utf-8"
 			}), {
-				localhost: def.host,
+				localhost: def.host || 'localhost',
 				port: def.port
 			}),
+			yield read("./running_test/dummy/ember/restapi/app/adapters/application.js", {
+				encoding: "utf-8"
+			})
+			,
 			"Creates the default adapter.");
 		assert.equal("/", require("../running_test/dummy/ember/restapi/config/environment.js")().baseURL, "Mounted on the right path");
 	});
@@ -164,15 +163,23 @@ testengine(function*(suite) {
 
 	});
 	yield suite("koaton build <config_file>", function*(assert) {
-		assert.ok(false, "upps");
+		let res = yield koaton(["build"]);
+		assert.equal(true, res[1].indexOf("Nothing to compile")>-1,"Nothing to compile");
 	});
-	yield suite("koaton serve", function*(assert) {
-		assert.ok(false, "upps");
-		// prefix="dummy";
-		// assert.equal(0,yield koaton(["serve"]),"running server");
-	});
+	// yield suite("koaton serve", function*(assert) {
+	// 	assert.ok(false, "upps");
+	// 	// prefix="dummy";
+	// 	// assert.equal(0,yield koaton(["serve"]),"running server");
+	// });
 	yield suite("koaton forever", function*(assert) {
-		assert.ok(false, "upps");
+		assert.equal(0, yield koaton(["adapter", "mongoose"]), "Uses the mongoose adapter");
+		let res = yield koaton(["forever"]);
+		assert.ok(res[1].indexOf("dummy is running")>-1,"Things seems ok");
+		res = yield koaton(["forever","-l"]);
+		assert.ok(res[1].indexOf("koaton_dummy")>-1,"Process is runnig");
+		yield koaton(["forever","-s"]);
+		res = yield koaton(["forever","-l"]);
+		assert.ok(res[1].indexOf("koaton_dummy")===-1,"Process has being stopped");
 	});
 }).then((a) => {
 	process.exit(a);

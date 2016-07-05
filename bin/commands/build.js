@@ -141,38 +141,9 @@ const loadConfig = function() {
 		}
 	}
 }
-const buildEmber = function*(ember_app, options) {
-	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
-		irregular = (inflections.plural || [])
-		.concat(inflections.singular || [])
-		.concat(inflections.irregular || []),
-		uncontable = (inflections.uncountable || []).map((inflection) => {
-			return `/${inflection}/`
-		}),
-		inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
-			encoding: "utf-8"
-		}), {
-			irregular: JSON.stringify(irregular),
-			uncontable: JSON.stringify(uncontable)
-
-		});
-	yield utils.write(path.join("ember", ember_app, "app", "initializers", "inflector.js"), inflector, true);
-	const update = updateApp.bind(null, ember_app);
-	if (options.build) {
-		const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
-		building.push(stbuild.then(onBuild.bind(null, update)));
-		yield stbuild;
-	} else {
-		if (!options.production) {
-			onBuild(update, 0);
-		}
-		building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
-	}
-}
 module.exports = {
 	buildCSS: buildCss,
 	buildJS: buildJS,
-	buildEmber: buildEmber,
 	cmd: "build",
 	description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 	args: ["config_file"],
@@ -184,6 +155,7 @@ module.exports = {
 		const patterns = require(config_file);
 		if (Object.keys(patterns).length === 0) {
 			console.log("Nothing to compile on: " + config_file);
+			return 0;
 		}
 		yield utils.mkdir(path.join(process.cwd(), "public", "js"));
 		loadConfig();

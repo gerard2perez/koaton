@@ -101,7 +101,6 @@ module.exports = {
 				}).join('\n'));
 			}
 		} else {
-			console.log("run cmd");
 			let err = null;
 			try {
 				yield exec(`forever stop koaton_${app}`, {});
@@ -109,13 +108,11 @@ module.exports = {
 				err = null;
 			}
 			try {
-				console.log((cmd));
 				yield exec(cmd, {});
 			} catch (e) {
 				err = e;
 			}
 			try {
-				console.log(cmdwin);
 				yield exec(cmdwin, {});
 			} catch (e) {
 
