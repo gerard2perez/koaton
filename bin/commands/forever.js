@@ -10,16 +10,19 @@ const list = function*() {
 
 			data = data.replace(pattern, pattern.replace(/"/igm, "").replace("-", "_"));
 		});
-		data = data.replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
-	} else {
+
+	}
+	data = data.replace(/-([a-z]|\/|[0-9])/igm, " $1").split('\n');
+	let has = data[0].indexOf("No forever processes running") === -1;
+	if(!has){
 		console.log();
 		console.log("No forever processes running");
 		console.log();
 	}
 	return {
-		hasProcess: fix !== null,
-		header: fix !== null ? data[1].trim().split(' ').slice(1) : [],
-		data: fix !== null ? data.slice(2).map((d) => {
+		hasProcess: has,
+		header: has !== null ? data[1].trim().split(' ').slice(1) : [],
+		data: has !== null ? data.slice(2).map((d) => {
 			return d.trim().split(' ')
 		}) : []
 	}
