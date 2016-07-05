@@ -17,21 +17,13 @@ cache:
     - node_modules
 
 before_install:
+  - "npm config set spin false"
   - npm install -g ember-cli
-  - ember -v
   - npm install -g bower
   - npm install -g forever
-  - "npm config set spin false"
 
 install:
   - npm install . -g
-  - mkdir secondtest
-  - cd secondtest
-  - koaton new testapp
-  - cd testapp
-  - ls
-  - ember new restapp -dir /home/travis/build/gerard2p/koaton/secondtest/testapp/ember/restapp
-  - koaton ember restapp -nf
 
 script:
   - npm test

@@ -29,6 +29,7 @@ Other programs you may need:
 ```sh
 npm i forever -g
 npm i bower -g
+npm i ember-cli -g
 ```
 
 ## Usage
