@@ -19,6 +19,7 @@ cache:
 before_install:
   - npm install -g bower
   - npm install -g forever
+  - npm install -g ember
   - "npm config set spin false"
 
 install:
