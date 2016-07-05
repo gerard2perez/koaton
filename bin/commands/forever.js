@@ -17,9 +17,9 @@ const list = function*() {
 		console.log();
 	}
 	return {
-		hasProcess: data !== null,
-		header: data !== null ? data[1].trim().split(' ').slice(1) : [],
-		data: data !== null ? data.slice(2).map((d) => {
+		hasProcess: fix !== null,
+		header: fix !== null ? data[1].trim().split(' ').slice(1) : [],
+		data: fix !== null ? data.slice(2).map((d) => {
 			return d.trim().split(' ')
 		}) : []
 	}
@@ -116,7 +116,7 @@ module.exports = {
 				yield exec(cmdwin, {});
 			} catch (e) {
 
-				throw err;
+				err = e;
 			}
 			console.log(`${app} is running ... `);
 		}
