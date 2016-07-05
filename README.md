@@ -25,6 +25,11 @@ Documentation will be avaliable at:
 ```sh
 npm i koaton -g
 ```
+Other programs you may need:
+```sh
+npm i forever -g
+npm i bower -g
+```
 
 ## Usage
 ```zsh

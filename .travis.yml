@@ -17,6 +17,8 @@ cache:
     - node_modules
 
 before_install:
+  - npm install -g bower
+  - npm install -g forever
   - "npm config set spin false"
 
 install:
