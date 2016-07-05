@@ -16,6 +16,7 @@ const exists = require("fs").existsSync;
 require('colors');
 const testdir = "running_test";
 const koaton = Promise.promisify((command, cb) => {
+	console.log(path.join(process.cwd(), testdir, prefix));
 	let buffer = "";
 	const child = spawn("koaton", command, {
 		cwd: path.join(process.cwd(), testdir, prefix),
