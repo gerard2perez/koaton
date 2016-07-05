@@ -27,7 +27,7 @@ install:
   - cd secondtest
   - koaton new testapp
   - cd testapp
-  - koaton ember restapp -n
+  - koaton ember restapp -nf
 
 script:
   - npm test

@@ -4,16 +4,21 @@ const fs = require('graceful-fs');
 let ember_proyect_path;
 let utils;
 const newproyect = function*(app_name, options) {
+	console.log(ember_proyect_path);
 	const prompt = require("co-prompt");
 	let override = !utils.canAccess(ember_proyect_path);
+	console.log(1);
 	if (!override && app_name && !options.force) {
 		override = yield prompt.confirm(`destination ${ember_proyect_path} is not empty, continue? [y/n]: `);
 		if (override) {
 			utils.deleteFolderRecursive(ember_proyect_path);
 		}
 	}
+	console.log(2);
 	if (override || options.force) {
+		console.log(3);
 		yield utils.shell(`Installing ${app_name.green}`, ["ember", "new", app_name, "-dir", ember_proyect_path], process.cwd());
+		console.log(4);
 		options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);
 		const inflections = require(path.join(process.cwd(), "config", "inflections.js"));
 		let irregular = (inflections.plural || [])
@@ -29,8 +34,11 @@ const newproyect = function*(app_name, options) {
 			uncontable: JSON.stringify(uncontable)
 
 		});
+		console.log(5);
 		utils.mkdir(path.join("ember", app_name, "app", "initializers"));
+		console.log(6);
 		yield utils.write(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, true);
+		console.log(7);
 		return false;
 	} else {
 		return true;
