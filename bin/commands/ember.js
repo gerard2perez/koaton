@@ -17,6 +17,7 @@ const newproyect = function*(app_name, options) {
 	console.log(2);
 	if (override || options.force) {
 		console.log(3);
+		console.log(["ember", "new", app_name, "-dir", ember_proyect_path].join(" "));
 		yield utils.shell(`Installing ${app_name.green}`, ["ember", "new", app_name, "-dir", ember_proyect_path], process.cwd());
 		console.log(4);
 		options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);

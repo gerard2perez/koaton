@@ -28,6 +28,8 @@ install:
   - cd secondtest
   - koaton new testapp
   - cd testapp
+  - ls
+  - ember new restapp -dir /home/travis/build/gerard2p/koaton/secondtest/testapp/ember/restapp
   - koaton ember restapp -nf
 
 script:
