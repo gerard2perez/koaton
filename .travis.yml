@@ -23,6 +23,11 @@ before_install:
 
 install:
   - npm install . -g
+  - mdkir secondtest
+  - cd secondtest
+  - koaton new testapp
+  - cd testapp
+  - koaton ember restapp -n
 
 script:
   - npm test
