@@ -17,7 +17,7 @@ cache:
     - node_modules
 
 before_install:
-  - npm install -g ember
+  - npm install -g ember-cli
   - ember -v
   - npm install -g bower
   - npm install -g forever
