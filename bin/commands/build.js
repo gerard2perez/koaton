@@ -3,7 +3,7 @@ const path = require('upath');
 const crypto = require("crypto");
 const fs = require("graceful-fs");
 const utils = require('../utils');
-const readSync = require('node-glob').sync;
+const readSync = require('glob').sync;
 const uglify = require("uglify-js");
 const Promise = require('bluebird').promisify;
 const Concat = require('concat-with-sourcemaps');
@@ -76,14 +76,22 @@ const buildCss = function*(target, source, development, onlypaths) {
 				concat.add(basename, content.css, concat.map);
 			}
 		} else if (file.indexOf(".css")) {
+			watchinFiles[index + target] = readSync(file);
 			if (development) {
-				watchinFiles[index + target] = file;
 				if (!onlypaths) {
-					yield utils.write(path.join("public", "css", index + target), fs.readFileSync(file, 'utf-8'), 'utf-8', true);
+					const concatCSS = new Concat(true, path.join("css", index+target + ".css"), '\n');
+					for(const url in watchinFiles[index + target]){
+						concatCSS.add(target,fs.readFileSync(watchinFiles[index + target][url]));
+					}
+					yield utils.write(path.join("public", "css", index + target), concatCSS.content, 'utf-8', true);
 				}
 				koatonhide[target].push(`/css/${index+target}`);
 			} else {
-				concat.add(basename, content.css, concat.map);
+				const concatCSS = new Concat(true, path.join("css", basename), '\n');
+				for(const url in watchinFiles[index + target]){
+					concatCSS.add(target,fs.readFileSync(watchinFiles[index + target][url]));
+				}
+				concat.add(basename, concatCSS.content);
 			}
 		}
 	}

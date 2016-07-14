@@ -107,11 +107,14 @@ module.exports = {
 			} else {
 				fs.renameSync(path.join(mount_public, "index.html"), path.join(mount_views, "index.html"));
 			}
-			fs.unlinkSync(path.join(mount_public, "tests", "index.html"));
-			fs.rmdirSync(path.join(mount_public, "tests"));
+			if(options.build === "development"){
+				fs.unlinkSync(path.join(mount_public, "tests", "index.html"));
+				fs.rmdirSync(path.join(mount_public, "tests"));
+				fs.unlinkSync(path.join(mount_public, "testem.js"));
+			}
 			fs.renameSync(path.join(mount_public, "crossdomain.xml"), path.join(mount_views, "crossdomain.xml"));
 			fs.renameSync(path.join(mount_public, "robots.txt"), path.join(mount_views, "robots.txt"));
-			fs.unlinkSync(path.join(mount_public, "testem.js"));
+
 			utils.deleteFolderRecursive(mount_css);
 			var copy = require('recursive-copy');
 			yield copy(mount_public, mount_css);
