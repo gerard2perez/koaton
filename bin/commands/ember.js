@@ -68,24 +68,15 @@ module.exports = {
 				return 0;
 			}
 		} else if (options.build) {
-			// process.exit(0);
 			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name],
 				mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.directory, "/")),
 				mount_css = path.normalize(path.join(process.cwd(), "public", embercfg.directory)),
 				mount_public = path.normalize(path.join(process.cwd(),
 					"ember", app_name, "dist"
 				));
-			if (yield utils.shell(
-					`Building ... ${app_name.yellow}->${embercfg.mount.green}`, [
-						"ember",
-						"build",
-						"--environment",
-						options.build
-						// , "-o", path.join("../../public/", embercfg.mount)
-					],
-					path.join(process.cwd(), "ember", app_name)
-				)) {
-				console.log("error happend");
+			let emberbuildcfg = ["ember", "build", "--environment", options.build];
+			if (yield utils.shell(`Building ... ${app_name.yellow}->${embercfg.mount.green}`, emberbuildcfg,
+					path.join(process.cwd(), "ember", app_name)) === 1) {
 				console.log(utils.shell_log().red);
 				return 1;
 			}
