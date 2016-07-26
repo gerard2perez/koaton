@@ -6,6 +6,7 @@ const Promise = require('bluebird');
 const spawn = require('cross-spawn-async');
 const spinner = require('./spinner');
 const exec = require('child_process').exec;
+const execSync = require('child_process').execSync;
 let log = "";
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
@@ -47,7 +48,7 @@ module.exports = {
 				cwd: path.join(cwd, "/"),
 				shell: true
 			});
-			spinner.start(50, display).then(() => {
+			spinner.start(50, display,undefined,process.stdout.columns).then(() => {
 				(cb || (() => {
 					console.log("No Callback".red)
 				}))(null, c || child.exitCode);

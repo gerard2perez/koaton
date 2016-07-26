@@ -104,7 +104,11 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 	return true;
 }
 
-const watchEmber = function(app, mount, updatefn, result) {
+const watchEmber = function*(app, mount, updatefn, result) {
+	console.log(app, mount, updatefn, result);
+	//yield utils.spawn("ember",["serve","--output-path",'${../../}'])
+}
+const watchEmber2 = function(app, mount, updatefn, result) {
 	if (result === 0) {
 		const watcher = chokidar.watch(path.join(
 			"ember", app, "/"
@@ -216,7 +220,7 @@ module.exports = {
 							updateApp.bind(null, ember_app))));
 			} else {
 				if (!options.production) {
-					watchEmber(ember_app, embercfg[ember_app].mount,updateApp.bind(null, ember_app), 0);
+					yield watchEmber(ember_app, embercfg[ember_app].mount,updateApp.bind(null, ember_app), 0);
 				}
 				building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 			}
