@@ -1,6 +1,6 @@
 {
   "name": "koaton",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.1",
   "description": "Koaton is a CLI tool that provides a nice starting point for full stack JavaScript Web development with Koa, Ember, and Node.js along with CaminateJS and WebSockets.",
   "main": "./lib/index.js",
   "scripts": {
@@ -56,7 +56,7 @@
     "passport-local": "^1.0.0",
     "passport-oauth2-client-password": "^0.1.2",
     "upath": "^0.2.0",
-	"chokidar": "^1.5.0",
+    "chokidar": "^1.5.0",
     "concat-with-sourcemaps": "^1.0.4",
     "gulp-livereload": "^3.8.1",
     "imagemin": "^5.2.1",
@@ -71,7 +71,5 @@
     "recursive-copy": "^2.0.5",
     "uglify-js": "^2.6.4"
   },
-  "devDependencies": {
-
-  }
+  "devDependencies": {}
 }

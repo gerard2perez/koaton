@@ -21,7 +21,7 @@ commands.forEach(function(definition) {
 			.description(definition.description)
 			.action(co.wrap(function*() {
 				try {
-					if (definition.cmd !== "new" && !(
+					if ( !(definition.cmd === "new" || definition.cmd === "semver") && !(
 							utils.canAccess('public') &&
 							utils.canAccess('app.js') &&
 							utils.canAccess('bower.json') &&
@@ -37,7 +37,7 @@ commands.forEach(function(definition) {
 						console.log((new Date()).toString());
 					}
 				} catch (e) {
-					console.log(e);
+					console.log();
 					console.log("You must be inside a koaton proyect to run this command.")
 					console.log();
 					process.exit(1);
