@@ -203,7 +203,7 @@ module.exports = {
 			console.log('   create'.cyan + ': ' + file + head.green);
 			(cb || (() => {
 				console.log("No Callback".red)
-			}))();
+			}))(file);
 		});
 	}),
 	canAccess(path) {

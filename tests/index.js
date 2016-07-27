@@ -4,9 +4,8 @@ const notifier = require('node-notifier');
 const path = require('path');
 // process.stdout.write('clear');
 // process.stdout.write('\x1Bc');
-console.log(path.join(process.cwd(), 'bin/koaton-log.png'));
 if(process.argv[2]!==undefined){
-	var app = nodemon({
+	nodemon({
 		ext: '*',
 		quiet: true,
 		delay: 500,

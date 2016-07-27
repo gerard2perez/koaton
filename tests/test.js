@@ -8,8 +8,12 @@ process.stdout.write('\x1Bc');
 let prefix = "";
 const path = require('path');
 const mkdir = require('../bin/utils').mkdir;
+const rmdir = require('../bin/utils').deleteFolderRecursive;
 const read = require('../bin/utils').read;
+const fs = require('graceful-fs');
 const compile = require('../bin/utils').Compile;
+const shell = require('../bin/utils').shell;
+const shell_log = require('../bin/utils').shell_log;
 const spawn = require('cross-spawn-async');
 const Promise = require('bluebird');
 const exists = require("fs").existsSync;
@@ -38,6 +42,18 @@ const testengine = require('./engine');
 const commands = require("../bin/commands");
 const h = require("../bin/commands/help").many;
 const help = h(commands).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "") + "\n";
+
+const addtoBundle = (data) => {
+	let bundle = {};
+	if (exists(path.join(process.cwd(), testdir, prefix, "config","bundles.js"))) {
+		bundle = require(path.join(process.cwd(), testdir, prefix, "config","bundles.js"));
+	}
+	for (const file in data) {
+		bundle[file] = data[file];
+	}
+	fs.writeFileSync(path.join(process.cwd(), testdir, prefix, "config","bundles.js"), `module.exports =${JSON.stringify(bundle)} ;`, 'utf8');
+
+}
 testengine(function*(suite) {
 	yield suite({
 		equal: (expected, koatonresult, text, ae) => {
@@ -56,7 +72,7 @@ testengine(function*(suite) {
 			}
 		}
 	});
-	yield mkdir(testdir);
+	yield mkdir(testdir, -1);
 	yield suite("koaton --help", function*(assert) {
 		assert.expect(3);
 		assert.equal(help, yield koaton([""]), "Renders help if not parameters");
@@ -83,7 +99,8 @@ testengine(function*(suite) {
 	yield suite("koaton ember restapi", function*(assert) {
 		prefix = "/dummy/";
 		process.stdout.write("    Installs the app.".white);
-		assert.equal(0, yield koaton(["ember", "restapi", "-nf"]), "Installs the app.");
+		let res = yield koaton(["ember", "restapi", "-nf"]);
+		assert.equal(0, res[0], "Installs the app.");
 		assert.equal("/", require("../running_test/dummy/config/ember.js").restapi.mount, "Mount the app on /");
 
 		const def = require(`../running_test/dummy/config/server`);
@@ -96,14 +113,13 @@ testengine(function*(suite) {
 			}),
 			yield read("./running_test/dummy/ember/restapi/app/adapters/application.js", {
 				encoding: "utf-8"
-			})
-			,
+			}),
 			"Creates the default adapter.");
 		assert.equal("/", require("../running_test/dummy/ember/restapi/config/environment.js")().baseURL, "Mounted on the right path");
 	});
 	yield suite("koaton adapter <driver>", function*(assert) {
 		const cachepath = path.join(path.resolve(), "/running_test/dummy/package.json");
-		process.stdout.write("    Installing Couch Adapter (way take a while)".white);
+		process.stdout.write("    Installing Couch Adapter (may take a while)".white);
 		assert.equal(0, yield koaton(["adapter", "couchdb"]), "Installs CouchDb Adapter");
 
 		delete require.cache[cachepath];
@@ -146,10 +162,12 @@ testengine(function*(suite) {
 		assert.equal(testType, mdefinition.model.password, "password atribute added");
 		assert.equal(testType, mdefinition.model.note, "note atribute added");
 		assert.equal(testType, mdefinition.model.created, "created atribute added");
-		let emberdef = yield read(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`), {encoding: "utf-8"});
+		let emberdef = yield read(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`), {
+			encoding: "utf-8"
+		});
 		// console.log(emberdef);JSON.parse()
-		emberdef = emberdef.replace(/\n/igm,"").match(/{(.*)}/igm)[0].replace(/\t+/igm,"").replace(/\{|\}/igm,"").replace(/([^:]*):([^,]*),/g,"\"$1\":\"$1\",");
-		emberdef=JSON.parse("{"+emberdef.substr(0,emberdef.length-1)+"}");
+		emberdef = emberdef.replace(/\n/igm, "").match(/{(.*)}/igm)[0].replace(/\t+/igm, "").replace(/\{|\}/igm, "").replace(/([^:]*):([^,]*),/g, "\"$1\":\"$1\",");
+		emberdef = JSON.parse("{" + emberdef.substr(0, emberdef.length - 1) + "}");
 		const fields = ["active", "name", "email", "password", "note", "created"];
 		for (let index in fields) {
 			assert.ok(emberdef[fields[index]], `ember model constains ${fields[index]}`);
@@ -163,8 +181,39 @@ testengine(function*(suite) {
 
 	});
 	yield suite("koaton build <config_file>", function*(assert) {
+		yield mkdir(path.join(process.cwd(),testdir,prefix,"public","css"), -1);
+		yield mkdir(path.join(process.cwd(),testdir,prefix,"public","js"), -1);
 		let res = yield koaton(["build"]);
-		assert.equal(true, res[1].indexOf("Nothing to compile")>-1,"Nothing to compile");
+		assert.equal(true, res[1].indexOf("Nothing to compile") > -1, "Nothing to compile");
+		yield shell("Getting flatadmin", ["git", "clone", "https://github.com/gerard2p/koatonstyle.git", "assets/flatadmin"], path.join(process.cwd(), testdir, prefix));
+		//console.log(shell_log());
+		addtoBundle({
+			"admin.css": [
+				"./assets/flatadmin/css/**/*.css"
+			],
+			"admin.js": [
+				"./assets/flatadmin/js/jquery.min.js",
+				"./assets/flatadmin/js/bootstrap.min.js",
+				"./assets/flatadmin/js/Chart.min.js",
+				"./assets/flatadmin/js/bootstrap-switch.min.js",
+				"./assets/flatadmin/js/jquery.matchHeight-min.js",
+				"./assets/flatadmin/js/jquery.dataTables.min.js",
+				"./assets/flatadmin/js/dataTables.bootstrap.min.js",
+				"./assets/flatadmin/js/select2.full.min.js",
+				"./assets/flatadmin/js/ace/ace.js",
+				"./assets/flatadmin/js/ace/mode-html.js",
+				"./assets/flatadmin/js/ace/theme-github.js",
+				"./assets/flatadmin/js/app.js",
+				"./assets/flatadmin/js/index.js"
+			]
+		});
+		let csscount = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","css")).length;
+		let jscount = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","js")).length;
+		res = yield koaton(["build"]);
+		let csscount2 = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","css")).length;
+		let jscount2 = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","js")).length;
+		assert.equal(csscount, csscount2-1, "CSS Bundle was created.");
+		assert.equal(jscount, jscount2-1, "JS Bundle was created.");
 	});
 	// yield suite("koaton serve", function*(assert) {
 	// 	assert.ok(false, "upps");
@@ -174,16 +223,30 @@ testengine(function*(suite) {
 	yield suite("koaton forever", function*(assert) {
 		assert.equal(0, yield koaton(["adapter", "mongoose"]), "Uses the mongoose adapter");
 		let res = yield koaton(["forever"]);
-		assert.ok(res[1].indexOf("dummy is running")>-1,"Things seems ok");
-		res = yield koaton(["forever","-l"]);
-		assert.ok(res[1].indexOf("koaton_dummy")>-1,"Process is runnig");
-		yield koaton(["forever","-s"]);
-		res = yield koaton(["forever","-l"]);
-		assert.ok(res[1].indexOf("koaton_dummy")===-1,"Process has being stopped");
+		assert.ok(res[1].indexOf("dummy is running") > -1, "Things seems ok");
+		res = yield koaton(["forever", "-l"]);
+		assert.ok(res[1].indexOf("koaton_dummy") > -1, "Process is runnig");
+		yield koaton(["forever", "-s"]);
+		res = yield koaton(["forever", "-l"]);
+		assert.ok(res[1].indexOf("koaton_dummy") === -1, "Process has being stopped");
 	});
+
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"public"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"views"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"routes"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"controllers"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"models"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"config"));
+	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".gitignore"));
+	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_bundle"));
+	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_database"));
+	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"app.js"));
+	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"bower.json"));
+	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"package.json"));
 }).then((a) => {
 	process.exit(a);
 }).catch((err) => {
-	console.log(err.toString().red);
-	// process.exit(1);
+	console.log(err.stack.red);
+	process.exit(1);
 });
