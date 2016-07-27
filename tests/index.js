@@ -26,10 +26,7 @@ if(process.argv[2]!==undefined){
 			sound: 'Hero',
 			wait: false
 		});
-	}).on('restart', function (a, b) {
-	//	setTimeout(function () {
-	//		livereload.reload();
-	//	}, 1000);
+	}).on('restart', function () {
 		notifier.notify({
 			title: 'Koaton',
 			message: 'Restarting Tests',

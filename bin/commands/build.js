@@ -3,7 +3,7 @@ const path = require('upath');
 const crypto = require("crypto");
 const fs = require("graceful-fs");
 const utils = require('../utils');
-const readSync = require('node-glob').sync;
+const readSync = require('glob').sync;
 const uglify = require("uglify-js");
 const Promise = require('bluebird').promisify;
 const Concat = require('concat-with-sourcemaps');
@@ -76,14 +76,22 @@ const buildCss = function*(target, source, development, onlypaths) {
 				concat.add(basename, content.css, concat.map);
 			}
 		} else if (file.indexOf(".css")) {
+			watchinFiles[index + target] = readSync(file);
 			if (development) {
-				watchinFiles[index + target] = file;
 				if (!onlypaths) {
-					yield utils.write(path.join("public", "css", index + target), fs.readFileSync(file, 'utf-8'), 'utf-8', true);
+					const concatCSS = new Concat(true, path.join("css", index+target + ".css"), '\n');
+					for(const url in watchinFiles[index + target]){
+						concatCSS.add(target,fs.readFileSync(watchinFiles[index + target][url]));
+					}
+					yield utils.write(path.join("public", "css", index + target), concatCSS.content, 'utf-8', true);
 				}
 				koatonhide[target].push(`/css/${index+target}`);
 			} else {
-				concat.add(basename, content.css, concat.map);
+				const concatCSS = new Concat(true, path.join("css", basename), '\n');
+				for(const url in watchinFiles[index + target]){
+					concatCSS.add(target,fs.readFileSync(watchinFiles[index + target][url]));
+				}
+				concat.add(basename, concatCSS.content);
 			}
 		}
 	}
@@ -232,7 +240,6 @@ module.exports = {
 	preBuildEmber: preBuildEmber,
 	buildCSS: buildCss,
 	buildJS: buildJS,
-	buildEmber: buildEmber,
 	cmd: "build",
 	description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 	args: ["config_file"],
@@ -244,14 +251,16 @@ module.exports = {
 		const patterns = require(config_file);
 		if (Object.keys(patterns).length === 0) {
 			console.log("Nothing to compile on: " + config_file);
+			return 0;
 		}
 		yield utils.mkdir(path.join(process.cwd(), "public", "js"));
 		loadConfig();
+		const clean = function(file){
+			utils.rmdir(path.join("public", path.normalize(file)));
+		}
 		for (let index in koatonhide) {
 			if (koatonhide[index] instanceof Array) {
-				koatonhide[index].forEach((file) => {
-					utils.rmdir(path.join("public", path.normalize(file)));
-				});
+				koatonhide[index].forEach(clean);
 			} else {
 				utils.rmdir(path.join("public", path.normalize(koatonhide[index])));
 				utils.rmdir(path.join("public", "css", index.replace(".css", ".css.map")));

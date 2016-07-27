@@ -1,6 +1,6 @@
 "use strict";
 const co = require("co");
-const colors = require('colors');
+require('colors');
 let suites = [];
 class test_tools{
 

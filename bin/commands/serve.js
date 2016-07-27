@@ -199,6 +199,7 @@ module.exports = {
 		["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 	],
 	action: function*(options) {
+		// require('graceful-fs').symlinkSync(path.join(__dirname, "/../../"), path.join(process.cwd(), "/node_modules/koaton"));
 		const Promise = require('bluebird'),
 			nodemon = require('nodemon'),
 			notifier = require('node-notifier'),
@@ -221,6 +222,7 @@ module.exports = {
 				quiet: true
 			});
 		}
+
 		/*const updateApp = function(app) {
 			notifier.notify({
 				title: 'Koaton',
@@ -280,8 +282,8 @@ module.exports = {
 					pollInterval: 100
 				}
 			}));
+			yield checkAssetsToBuild(options.production, chokidar.watch);
 		}
-		yield checkAssetsToBuild(options.production, chokidar.watch);
 		return new Promise(function(resolve) {
 			nodemon({
 				ext: '*',
