@@ -122,7 +122,7 @@ module.exports = {
 			const connection = require(`${process.cwd()}/config/models`).connection;
 			const port = require(`${process.cwd()}/config/server`).port;
 			const host = connections[connection].host;
-			options.mount = path.join('/', options.mount);
+			options.mount = path.join('/', options.mount||"");
 			options.mount = options.mount.replace(/\\/igm, "/");
 			console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
 			yield utils.mkdir(path.join(process.cwd(), "ember", app_name, "app", "adapters"));

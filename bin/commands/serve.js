@@ -3,6 +3,7 @@ const screen = require('../../lib/welcome');
 const chokidar = require('chokidar');
 const path = require('path');
 const watching = [];
+const Promise = require('bluebird');
 let imagemin = null;
 let imageminMozjpeg = null;
 let imageminPngquant = null;
@@ -47,7 +48,7 @@ const WactchAndCompressImages = function*(watcher) {
 		.on('add', compress);
 }
 
-const checkAssetsToBuild = function*(production, isbuild, watch) {
+const checkAssetsToBuild = function*(production, watch) {
 	const co = require('co'),
 		assets = require('./build'),
 		bundles = JSON.parse(yield utils.read(path.join(process.cwd(), "./.koaton_bundle"))),
@@ -55,8 +56,7 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 	let files = {};
 	for (const file in bundles) {
 		if (file.indexOf(".css") > -1) {
-			console.log(!production, isbuild, utils.canAccess(path.join(process.cwd(), "public", file)));
-			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(isbuild || utils.canAccess(path.join(process.cwd(), "public", file))));
+			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(utils.canAccess(path.join(process.cwd(), "public", file))));
 			for (let f in ffs) {
 				files[f] = {
 					Paths: ffs[f],
@@ -67,7 +67,7 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 			}
 		} else {
 			files[path.basename(bundles[file])] = {
-				Paths: yield assets.buildJS(file, bundlescfg[file], !production, !production && !(isbuild || utils.canAccess(path.join(process.cwd(), "public", file)))),
+				Paths: yield assets.buildJS(file, bundlescfg[file], !production, !production && !(utils.canAccess(path.join(process.cwd(), "public", file)))),
 				Target: file,
 				Sources: bundlescfg[file],
 				Build: assets.buildJS
@@ -104,11 +104,52 @@ const checkAssetsToBuild = function*(production, isbuild, watch) {
 	return true;
 }
 
-const watchEmber = function*(app, mount, updatefn, result) {
-	console.log(app, mount, updatefn, result);
-	//yield utils.spawn("ember",["serve","--output-path",'${../../}'])
+const serveEmber = function(app, mount) {
+	return Promise.promisify((app, mount,cb)=>{
+		let logging = false;
+		const ember = utils.spawn("ember",["serve","-lr","false","--output-path",path.join("..","..","public",app)],{
+			cwd:path.join(process.cwd(),"ember",app)
+		});
+		ember.stdout.on('data',(buffer)=>{
+			if(logging){
+				console.log(buffer.toString());
+			}else if(buffer.toString().indexOf("Build successful")>-1){
+				if(cb){
+					logging = true;
+					cb(null,`${app.yellow} → ${mount.cyan}`);
+					cb = null;
+					console.log(path.join(process.cwd(),'public',app,'**','/','**'));
+					let watcher = new chokidar.watch(path.join(process.cwd(),'public',app,'/'), {
+						persistent: true,
+						ignoreInitial: true,
+						alwaysStat: false,
+						awaitWriteFinish: {
+							stabilityThreshold: 2000,
+							pollInterval: 100
+						}
+					});
+					const rebuild = function(){
+						livereload.reload();
+					}
+					watcher
+						.on('change', rebuild)
+						.on('unlink', rebuild)
+						.on('add', rebuild)
+						.on('unlinkDir', rebuild);
+				}
+
+			}
+		});
+		ember.stderr.on('data',(buffer)=>{
+			if(cb){
+				cb(null,`${app.yellow} ${"✗".red} build failed.`);
+				cb = null;
+			}
+			console.log(buffer.toString());
+		});
+	})(app, mount);
 }
-const watchEmber2 = function(app, mount, updatefn, result) {
+/*const watchEmber = function(app, mount, updatefn, result) {
 	if (result === 0) {
 		const watcher = chokidar.watch(path.join(
 			"ember", app, "/"
@@ -146,7 +187,7 @@ const watchEmber2 = function(app, mount, updatefn, result) {
 	} else {
 		return "";
 	}
-}
+}*/
 
 module.exports = {
 	cmd: "serve",
@@ -154,14 +195,14 @@ module.exports = {
 	args: [],
 	options: [
 		["-p", "--production", "Runs with NODE_ENV = production"],
-		["-b", "--build", "Builds the ember apss."],
+		//["-b", "--build", "Builds the ember apss."],
 		["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 	],
 	action: function*(options) {
 		const Promise = require('bluebird'),
 			nodemon = require('nodemon'),
 			notifier = require('node-notifier'),
-			shell = require('../utils').shell,
+			//shell = require('../utils').shell,
 			embercfg = require(`${process.cwd()}/config/ember`),
 			env = {
 				welcome: false,
@@ -180,8 +221,7 @@ module.exports = {
 				quiet: true
 			});
 		}
-		const updateApp = function(app, file) {
-			console.log(file);
+		/*const updateApp = function(app) {
 			notifier.notify({
 				title: 'Koaton',
 				message: 'Rebuilding app: ' + app,
@@ -192,38 +232,43 @@ module.exports = {
 			shell("Building " + ember_app.green, ["koaton", "ember", app, "-b", env.NODE_ENV], process.cwd()).then(() => {
 				livereload.reload();
 			});
-		}
+		}*/
 		screen.start();
-		const inflections = require(path.join(process.cwd(), "config", "inflections.js"));
-		let irregular = (inflections.plural || [])
+		//const inflections = require(path.join(process.cwd(), "config", "inflections.js"));
+		/*let irregular = (inflections.plural || [])
 			.concat(inflections.singular || [])
 			.concat(inflections.irregular || []);
 		let uncontable = (inflections.uncountable || []).map((inflection) => {
 			return `/${inflection}/`
-		});
-		let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
+		});*/
+		/*let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
 			encoding: "utf-8"
 		}), {
 			irregular: JSON.stringify(irregular),
 			uncontable: JSON.stringify(uncontable)
-
-		});
+		});*/
 		let ignoreemberdirs = [];
+		const buildcmd = require('./build');
 		for (var ember_app in embercfg) {
 			ignoreemberdirs.push(path.join("public", ember_app, "/"));
-			if (options.build) {
+			/*if (options.build) {
 				yield utils.write(path.join("ember", ember_app, "app", "initializers", "inflector.js"), inflector, true);
 				const stbuild = shell("Building " + ember_app.green, ["koaton", "ember", ember_app, "-b", env.NODE_ENV], process.cwd());
 				building.push(
 					stbuild.then(
 						watchEmber.bind(null, ember_app, embercfg[ember_app].mount,
 							updateApp.bind(null, ember_app))));
-			} else {
+			} else {*/
 				if (!options.production) {
-					yield watchEmber(ember_app, embercfg[ember_app].mount,updateApp.bind(null, ember_app), 0);
+					let serving = serveEmber(ember_app, embercfg[ember_app].mount);
+					building.push(serving);
+					yield buildcmd.preBuildEmber(ember_app,{directory:embercfg[ember_app].directory,mount:embercfg[ember_app].mount,build:"development"});
+					yield serving;
+					yield buildcmd.postBuildEmber(ember_app,{directory:embercfg[ember_app].directory,mount:embercfg[ember_app].mount,build:"development"});
+				}else{
+					building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 				}
-				building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
-			}
+			//}
 		}
 		if (!options.production) {
 			yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
@@ -236,7 +281,7 @@ module.exports = {
 				}
 			}));
 		}
-		yield checkAssetsToBuild(options.production, options.build, chokidar.watch);
+		yield checkAssetsToBuild(options.production, chokidar.watch);
 		return new Promise(function(resolve) {
 			nodemon({
 				ext: '*',

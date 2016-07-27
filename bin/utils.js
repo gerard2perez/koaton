@@ -6,11 +6,11 @@ const Promise = require('bluebird');
 const spawn = require('cross-spawn-async');
 const spinner = require('./spinner');
 const exec = require('child_process').exec;
-const execSync = require('child_process').execSync;
 let log = "";
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
+	spawn:spawn,
 	exec:(cmd, opts) => {
 		return new Promise((resolve, reject) => {
 			const child = exec(cmd, opts, (err, stdout, stderr) => err ? reject(err) : resolve({

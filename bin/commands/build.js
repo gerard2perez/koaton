@@ -141,6 +141,41 @@ const loadConfig = function() {
 		}
 	}
 }
+const preBuildEmber = function*(ember_app, options) {
+	const ember_proyect_path = path.join(process.cwd(), "ember", ember_app);
+	const connections = require(`${process.cwd()}/config/connections`);
+	const connection = require(`${process.cwd()}/config/models`).connection;
+	const port = require(`${process.cwd()}/config/server`).port;
+	const host = connections[connection].host;
+	options.mount = path.join('/', options.mount || "");
+	options.mount = options.mount.replace(/\\/igm, "/");
+	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
+		irregular = (inflections.plural || [])
+		.concat(inflections.singular || [])
+		.concat(inflections.irregular || []),
+		uncontable = (inflections.uncountable || []).map((inflection) => {
+			return `/${inflection}/`
+		}),
+		inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
+			encoding: "utf-8"
+		}), {
+			irregular: JSON.stringify(irregular),
+			uncontable: JSON.stringify(uncontable)
+
+		});
+	yield utils.mkdir(path.join(process.cwd(), "ember", ember_app, "app", "adapters"));
+	yield utils.write(path.join("ember", ember_app, "app", "initializers", "inflector.js"), inflector, true);
+	yield utils.compile('ember_apps/adapter.js',
+		path.join("ember", ember_app, "app", "adapters", "application.js"), {
+			localhost: host,
+			port: port
+		});
+	let embercfg = yield utils.read(path.join(ember_proyect_path, "config", "environment.js"), {
+		encoding: 'utf-8'
+	});
+	embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
+	yield utils.write(path.join(ember_proyect_path, "config", "environment.js"), embercfg, true);
+}
 const buildEmber = function*(ember_app, options) {
 	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
 		irregular = (inflections.plural || [])
@@ -169,7 +204,32 @@ const buildEmber = function*(ember_app, options) {
 		building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 	}
 }
+const postBuildEmber = function*(ember_app, options) {
+	const mount_public = path.normalize(path.join(process.cwd(), "public", ember_app, options.mount));
+	const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", options.directory));
+	if (options.build === "development") {
+		let text = yield utils.read(path.join(mount_public, "index.html"), {
+				encoding: 'utf-8'
+			}),
+			indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8'),
+			meta = new RegExp(`<meta ?name="${ember_app}.*" ?content=".*" ?/>`);
+		const links = new RegExp(`<link rel="stylesheet" href="assets/.*.css">`, "gm")
+		const scripts = new RegExp(`<script src="assets/.*.js"></script>`, "gm")
+		text = utils.Compile(indextemplate, {
+			path: options.directory,
+			mount: options.mount,
+			app_name: ember_app,
+			meta: text.match(meta)[0],
+			cssfiles: text.match(links).join("\n").replace(/assets/igm,`/${ember_app}/assets`),
+			jsfiles: text.match(scripts).join("\n").replace(/assets/igm,`/${ember_app}/assets`)
+		});
+		utils.mkdir(mount_views);
+		yield utils.write(path.join(mount_views, "index.handlebars"), text, true);
+	}
+}
 module.exports = {
+	postBuildEmber: postBuildEmber,
+	preBuildEmber: preBuildEmber,
 	buildCSS: buildCss,
 	buildJS: buildJS,
 	buildEmber: buildEmber,
