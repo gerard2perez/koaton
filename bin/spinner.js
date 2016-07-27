@@ -100,9 +100,9 @@ class spin {
 	}
 }
 
-module.exports = (() => {
+module.exports = () => {
 	return new spin();
-})();
+};
 /*exports.start = spinner;
 exports.pipe = pipe;
 exports.end = close;*/

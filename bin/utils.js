@@ -1,15 +1,17 @@
 "use strict";
 const fs = require('graceful-fs');
 const mkdirp = require('mkdirp');
-const path = require('path');
+const path = require('upath');
 const Promise = require('bluebird');
 const spawn = require('cross-spawn-async');
-const spinner = require('./spinner');
+const spinner = require('./spinner')();
 const exec = require('child_process').exec;
 let log = "";
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
+	no_print:-1,
+	print:1,
 	spawn:spawn,
 	exec:(cmd, opts) => {
 		return new Promise((resolve, reject) => {
@@ -125,10 +127,12 @@ module.exports = {
 	_write: Promise.promisify(fs.writeFile),
 	write(file, content, mode) {
 		return this._write(file, content, {}).then(() => {
-			var head = path.basename(file);
-			var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
-			console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
-			return true;
+			const head = path.basename(file);
+			const body = file.replace(path.join(process.cwd(), "/"), "").replace(head, "");//file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
+			if(mode!==null){
+				console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
+			}
+			return file;
 		}, (e) => {
 			console.log(e.toString().red);
 		}).catch((e) => {
@@ -170,7 +174,7 @@ module.exports = {
 		}
 		return text;
 	},
-	compile(from, to, options) {
+	compile(from, to, options,mode) {
 		if (options === undefined) {
 			options = to;
 			to = undefined;
@@ -179,7 +183,7 @@ module.exports = {
 		return this.read(path.join(this.from_env, from), {
 			encoding: this.encoding(path.extname(from))
 		}).then((data) => {
-			return this.write(to, this.Compile(data, options || {}));
+			return this.write(to, this.Compile(data, options || {}),mode);
 		}).catch((e) => {
 			console.log(e.red);
 			return false;
@@ -192,19 +196,25 @@ module.exports = {
 	 * @param {String} path
 	 * @param {Function} fn
 	 */
-	mkdir: Promise.promisify(function(file, cb) {
+	mkdir: Promise.promisify(function(file,mode, cb) {
+		if(cb===undefined && typeof mode === "function"){
+			cb = mode;
+			mode = undefined;
+		}
+		mode = mode || 1;
 		mkdirp(file, '0755', function(err) {
 			if (err) {
 				throw err;
 			}
+			const location = file;
 			file = file.replace(path.join(process.cwd(), "/"), "");
-			var head = path.basename(file);
-			file = file.replace(head, "");
-
-			console.log('   create'.cyan + ': ' + file + head.green);
+			const head = path.basename(file);
+			if(mode!==-1){
+				console.log('   create'.cyan + ': ' + file.replace(head, "") + head.green);
+			}
 			(cb || (() => {
 				console.log("No Callback".red)
-			}))();
+			}))(null,location);
 		});
 	}),
 	canAccess(path) {

@@ -77,56 +77,11 @@ module.exports = {
 				return 0;
 			}
 		} else if (options.build) {
-			// process.exit(0);
-			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name],
-				mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", embercfg.directory, "/")),
-				mount_css = path.normalize(path.join(process.cwd(), "public", embercfg.directory)),
-				mount_public = path.normalize(path.join(process.cwd(),
-					"ember", app_name, "dist"
-				));
-			if (yield utils.shell(
-					`Building ... ${app_name.yellow}->${embercfg.mount.green}`, [
-						"ember",
-						"build",
-						"--environment",
-						options.build
-						// , "-o", path.join("../../public/", embercfg.mount)
-					],
-					path.join(process.cwd(), "ember", app_name)
-				)) {
-				console.log("error happend");
-				console.log(utils.shell_log().red);
-				return 1;
-			}
-			yield utils.mkdir(mount_views);
-			if (options.build === "development") {
-				let text = yield utils.read(path.join(mount_public, "index.html"), {
-						encoding: 'utf-8'
-					}),
-					indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8'),
-					meta = new RegExp(`<meta ?name="${app_name}.*" ?content=".*" ?/>`);
-				text = utils.Compile(indextemplate, {
-					path: embercfg.directory,
-					mount: embercfg.mount,
-					app_name: app_name,
-					meta: text.match(meta)[0]
-				});
-				fs.unlinkSync(path.join(mount_public, "index.html"));
-				yield utils.write(path.join(mount_views, "index.handlebars"), text, true);
-			} else {
-				fs.renameSync(path.join(mount_public, "index.html"), path.join(mount_views, "index.html"));
-			}
-			if(options.build === "development"){
-				fs.unlinkSync(path.join(mount_public, "tests", "index.html"));
-				fs.rmdirSync(path.join(mount_public, "tests"));
-				fs.unlinkSync(path.join(mount_public, "testem.js"));
-			}
-			fs.renameSync(path.join(mount_public, "crossdomain.xml"), path.join(mount_views, "crossdomain.xml"));
-			fs.renameSync(path.join(mount_public, "robots.txt"), path.join(mount_views, "robots.txt"));
-
-			utils.deleteFolderRecursive(mount_css);
-			var copy = require('recursive-copy');
-			yield copy(mount_public, mount_css);
+			const buildcmd = require("./build");
+			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name];
+			yield buildcmd.preBuildEmber(app_name,embercfg);
+			yield buildcmd.buildEmber(app_name,{mount:embercfg.directory,build:options.buid});
+			yield buildcmd.postBuildEmber(app_name,embercfg);
 			return 0;
 		}
 		if (!options.build) {
