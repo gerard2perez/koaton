@@ -25,14 +25,21 @@ Documentation will be avaliable at:
 ```sh
 npm i koaton -g
 ```
+Other programs you may need:
+```sh
+npm i forever -g
+npm i bower -g
+npm i ember-cli -g
+```
 
 ## Usage
 ```zsh
 koaton new myfirstapp
+cd myfirstapp
 koaton ember restapp -n -m /panel
 koaton model user "active:number name email password note:text created:date" -e restapp -r
 
-koaton serve
+koaton serve -b
 ```
 
 ## Do it with style

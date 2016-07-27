@@ -3,17 +3,27 @@ language: node_js
 node_js:
   - "4.4.4"
 sudo: false
-
+env:
+  - CXX=g++-4.8
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-4.8
+    - g++-4.8
 cache:
   directories:
     - node_modules
 
 before_install:
   - "npm config set spin false"
+  - npm install -g ember-cli
+  - npm install -g bower
+  - npm install -g forever
 
 install:
-  - npm install
-  - npm link
+  - npm install . -g
 
 script:
   - npm test

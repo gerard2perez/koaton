@@ -13,6 +13,14 @@ engines:
     - 5cf1e97b71d2375e6cdc0f0fe1a99bd7
     - b62ce1cafcb8628482e772cf66f44b59
     - 11a60711cde39ea644f0bda2acb15924
+    - 8da499abe9ab0bd4050d71e72ee570c1
+    - 113841629cb77dfc12af6f244fbb4f05
+    - e81f7d3341b2f696c24c1e850a79afac
+    - 70d2c37bcd1231ef09a354488e68af18
+    - 3afc1181baa03ac7ec9b5e1292898a1a
+    - 5c3e2c0b173890fc5c9c59d6db8cb981
+    - fca86fa9535a2bc557f94df20e3a6c0c
+    - b5fe0d3d968954ea1a3acc2f349797fe
     config:
       languages:
       - javascript

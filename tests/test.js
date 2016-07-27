@@ -8,12 +8,10 @@ process.stdout.write('\x1Bc');
 let prefix = "";
 const path = require('path');
 const mkdir = require('../bin/utils').mkdir;
-const rmdir = require('../bin/utils').deleteFolderRecursive;
 const read = require('../bin/utils').read;
 const fs = require('graceful-fs');
 const compile = require('../bin/utils').Compile;
 const shell = require('../bin/utils').shell;
-const shell_log = require('../bin/utils').shell_log;
 const spawn = require('cross-spawn-async');
 const Promise = require('bluebird');
 const exists = require("fs").existsSync;
@@ -215,11 +213,6 @@ testengine(function*(suite) {
 		assert.equal(csscount, csscount2-1, "CSS Bundle was created.");
 		assert.equal(jscount, jscount2-1, "JS Bundle was created.");
 	});
-	// yield suite("koaton serve", function*(assert) {
-	// 	assert.ok(false, "upps");
-	// 	// prefix="dummy";
-	// 	// assert.equal(0,yield koaton(["serve"]),"running server");
-	// });
 	yield suite("koaton forever", function*(assert) {
 		assert.equal(0, yield koaton(["adapter", "mongoose"]), "Uses the mongoose adapter");
 		let res = yield koaton(["forever"]);
@@ -236,7 +229,14 @@ testengine(function*(suite) {
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"routes"));
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"controllers"));
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"models"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","css"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","img"));
+	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","js"));
+	try{
+		require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets"));
+	}catch(e){
+		(()=>{})(e);
+	}
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"config"));
 	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".gitignore"));
 	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_bundle"));

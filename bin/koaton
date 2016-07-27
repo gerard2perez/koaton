@@ -69,3 +69,4 @@ process.on("beforeExit", () => {
 	console.log();
 	process.exit(1);
 });
+process.title = "Koaton";

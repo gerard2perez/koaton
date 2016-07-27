@@ -19,7 +19,7 @@ const spinners = [
 	"⠁⠂⠄⡀⢀⠠⠐⠈", [">))'>", " >))'>", "  >))'>", "   >))'>", "    >))'>", "   <'((<", "  <'((<", " <'((<"]
 ];
 const co = require('co');
-const spinner = co.wrap(function(interval, text, extra) {
+const spinner = co.wrap(function(interval, text, extra,size) {
 	extra = extra === undefined ? "" : extra;
 	const that = this;
 	const spin = spinners[9];
@@ -27,6 +27,7 @@ const spinner = co.wrap(function(interval, text, extra) {
 	let current = -1;
 	that.text = text || "";
 	that.extra = extra || "";
+	that.size = size;
 	return new Promise(function(resolve) {
 		that.promise = resolve;
 		that.id = setInterval(() => {
@@ -41,7 +42,7 @@ const spinner = co.wrap(function(interval, text, extra) {
 				if (current >= l) {
 					current = 0;
 				}
-				process.stdout.write(spin[current].green.bold + "\t" + that.text + "\t" + that.extra);
+				process.stdout.write(spin[current].green.bold + "\t" + that.text + "\t" + that.complent);
 			} catch (e) {
 				console.log(e.stack.yellow);
 			}
@@ -50,6 +51,15 @@ const spinner = co.wrap(function(interval, text, extra) {
 });
 
 class spin {
+	get printleft(){
+		return this.size - this.text.length-8;
+	}
+	get complent(){
+		if(this.extra.length>this.printleft){
+			return this.extra.substr(0,this.printleft-2)+".."
+		}
+		return this.extra;
+	}
 	constructor() {
 		this.start = spinner.bind(this);
 	}
@@ -90,9 +100,9 @@ class spin {
 	}
 }
 
-module.exports = (() => {
+module.exports = () => {
 	return new spin();
-})();
+};
 /*exports.start = spinner;
 exports.pipe = pipe;
 exports.end = close;*/
