@@ -6,7 +6,7 @@
 //process.stdout.write('clear');
 process.stdout.write('\x1Bc');
 let prefix = "";
-const path = require('upath');
+const path = require('path');
 const mkdir = require('../bin/utils').mkdir;
 const read = require('../bin/utils').read;
 const fs = require('graceful-fs');
@@ -79,7 +79,7 @@ testengine(function*(suite) {
 		assert.equal(help, yield koaton(["--help"]), "Renders help --help");
 	});
 	yield suite("koaton new dummy", function*(assert) {
-		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json").replace(/\//g,"\\");
+		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json");//.replace(/\//g,"\\");
 		assert.equal(0, yield koaton(["new", "dummy", "-f"]), "Creates a new app");
 		let ls = yield exec("ls",{
 			cwd:path.join(process.cwd(),testdir,"dummy")
@@ -119,7 +119,7 @@ testengine(function*(suite) {
 		assert.equal("/", enviroment.baseURL || enviroment.rootURL, "Mounted on the right path");
 	});
 	yield suite("koaton adapter <driver>", function*(assert) {
-		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json").replace(/\//g,"\\");
+		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json");//.replace(/\//g,"\\");
 		process.stdout.write("    Installing Couch Adapter (may take a while)".white);
 		assert.equal(0, yield koaton(["adapter", "couchdb"]), "Installs CouchDb Adapter");
 		delete require.cache[cachepath];
@@ -138,7 +138,7 @@ testengine(function*(suite) {
 			"--db", "awsome"
 		]);
 		assert.equal(0, ccommand[0], "Command with custom paramentes");
-		delete require.cache[path.join(process.cwd(), "/running_test/dummy/config/connections.js").replace(/\//g,"\\")];
+		delete require.cache[path.join(process.cwd(), "/running_test/dummy/config/connections.js")];
 		const dbadapter = require("../running_test/dummy/config/connections.js").couchdb;
 		assert.equal("192.168.0.1", dbadapter.host, "Host is ok");
 		assert.equal(8080, dbadapter.port, "Port is ok");
