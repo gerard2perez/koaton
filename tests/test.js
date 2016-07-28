@@ -12,6 +12,7 @@ const read = require('../bin/utils').read;
 const fs = require('graceful-fs');
 const compile = require('../bin/utils').Compile;
 const shell = require('../bin/utils').shell;
+const exec = require('../bin/utils').exec;
 const spawn = require('cross-spawn');
 const Promise = require('bluebird');
 const exists = require("fs").existsSync;
@@ -80,6 +81,12 @@ testengine(function*(suite) {
 	yield suite("koaton new dummy", function*(assert) {
 		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json").replace(/\//g,"\\");
 		assert.equal(0, yield koaton(["new", "dummy", "-f"]), "Creates a new app");
+		let ls = yield exec("ls",{
+			cwd:path.join(process.cwd(),testdir,"dummy")
+			//stdout:true,
+			//stderr:true
+		});
+		console.log(ls.stdout);
 		assert.ok(require(cachepath).dependencies.mongoose, "Mongoose is the database driver.");
 		assert.ok(require(cachepath).dependencies.handlebars, "Handlebars is the template engine.");
 		delete require.cache[cachepath];
