@@ -79,14 +79,8 @@ testengine(function*(suite) {
 		assert.equal(help, yield koaton(["--help"]), "Renders help --help");
 	});
 	yield suite("koaton new dummy", function*(assert) {
-		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json");//.replace(/\//g,"\\");
+		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json");
 		assert.equal(0, yield koaton(["new", "dummy", "-f"]), "Creates a new app");
-		let ls = yield exec("ls",{
-			cwd:path.join(process.cwd(),testdir,"dummy")
-			//stdout:true,
-			//stderr:true
-		});
-		console.log(ls.stdout);
 		assert.ok(require(cachepath).dependencies.mongoose, "Mongoose is the database driver.");
 		assert.ok(require(cachepath).dependencies.handlebars, "Handlebars is the template engine.");
 		delete require.cache[cachepath];
@@ -119,7 +113,7 @@ testengine(function*(suite) {
 		assert.equal("/", enviroment.baseURL || enviroment.rootURL, "Mounted on the right path");
 	});
 	yield suite("koaton adapter <driver>", function*(assert) {
-		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json");//.replace(/\//g,"\\");
+		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json");
 		process.stdout.write("    Installing Couch Adapter (may take a while)".white);
 		assert.equal(0, yield koaton(["adapter", "couchdb"]), "Installs CouchDb Adapter");
 		delete require.cache[cachepath];

@@ -4,13 +4,10 @@ const chokidar = require('chokidar');
 const path = require('path');
 const watching = [];
 const Promise = require('bluebird');
-let imagemin = null;
-let imageminMozjpeg = null;
-let imageminPngquant = null;
 let building = [];
 let livereload = null;
 let utils = null;
-const buildcmd=null;
+let buildcmd=null;
 const deleted = function(file) {
 	const remove = require("graceful-fs").unlinkSync;
 	try {
@@ -97,6 +94,7 @@ const serveEmber = function(app, mount) {
 		const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", app)], {
 			cwd: path.join(process.cwd(), "ember", app)
 		});
+
 		ember.stdout.on('data', (buffer) => {
 			if (logging) {
 				console.log(buffer.toString());
@@ -105,7 +103,6 @@ const serveEmber = function(app, mount) {
 					logging = true;
 					cb(null, `${app.yellow} → ${mount.cyan}`);
 					cb = null;
-					console.log(path.join(process.cwd(), 'public', app, '**', '/', '**'));
 					let watcher = new chokidar.watch(path.join(process.cwd(), 'public', app, '/'), {
 						persistent: true,
 						ignoreInitial: true,

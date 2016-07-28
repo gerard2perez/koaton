@@ -167,7 +167,7 @@ const preBuildEmber = function*(ember_app, options) {
 	const connection = require(`${process.cwd()}/config/models`).connection;
 	const port = require(`${process.cwd()}/config/server`).port;
 	const host = connections[connection].host;
-	options.mount = path.join('/', options.mount || "");
+	options.mount = path.join('/', options.mount || "","/");
 	options.mount = options.mount.replace(/\\/igm, "/");
 	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
 		irregular = (inflections.plural || [])
@@ -194,6 +194,7 @@ const preBuildEmber = function*(ember_app, options) {
 		encoding: 'utf-8'
 	});
 	embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
+	embercfg = embercfg.replace(/rootURL: ?'.*',/, `rootURL: '${options.mount}',`);
 	yield utils.write(path.join(ember_proyect_path, "config", "environment.js"), embercfg, null);
 }
 const buildEmber = function*(app_name, options) {
@@ -218,15 +219,15 @@ const postBuildEmber = function*(ember_app, options) {
 			}),
 			indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8'),
 			meta = new RegExp(`<meta ?name="${ember_app}.*" ?content=".*" ?/>`);
-		const links = new RegExp(`<link rel="stylesheet" href="assets/.*.css.*">`, "gm")
-		const scripts = new RegExp(`<script src="assets/.*.js"></script>`, "gm")
+		const links = new RegExp(`<link rel="stylesheet" href=".*?assets/.*.css.*">`, "gm")
+		const scripts = new RegExp(`<script src=".*?assets/.*.js"></script>`, "gm")
 		text = utils.Compile(indextemplate, {
 			path: options.directory,
 			mount: options.mount,
 			app_name: ember_app,
 			meta: text.match(meta)[0],
-			cssfiles: text.match(links).join("\n").replace(/assets/igm, `/${ember_app}/assets`),
-			jsfiles: text.match(scripts).join("\n").replace(/assets/igm, `/${ember_app}/assets`)
+			cssfiles: text.match(links).join("\n").replace(/href=".*?assets/igm, `href="/${ember_app}/assets`),
+			jsfiles: text.match(scripts).join("\n").replace(/src=".*?assets/igm, `src="/${ember_app}/assets`)
 		});
 		utils.mkdir(mount_views, -1);
 		yield utils.write(path.join(mount_views, "index.handlebars"), text, true);
