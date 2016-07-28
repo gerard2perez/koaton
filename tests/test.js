@@ -232,18 +232,17 @@ testengine(function*(suite) {
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","img"));
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","js"));
 	try{
+		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".gitignore"));
+		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_bundle"));
+		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_database"));
+		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"app.js"));
+		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"bower.json"));
+		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"package.json"));
 		require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets"));
 	}catch(e){
 		(()=>{})(e);
 	}
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"config"));
-	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".gitignore"));
-	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_bundle"));
-	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_database"));
-	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"app.js"));
-	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"bower.json"));
-	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"package.json"));
-
 }).then((a) => {
 	process.exit(a);
 }).catch((err) => {
