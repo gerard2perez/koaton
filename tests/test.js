@@ -12,7 +12,7 @@ const read = require('../bin/utils').read;
 const fs = require('graceful-fs');
 const compile = require('../bin/utils').Compile;
 const shell = require('../bin/utils').shell;
-const spawn = require('cross-spawn-async');
+const spawn = require('cross-spawn');
 const Promise = require('bluebird');
 const exists = require("fs").existsSync;
 require('colors');
