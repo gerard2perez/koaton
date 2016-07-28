@@ -6,7 +6,7 @@
 //process.stdout.write('clear');
 process.stdout.write('\x1Bc');
 let prefix = "";
-const path = require('path');
+const path = require('upath');
 const mkdir = require('../bin/utils').mkdir;
 const read = require('../bin/utils').read;
 const fs = require('graceful-fs');
@@ -78,21 +78,17 @@ testengine(function*(suite) {
 		assert.equal(help, yield koaton(["--help"]), "Renders help --help");
 	});
 	yield suite("koaton new dummy", function*(assert) {
-		const cachepath = path.join(path.resolve(), "/running_test/dummy/package.json");
+		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json").replace(/\//g,"\\");
 		assert.equal(0, yield koaton(["new", "dummy", "-f"]), "Creates a new app");
-		assert.ok(require("../running_test/dummy/package.json").dependencies.mongoose, "Mongoose is the database driver.");
-		assert.ok(require("../running_test/dummy/package.json").dependencies.handlebars, "Handlebars is the template engine.");
+		assert.ok(require(cachepath).dependencies.mongoose, "Mongoose is the database driver.");
+		assert.ok(require(cachepath).dependencies.handlebars, "Handlebars is the template engine.");
 		delete require.cache[cachepath];
 		assert.equal(0, (yield koaton(["new", "dummy", "-fnb", "-d", "postgres"]))[0], "-d postgres");
-		assert.ok(require("../running_test/dummy/package.json").dependencies.pg, "Postgres is the database driver.");
+		assert.ok(require(cachepath).dependencies.pg, "Postgres is the database driver.");
 		delete require.cache[cachepath];
-
 		assert.equal(0, (yield koaton(["new", "dummy", "-fnb", "-d", "sqlite3", "-e", "ejs"]))[0], "-d sqlite3 -e ejs");
-		assert.ok(require("../running_test/dummy/package.json").dependencies.ejs, "EJS is the template engine.");
+		assert.ok(require(cachepath).dependencies.ejs, "EJS is the template engine.");
 		delete require.cache[cachepath];
-
-		// process.stdout.write("    Creates a new app and installs all dependencies (way take a while)".white);
-		// assert.equal(0,(yield koaton(["new","dummy","-f"]))[0],"Creates a new app and isntalls all dependencies (way take a while)");
 	});
 	yield suite("koaton ember restapi", function*(assert) {
 		prefix = "/dummy/";
@@ -100,7 +96,6 @@ testengine(function*(suite) {
 		let res = yield koaton(["ember", "restapi", "-nf"]);
 		assert.equal(0, res[0], "Installs the app.");
 		assert.equal("/", require("../running_test/dummy/config/ember.js").restapi.mount, "Mount the app on /");
-
 		const def = require(`../running_test/dummy/config/server`);
 		assert.equal(
 			compile(yield read("./templates/ember_apps/adapter.js", {
@@ -109,27 +104,24 @@ testengine(function*(suite) {
 				localhost: def.host || 'localhost',
 				port: def.port
 			}),
-			yield read("./running_test/dummy/ember/restapi/app/adapters/application.js", {
+			yield read(path.join(process.cwd(),"/running_test/dummy/ember/restapi/app/adapters/application.js"), {
 				encoding: "utf-8"
 			}),
 			"Creates the default adapter.");
-		assert.equal("/", require("../running_test/dummy/ember/restapi/config/environment.js")().baseURL, "Mounted on the right path");
+		const enviroment = require(path.join(process.cwd(),"/running_test/dummy/ember/restapi/config/environment.js"))();
+		assert.equal("/", enviroment.baseURL || enviroment.rootURL, "Mounted on the right path");
 	});
 	yield suite("koaton adapter <driver>", function*(assert) {
-		const cachepath = path.join(path.resolve(), "/running_test/dummy/package.json");
+		const cachepath = path.join(process.cwd(), "/running_test/dummy/package.json").replace(/\//g,"\\");
 		process.stdout.write("    Installing Couch Adapter (may take a while)".white);
 		assert.equal(0, yield koaton(["adapter", "couchdb"]), "Installs CouchDb Adapter");
-
 		delete require.cache[cachepath];
-		assert.ok(require("../running_test/dummy/package.json").dependencies.couchdb, "pacakge.js is updated");
-
+		assert.ok(require(cachepath).dependencies.couchdb, "pacakge.js is updated");
 		delete require.cache[cachepath];
 		assert.equal(0, yield koaton(["adapter", "riak", "-g"]), "Generates the Adapter structure for riak");
 		assert.ok(require("../running_test/dummy/config/connections.js").riak, "Connections file is updated.");
-
 		process.stdout.write("Installs a wrong adapter");
 		assert.equal(1, yield koaton(["adapter", "postgress"]), "Installs a wrong adapter");
-
 		const ccommand = yield koaton(["adapter", "couchdb",
 			"-g",
 			"--host", "192.168.0.1",
@@ -139,7 +131,7 @@ testengine(function*(suite) {
 			"--db", "awsome"
 		]);
 		assert.equal(0, ccommand[0], "Command with custom paramentes");
-		delete require.cache[path.join(path.resolve(), "/running_test/dummy/config/connections.js")];
+		delete require.cache[path.join(process.cwd(), "/running_test/dummy/config/connections.js").replace(/\//g,"\\")];
 		const dbadapter = require("../running_test/dummy/config/connections.js").couchdb;
 		assert.equal("192.168.0.1", dbadapter.host, "Host is ok");
 		assert.equal(8080, dbadapter.port, "Port is ok");
@@ -244,6 +236,7 @@ testengine(function*(suite) {
 	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"app.js"));
 	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"bower.json"));
 	fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"package.json"));
+
 }).then((a) => {
 	process.exit(a);
 }).catch((err) => {
