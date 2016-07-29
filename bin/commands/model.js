@@ -78,7 +78,13 @@ const makeembermodel=function*(definition,fields,name,options){
 			`{{crud-table\n\tfields=this.fieldDefinition\n}}`
 		);
 	}
-	console.log(`Please add this.route('${name}') to your ember app router.js`);
+	let router = yield utils.read(path.join(process.cwd(), "ember", options.ember, "app","router.js" ),{encoding: "utf-8"});
+	if( router.indexOf(`this.route('${name}')`)===-1){
+		router = router.replace(/Router.map\(.*?function\(.*?\).*?{/igm,`Router.map(function() {\n\tthis.route('${name}');\n`);
+		yield utils.write(path.join(process.cwd(), "ember", options.ember, "app","router.js" ),router,1);
+		//console.log(router);
+		//console.log(`Please add this.route('${name}') to your ember app router.js`);
+	}
 	return 0;
 }
 const makemodel = function*(name, fields, options) {
@@ -105,8 +111,6 @@ const makemodel = function*(name, fields, options) {
 		definition: definition
 	});
 	var ok = true;
-	console.log(`${process.cwd()}/models/${name.toLowerCase()}.js`);
-	console.log();
 	if (utils.canAccess(`${process.cwd()}/models/${name.toLowerCase()}.js`) && !options.force) {
 		ok = yield prompt.confirm(`The model ${name.green} already exits,do you want to override it? [y/n]: `);
 	}

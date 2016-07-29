@@ -126,6 +126,7 @@ module.exports = {
 	 */
 	_write: Promise.promisify(fs.writeFile),
 	write(file, content, mode) {
+		file = path.normalize(file);
 		return this._write(file, content, {}).then(() => {
 			const head = path.basename(file);
 			const body = file.replace(path.join(process.cwd(), "/"), "").replace(head, "");//file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
@@ -197,6 +198,7 @@ module.exports = {
 	 * @param {Function} fn
 	 */
 	mkdir: Promise.promisify(function(file,mode, cb) {
+		file = path.normalize(file);
 		if(cb===undefined && typeof mode === "function"){
 			cb = mode;
 			mode = undefined;

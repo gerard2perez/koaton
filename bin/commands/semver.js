@@ -51,6 +51,11 @@ module.exports = {
 					beta[1] = 1;
 				}
 				break;
+			case "beta_minor":
+					if (beta.length === 2) {
+						version[2] = parseInt(version[2] + 1, 10);
+					}
+					break;
 			case "release":
 				beta=undefined;
 			break;
