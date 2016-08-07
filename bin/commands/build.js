@@ -17,7 +17,7 @@ const hasFileName = function(file, content) {
 	const hash = hasher.digest('hex').slice(0, 20);
 	return basename + "_" + hash + ext;
 }
-const compressImages = function(files,dest) {
+const compressImages = function(files, dest) {
 	const imagemin = require('imagemin'),
 		imageminMozjpeg = require('imagemin-mozjpeg'),
 		imageminPngquant = require('imagemin-pngquant');
@@ -161,14 +161,7 @@ const loadConfig = function() {
 		}
 	}
 }
-const preBuildEmber = function*(ember_app, options) {
-	const ember_proyect_path = path.join(process.cwd(), "ember", ember_app);
-	const connections = require(`${process.cwd()}/config/connections`);
-	const connection = require(`${process.cwd()}/config/models`).connection;
-	const port = require(`${process.cwd()}/config/server`).port;
-	const host = connections[connection].host;
-	options.mount = path.join('/', options.mount || "","/");
-	options.mount = options.mount.replace(/\\/igm, "/");
+const getInflections=function*(app_name,cfg){
 	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
 		irregular = (inflections.plural || [])
 		.concat(inflections.singular || [])
@@ -183,8 +176,18 @@ const preBuildEmber = function*(ember_app, options) {
 			uncontable: JSON.stringify(uncontable)
 
 		});
+		yield utils.write(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, cfg);
+}
+const preBuildEmber = function*(ember_app, options) {
+	const ember_proyect_path = path.join(process.cwd(), "ember", ember_app);
+	const connections = require(`${process.cwd()}/config/connections`);
+	const connection = require(`${process.cwd()}/config/models`).connection;
+	const port = require(`${process.cwd()}/config/server`).port;
+	const host = connections[connection].host;
+	options.mount = path.join('/', options.mount || "", "/");
+	options.mount = options.mount.replace(/\\/igm, "/");
 	yield utils.mkdir(path.join(process.cwd(), "ember", ember_app, "app", "adapters"), -1);
-	yield utils.write(path.join("ember", ember_app, "app", "initializers", "inflector.js"), inflector, null);
+	yield getInflections(ember_app,null);
 	yield utils.compile('ember_apps/adapter.js',
 		path.join("ember", ember_app, "app", "adapters", "application.js"), {
 			localhost: host,
@@ -234,7 +237,8 @@ const postBuildEmber = function*(ember_app, options) {
 	}
 }
 module.exports = {
-	compressImages:compressImages,
+	getInflections:getInflections,
+	compressImages: compressImages,
 	postBuildEmber: postBuildEmber,
 	preBuildEmber: preBuildEmber,
 	buildEmber: buildEmber,
@@ -252,53 +256,51 @@ module.exports = {
 		const patterns = require(config_file);
 		if (Object.keys(patterns).length === 0) {
 			console.log("Nothing to compile on: " + config_file);
-			return 0;
-		}
-		yield utils.mkdir(path.join(process.cwd(), "public", "js"), -1)
-		yield utils.mkdir(path.join(process.cwd(), "public", "css"), -1)
-		loadConfig();
-		const clean = function(file) {
-			utils.rmdir(path.join("public", path.normalize(file)));
-		}
-		for (let index in koatonhide) {
-			if (koatonhide[index] instanceof Array) {
-				koatonhide[index].forEach(clean);
-			} else {
-				utils.rmdir(path.join("public", path.normalize(koatonhide[index])));
-				utils.rmdir(path.join("public", "css", index.replace(".css", ".css.map")));
+		} else {
+			yield utils.mkdir(path.join(process.cwd(), "public", "js"), -1)
+			yield utils.mkdir(path.join(process.cwd(), "public", "css"), -1)
+			loadConfig();
+			const clean = function(file) {
+				utils.rmdir(path.join("public", path.normalize(file)));
 			}
-		}
-		console.log(`Updating bundles (env: ${options.prod})`);
-		for (var key in patterns) {
-			if (key.indexOf(".css") > -1) {
-				yield buildCss(key, patterns[key], !options.prod);
-			} else if (key.indexOf(".js") > -1) {
-				yield buildJS(key, patterns[key], !options.prod);
+			for (let index in koatonhide) {
+				if (koatonhide[index] instanceof Array) {
+					koatonhide[index].forEach(clean);
+				} else {
+					utils.rmdir(path.join("public", path.normalize(koatonhide[index])));
+					utils.rmdir(path.join("public", "css", index.replace(".css", ".css.map")));
+				}
 			}
+			console.log(`Updating bundles (env: ${options.prod})`);
+			for (var key in patterns) {
+				if (key.indexOf(".css") > -1) {
+					yield buildCss(key, patterns[key], !options.prod);
+				} else if (key.indexOf(".js") > -1) {
+					yield buildJS(key, patterns[key], !options.prod);
+				}
+			}
+			const embercfg = require(`${process.cwd()}/config/ember`);
+			for (const ember_app in embercfg) {
+				yield preBuildEmber(ember_app, {
+					directory: embercfg[ember_app].directory,
+					mount: embercfg[ember_app].mount,
+					build: "development"
+				});
+				yield buildEmber(ember_app, {
+					mount: embercfg[ember_app].directory,
+					build: options.prod
+				});
+				yield postBuildEmber(ember_app, {
+					directory: embercfg[ember_app].directory,
+					mount: embercfg[ember_app].mount,
+					build: "development"
+				});
+			}
+			process.stdout.write("Compressing Images");
+			yield compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
+			process.stdout.clearLine();
+			process.stdout.cursorTo(0);
+			console.log("Images Compressed");
 		}
-		const embercfg = require(`${process.cwd()}/config/ember`);
-		for (const ember_app in embercfg) {
-			yield preBuildEmber(ember_app, {
-				directory: embercfg[ember_app].directory,
-				mount: embercfg[ember_app].mount,
-				build: "development"
-			});
-			yield buildEmber(ember_app, {
-				mount: embercfg[ember_app].directory,
-				build: options.prod
-			});
-			yield postBuildEmber(ember_app, {
-				directory: embercfg[ember_app].directory,
-				mount: embercfg[ember_app].mount,
-				build: "development"
-			});
-		}
-		process.stdout.write("Compressing Images");
-		yield compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
-		process.stdout.clearLine();
-		process.stdout.cursorTo(0);
-		console.log("Images Compressed");
-
-		return 0;
 	}
 };

@@ -40,8 +40,8 @@ const checkAssetsToBuild = function*(production, watch) {
 		bundlescfg = require(path.join(process.cwd(), "config", "bundles.js"));
 	let files = {};
 	for (const file in bundles) {
+		let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(utils.canAccess(path.join(process.cwd(), "public", file))));
 		if (file.indexOf(".css") > -1) {
-			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(utils.canAccess(path.join(process.cwd(), "public", file))));
 			for (let f in ffs) {
 				files[f] = {
 					Paths: ffs[f],
@@ -52,7 +52,7 @@ const checkAssetsToBuild = function*(production, watch) {
 			}
 		} else {
 			files[path.basename(bundles[file])] = {
-				Paths: yield assets.buildJS(file, bundlescfg[file], !production, !production && !(utils.canAccess(path.join(process.cwd(), "public", file)))),
+				Paths: ffs,
 				Target: file,
 				Sources: bundlescfg[file],
 				Build: assets.buildJS

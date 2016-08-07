@@ -1,5 +1,4 @@
 'use strict';
-const path = require("path");
 let utils;
 require("colors");
 module.exports = {
@@ -13,6 +12,6 @@ module.exports = {
 		console.log(koaton_app,ember_app,ember_app_mount);
 		utils = require('../utils');
 		let x = yield utils.exec("tput cols",["cols"],{shell:false});
-		console.log(parseInt(x.stdout));
+		console.log(parseInt(x.stdout,10));
 	}
 };

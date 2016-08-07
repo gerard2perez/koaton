@@ -4,42 +4,21 @@ const fs = require('graceful-fs');
 let ember_proyect_path;
 let utils;
 const newproyect = function*(app_name, options) {
-	console.log(ember_proyect_path);
+	const buildcmd = require("./build");
 	const prompt = require("co-prompt");
 	let override = !utils.canAccess(ember_proyect_path);
-	console.log(1);
 	if (!override && app_name && !options.force) {
 		override = yield prompt.confirm(`destination ${ember_proyect_path} is not empty, continue? [y/n]: `);
 		if (override) {
 			utils.deleteFolderRecursive(ember_proyect_path);
 		}
 	}
-	console.log(2);
 	if (override || options.force) {
-		console.log(3);
 		console.log(["ember", "new", app_name, "-dir", ember_proyect_path].join(" "));
 		yield utils.shell(`Installing ${app_name.green}`, ["ember", "new", app_name, "-dir", ember_proyect_path], process.cwd());
-		console.log(4);
 		options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);
-		const inflections = require(path.join(process.cwd(), "config", "inflections.js"));
-		let irregular = (inflections.plural || [])
-			.concat(inflections.singular || [])
-			.concat(inflections.irregular || []);
-		let uncontable = (inflections.uncountable || []).map((inflection) => {
-			return `/${inflection}/`
-		});
-		let inflector = utils.Compile(yield utils.read(path.join(__dirname, "..", "templates", "ember_inflector"), {
-			encoding: "utf-8"
-		}), {
-			irregular: JSON.stringify(irregular),
-			uncontable: JSON.stringify(uncontable)
-
-		});
-		console.log(5);
 		utils.mkdir(path.join("ember", app_name, "app", "initializers"));
-		console.log(6);
-		yield utils.write(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, true);
-		console.log(7);
+		yield buildcmd.getInflections(app_name,true);
 		return false;
 	} else {
 		return true;
@@ -60,6 +39,7 @@ module.exports = {
 	],
 	action: function*(app_name, options) {
 		utils = require("../utils");
+		ember_proyect_path = path.join(process.cwd(), "ember", app_name);
 		if (app_name === undefined) {
 			fs.readdirSync('./ember').forEach((dir) => {
 				const f = require(`${process.cwd()}/ember/${dir}/bower.json`);
@@ -67,7 +47,6 @@ module.exports = {
 			});
 			return 1;
 		}
-		ember_proyect_path = path.join(process.cwd(), "ember", app_name);
 		if (options.use) {
 			let res = yield utils.shell(`Installing ${options.use.green} addon on ${app_name.cyan}`, ["ember", "i", options.use], ember_proyect_path);
 			console.log(!res ? "Success".green : "Failed".red);
@@ -79,9 +58,12 @@ module.exports = {
 		} else if (options.build) {
 			const buildcmd = require("./build");
 			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name];
-			yield buildcmd.preBuildEmber(app_name,embercfg);
-			yield buildcmd.buildEmber(app_name,{mount:embercfg.directory,build:options.buid});
-			yield buildcmd.postBuildEmber(app_name,embercfg);
+			yield buildcmd.preBuildEmber(app_name, embercfg);
+			yield buildcmd.buildEmber(app_name, {
+				mount: embercfg.directory,
+				build: options.buid
+			});
+			yield buildcmd.postBuildEmber(app_name, embercfg);
 			return 0;
 		}
 		if (!options.build) {
@@ -89,9 +71,9 @@ module.exports = {
 			const connection = require(`${process.cwd()}/config/models`).connection;
 			const port = require(`${process.cwd()}/config/server`).port;
 			const host = connections[connection].host;
-			options.mount = path.join('/', options.mount||"");
+			options.mount = path.join('/', options.mount || "");
 			options.mount = options.mount.replace(/\\/igm, "/");
-			console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
+			//console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
 			yield utils.mkdir(path.join(process.cwd(), "ember", app_name, "app", "adapters"));
 			yield utils.compile('ember_apps/adapter.js',
 				path.join("ember", app_name, "app", "adapters", "application.js"), {

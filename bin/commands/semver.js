@@ -1,5 +1,4 @@
 'use strict';
-const path = require("path");
 let utils;
 require("colors");
 module.exports = {
@@ -59,9 +58,13 @@ module.exports = {
 			case "release":
 				beta=undefined;
 			break;
+			default:
+				console.log("No mode specified...");
+			 return -1;
 		}
 		let final = version.join(".") + (beta ? "-" + beta.join(".") : "");
 		packageJSON.version = final;
 		yield utils.write("package.json",JSON.stringify(packageJSON,null,2),-1);
+		return 0;
 	}
 };
