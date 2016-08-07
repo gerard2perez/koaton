@@ -176,19 +176,16 @@ module.exports = {
 			if (!options.production) {
 				let serving = serveEmber(ember_app, embercfg[ember_app].mount);
 				building.push(serving);
-				utils.log(`\tPreparing ${ember_app} ...`);
-				yield buildcmd.preBuildEmber(ember_app, {
+				const configuration = {
 					directory: embercfg[ember_app].directory,
 					mount: embercfg[ember_app].mount,
 					build: "development"
-				});
+				};
+				utils.log(`\tPreparing ${ember_app} ...`);
+				yield buildcmd.preBuildEmber(ember_app, configuration);
 				utils.log(`\Building ${ember_app} ...`);
 				yield serving;
-				yield buildcmd.postBuildEmber(ember_app, {
-					directory: embercfg[ember_app].directory,
-					mount: embercfg[ember_app].mount,
-					build: "development"
-				});
+				yield buildcmd.postBuildEmber(ember_app, configuration);
 			} else {
 				building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 			}

@@ -281,20 +281,17 @@ module.exports = {
 			}
 			const embercfg = require(`${process.cwd()}/config/ember`);
 			for (const ember_app in embercfg) {
-				yield preBuildEmber(ember_app, {
+				let configuration = {
 					directory: embercfg[ember_app].directory,
 					mount: embercfg[ember_app].mount,
 					build: "development"
-				});
+				};
+				yield preBuildEmber(ember_app, configuration);
 				yield buildEmber(ember_app, {
 					mount: embercfg[ember_app].directory,
 					build: options.prod
 				});
-				yield postBuildEmber(ember_app, {
-					directory: embercfg[ember_app].directory,
-					mount: embercfg[ember_app].mount,
-					build: "development"
-				});
+				yield postBuildEmber(ember_app, configuration);
 			}
 			process.stdout.write("Compressing Images");
 			yield compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
