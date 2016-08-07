@@ -8,6 +8,7 @@ let building = [];
 let livereload = null;
 let utils = null;
 let buildcmd=null;
+let notifier=null;
 const deleted = function(file) {
 	const remove = require("graceful-fs").unlinkSync;
 	try {
@@ -90,18 +91,19 @@ const checkAssetsToBuild = function*(production, watch) {
 
 const serveEmber = function(app, mount) {
 	return Promise.promisify((app, mount, cb) => {
-		let logging = false;
+		const appst = {log:false,result:""};
 		const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", app)], {
 			cwd: path.join(process.cwd(), "ember", app)
 		});
-
 		ember.stdout.on('data', (buffer) => {
-			if (logging) {
+			//console.log(appst.log);
+			if (appst.log) {
 				console.log(buffer.toString());
 			} else if (buffer.toString().indexOf("Build successful") > -1) {
 				if (cb) {
-					logging = true;
-					cb(null, `${app.yellow} → ${mount.cyan}`);
+					//appst.log = true;
+					appst.result = `${app.yellow} → ${mount.cyan}`;
+					cb(null, appst);
 					cb = null;
 					let watcher = new chokidar.watch(path.join(process.cwd(), 'public', app, '/'), {
 						persistent: true,
@@ -114,6 +116,12 @@ const serveEmber = function(app, mount) {
 					});
 					const rebuild = function() {
 						livereload.reload();
+						notifier.notify({
+							title: 'Koaton',
+							message: `EmberApp ${app} changed ...`,
+							icon: path.join(__dirname, 'koaton.png'),
+							sound: 'Basso'
+						});
 					}
 					watcher
 						.on('change', rebuild)
@@ -144,14 +152,13 @@ module.exports = {
 	action: function*(options) {
 		const Promise = require('bluebird'),
 			nodemon = require('nodemon'),
-			notifier = require('node-notifier'),
-			//shell = require('../utils').shell,
 			embercfg = require(`${process.cwd()}/config/ember`),
 			env = {
 				welcome: false,
 				NODE_ENV: !options.production ? 'development' : 'production',
 				port: options.port || 62626
 			};
+		notifier = require('node-notifier');
 		utils = require('../utils');
 		livereload = require('gulp-livereload');
 
@@ -169,11 +176,13 @@ module.exports = {
 			if (!options.production) {
 				let serving = serveEmber(ember_app, embercfg[ember_app].mount);
 				building.push(serving);
+				utils.log(`\tPreparing ${ember_app} ...`);
 				yield buildcmd.preBuildEmber(ember_app, {
 					directory: embercfg[ember_app].directory,
 					mount: embercfg[ember_app].mount,
 					build: "development"
 				});
+				utils.log(`\Building ${ember_app} ...`);
 				yield serving;
 				yield buildcmd.postBuildEmber(ember_app, {
 					directory: embercfg[ember_app].directory,
@@ -184,6 +193,7 @@ module.exports = {
 				building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
 			}
 		}
+		utils.log("");
 		if (!options.production) {
 			yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
 				persistent: true,

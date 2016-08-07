@@ -10,6 +10,16 @@ let log = "";
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
+	log(text){
+		process.stdout.clearLine();
+		process.stdout.cursorTo(0);
+		process.stdout.write(text);
+	},
+	nlog(text){
+		process.stdout.clearLine();
+		process.stdout.cursorTo(0);
+		process.stdout.write(text+'\n');
+	},
 	no_print:-1,
 	print:1,
 	spawn:spawn,
@@ -76,37 +86,6 @@ module.exports = {
 	to_env: (() => {
 		return path.resolve();
 	})(),
-	info(env, promises) {
-		var jutsus = require('./jutsus');
-		jutsus = jutsus.S.concat(jutsus.A, jutsus.B, jutsus.C);
-		var index = Math.floor((Math.random() * jutsus.length));
-		var total = "===-----------------------------------------------------===".length;
-
-		function center(text) {
-			var m = Math.floor((total - text.length) / 2);
-			var r = "";
-			while (r.length < m) {
-				r += " ";
-			}
-			return r + text;
-		}
-		if (env.NODE_ENV !== 'production') {
-			if (env.welcome === false) {
-				console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-				console.log(center("Koaton: " + jutsus[index].name));
-				console.log("   " + "-------------------------===-------------------------".dim + "   ");
-				console.log(`   Server running in ${this.proyect_path}\n` +
-					`   To see your app, visit ` + `http://localhost:${env.port}\n`.underline +
-					`   To shut down Koaton, press <CTRL> + C at any time.`);
-				Promise.all(promises).then((a) => {
-					console.log(a.join('\n'));
-					console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-					console.log('   Enviroment:\t\t' + (env.NODE_ENV).green);
-					console.log('   Port:\t\t' + (env.port + "").green);
-				});
-			}
-		}
-	},
 	version: require('../package.json').version,
 	proyect_path: path.resolve(),
 	rmdir(folder){
