@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 /*eslint no-process-exit: 0*/
 const path = require("upath");
 const program = require('commander');

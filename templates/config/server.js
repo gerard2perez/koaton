@@ -7,6 +7,9 @@ var host = 'http://localhost' + (port != 80 ? ':' + port : '');
 var DEBUG = env !== 'production'
 
 module.exports = {
+	hosts:[
+		"www"
+	],
 	//http://koajs.com/#application
 	name: "koaton",
 	keys: ['9184f115438655076a7675827bbfa1d98745217f'],

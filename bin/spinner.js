@@ -18,11 +18,12 @@ const spinners = [
 	"⣾⣽⣻⢿⡿⣟⣯⣷",
 	"⠁⠂⠄⡀⢀⠠⠐⠈", [">))'>", " >))'>", "  >))'>", "   >))'>", "    >))'>", "   <'((<", "  <'((<", " <'((<"]
 ];
+const os = require('os').platform();
 const co = require('co');
 const spinner = co.wrap(function(interval, text, extra,size) {
 	extra = extra === undefined ? "" : extra;
 	const that = this;
-	const spin = spinners[9];
+	const spin = os === 'win32' ? spinners[10]:spinners[9];
 	const l = spin.length;
 	let current = -1;
 	that.text = text || "";
@@ -52,7 +53,7 @@ const spinner = co.wrap(function(interval, text, extra,size) {
 
 class spin {
 	get printleft(){
-		return this.size - this.text.length-8;
+		return this.size - this.text.length-8-10;
 	}
 	get complent(){
 		if(this.extra.length>this.printleft){

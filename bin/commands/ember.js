@@ -14,10 +14,9 @@ const newproyect = function*(app_name, options) {
 		}
 	}
 	if (override || options.force) {
-		console.log(["ember", "new", app_name, "-dir", ember_proyect_path].join(" "));
 		yield utils.shell(`Installing ${app_name.green}`, ["ember", "new", app_name, "-dir", ember_proyect_path], process.cwd());
 		options.mount = options.mount === undefined ? "/" : path.join("/", options.mount);
-		utils.mkdir(path.join("ember", app_name, "app", "initializers"));
+		yield utils.mkdir(path.join("ember", app_name, "app", "initializers"));
 		yield buildcmd.getInflections(app_name,true);
 		return false;
 	} else {
@@ -35,7 +34,8 @@ module.exports = {
 		["-f", "--force", "Overrides the current app."],
 		["-u", "--use <ember_addon>", "Install the especified addon in the especified app."],
 		["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
-		["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."]
+		["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
+		["-s", "--subdomain <subdomain>", "(Default: www) Sets the subdomain to mount the application."]
 	],
 	action: function*(app_name, options) {
 		utils = require("../utils");
@@ -85,7 +85,8 @@ module.exports = {
 			emberjs[app_name] = {
 				mount: options.mount,
 				directory: app_name,
-				access: "public"
+				access: "public",
+				subdomain:options.subdomain||"www"
 			};
 			yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
 module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);

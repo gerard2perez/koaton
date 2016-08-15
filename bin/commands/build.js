@@ -25,12 +25,14 @@ const compressImages = function(files, dest) {
 		plugins: [
 			imageminMozjpeg({}),
 			imageminPngquant({
-				quality: '80-90'
+				quality: '70-90',
+				verbose:true
 			})
 		]
 	});
 }
-const buildCss = function*(target, source, development, onlypaths) {
+const buildCss = function*(target, source, development, onlypaths,logger) {
+	utils.writeuseslog = logger;
 	const less = require('less'),
 		sass = Promise(require('node-sass').render),
 		CssImporter = require('node-sass-css-importer')(),
@@ -113,14 +115,16 @@ const buildCss = function*(target, source, development, onlypaths) {
 			yield utils.write(
 				path.join("public", "css", file),
 				concat.content.toString(),
-				'utf-8', true);
+				'utf-8', true,printfn);
 			koatonhide[target] = `/css/${file}`;
 		}
 		fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
 	}
+	utils.writeuseslog = undefined;
 	return watchinFiles;
 }
-const buildJS = function*(target, source, development, onlypaths) {
+const buildJS = function*(target, source, development, onlypaths,logger) {
+	utils.writeuseslog = logger;
 	let AllFiles = [];
 	for (var index in source) {
 		AllFiles = AllFiles.concat(readSync(path.normalize(source[index])));
@@ -150,6 +154,7 @@ const buildJS = function*(target, source, development, onlypaths) {
 		koatonhide[target] = "/js/" + file;
 		fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
 	}
+	utils.writeuseslog = undefined;
 	return AllFiles;
 }
 const loadConfig = function() {
@@ -182,8 +187,9 @@ const preBuildEmber = function*(ember_app, options) {
 	const ember_proyect_path = path.join(process.cwd(), "ember", ember_app);
 	const connections = require(`${process.cwd()}/config/connections`);
 	const connection = require(`${process.cwd()}/config/models`).connection;
-	const port = require(`${process.cwd()}/config/server`).port;
-	const host = connections[connection].host;
+	const port = require(path.join(process.cwd(),"config","ember"))[ember_app].adapterport ||  process.env.port || 62626;
+	const hostname = require(`${process.cwd()}/config/server`).hostname;
+	const host = `www.${hostname}`;
 	options.mount = path.join('/', options.mount || "", "/");
 	options.mount = options.mount.replace(/\\/igm, "/");
 	yield utils.mkdir(path.join(process.cwd(), "ember", ember_app, "app", "adapters"), -1);
@@ -216,12 +222,13 @@ const buildEmber = function*(app_name, options) {
 const postBuildEmber = function*(ember_app, options) {
 	const mount_public = path.normalize(path.join(process.cwd(), "public", options.directory));
 	const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", options.directory));
+	const emberinternalname = require(path.join(process.cwd(), "ember", ember_app,"package.json")).name;
 	if (options.build === "development") {
 		let text = yield utils.read(path.join(mount_public, "index.html"), {
 				encoding: 'utf-8'
 			}),
 			indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8'),
-			meta = new RegExp(`<meta ?name="${ember_app}.*" ?content=".*" ?/>`);
+			meta = new RegExp(`<meta ?name="${emberinternalname}.*" ?content=".*" ?/>`);
 		const links = new RegExp(`<link rel="stylesheet" href=".*?assets/.*.css.*">`, "gm")
 		const scripts = new RegExp(`<script src=".*?assets/.*.js"></script>`, "gm")
 		text = utils.Compile(indextemplate, {

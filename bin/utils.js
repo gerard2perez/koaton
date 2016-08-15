@@ -24,6 +24,7 @@ module.exports = {
 	print:1,
 	spawn:spawn,
 	exec:(cmd, opts) => {
+		opts=opts||{};
 		return new Promise((resolve, reject) => {
 			const child = exec(cmd, opts, (err, stdout, stderr) => err ? reject(err) : resolve({
 				stdout: stdout,
@@ -104,13 +105,15 @@ module.exports = {
 	 * @param {String} str
 	 */
 	_write: Promise.promisify(fs.writeFile),
+	writeuseslog:undefined,
 	write(file, content, mode) {
+		let printfn = this.writeuseslog ? this.writeuseslog:console.log;
 		file = path.normalize(file);
 		return this._write(file, content, {}).then(() => {
 			const head = path.basename(file);
 			const body = file.replace(path.join(process.cwd(), "/"), "").replace(head, "");//file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
 			if(mode!==null){
-				console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
+				printfn(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
 			}
 			return file;
 		}, (e) => {

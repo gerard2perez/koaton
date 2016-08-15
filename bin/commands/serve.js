@@ -4,11 +4,13 @@ const chokidar = require('chokidar');
 const path = require('path');
 const watching = [];
 const Promise = require('bluebird');
+const fs = require("graceful-fs");
 let building = [];
 let livereload = null;
 let utils = null;
-let buildcmd=null;
-let notifier=null;
+let buildcmd = null;
+let notifier = null;
+const serverconf = require(path.join(process.cwd(), "config", "server"));
 const deleted = function(file) {
 	const remove = require("graceful-fs").unlinkSync;
 	try {
@@ -20,28 +22,42 @@ const deleted = function(file) {
 }
 
 const compress = function(file) {
-	buildcmd.compressImages([file], file.replace(path.basename(file), "").replace("assets", "public")).then(()=>{
+	buildcmd.compressImages([file], file.replace(path.basename(file), "").replace("assets", "public")).then(() => {
 		livereload.reload(file);
 	});
 }
 const WactchAndCompressImages = function*(watcher) {
+	const spinner = require('../spinner')();
+	spinner.start(50, "Compressing Images".green, undefined, process.stdout.columns);
+	//console.log("Compressing Images");
 	watching.push(watcher);
 	yield buildcmd.compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
 	watcher
 		.on('change', compress)
 		.on('unlink', deleted)
 		.on('add', compress);
+	spinner.end("Images Compressed " + `✓`.green);
 }
 
 const checkAssetsToBuild = function*(production, watch) {
+	const spinner = require('../spinner')();
+	spinner.start(50, "Building Bundles".green, undefined, process.stdout.columns);
+	const logger = function(msg) {
+		spinner.pipe({
+			action: "extra",
+			msg: msg.replace(/\n|\t/igm, "")
+		});
+	}
+	yield utils.mkdir(path.join(process.cwd(), "public", "css"), -1);
+	yield utils.mkdir(path.join(process.cwd(), "public", "js"), -1);
 	const co = require('co'),
 		assets = require('./build'),
-		bundles = JSON.parse(yield utils.read(path.join(process.cwd(), "./.koaton_bundle"))),
+		//bundles = JSON.parse(yield utils.read(path.join(process.cwd(), "./.koaton_bundle"))),
 		bundlescfg = require(path.join(process.cwd(), "config", "bundles.js"));
 	let files = {};
-	for (const file in bundles) {
-		let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, !production && !(utils.canAccess(path.join(process.cwd(), "public", file))));
+	for (const file in bundlescfg) {
 		if (file.indexOf(".css") > -1) {
+			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, production && !(utils.canAccess(path.join(process.cwd(), "public", "css", file))), logger);
 			for (let f in ffs) {
 				files[f] = {
 					Paths: ffs[f],
@@ -51,8 +67,8 @@ const checkAssetsToBuild = function*(production, watch) {
 				};
 			}
 		} else {
-			files[path.basename(bundles[file])] = {
-				Paths: ffs,
+			files[path.basename(file)] = {
+				Paths: yield assets.buildJS(file, bundlescfg[file], !production, production && !utils.canAccess(path.join(process.cwd(), "public", "js", file)), logger),
 				Target: file,
 				Sources: bundlescfg[file],
 				Build: assets.buildJS
@@ -86,23 +102,28 @@ const checkAssetsToBuild = function*(production, watch) {
 				.on('unlinkDir', rebuild);
 		}
 	}
+	spinner.end("Bundles Built " + `✓`.green);
 	return true;
 }
 
-const serveEmber = function(app, mount) {
-	return Promise.promisify((app, mount, cb) => {
-		const appst = {log:false,result:""};
-		const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", app)], {
+const serveEmber = function(app, cfg, index) {
+	return Promise.promisify((app, mount, subdomain, cb) => {
+		const appst = {
+			log: false,
+			result: ""
+		};
+		const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", app), "--port", 4200 + index], {
 			cwd: path.join(process.cwd(), "ember", app)
 		});
 		ember.stdout.on('data', (buffer) => {
-			//console.log(appst.log);
 			if (appst.log) {
 				console.log(buffer.toString());
 			} else if (buffer.toString().indexOf("Build successful") > -1) {
 				if (cb) {
-					//appst.log = true;
-					appst.result = `${app.yellow} → ${mount.cyan}`;
+					//let host = (serverconf.hostname === "localhost"? "":serverconf.subdomain) + serverconf.hostname + (serverconf.port !== 80 ? ":"+serverconf.port:"");
+					subdomain = subdomain ? subdomain + "." : "";
+					let host = subdomain + serverconf.hostname + (serverconf.port !== 80 ? ":" + serverconf.port : "");
+					appst.result = `${app.yellow} → http://${host}${mount.cyan}`;
 					cb(null, appst);
 					cb = null;
 					let watcher = new chokidar.watch(path.join(process.cwd(), 'public', app, '/'), {
@@ -139,7 +160,7 @@ const serveEmber = function(app, mount) {
 			}
 			console.log(buffer.toString());
 		});
-	})(app, mount);
+	})(app, cfg.mount, cfg.subdomain || "");
 }
 module.exports = {
 	cmd: "serve",
@@ -150,6 +171,9 @@ module.exports = {
 		["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 	],
 	action: function*(options) {
+		process.env.port = options.port || 62626;
+		const mainhost = `htpp://${serverconf.hostname}` + (serverconf.port !== 80 ? ":" + serverconf.port : "");
+		const os = require("os");
 		const Promise = require('bluebird'),
 			nodemon = require('nodemon'),
 			embercfg = require(`${process.cwd()}/config/ember`),
@@ -158,39 +182,51 @@ module.exports = {
 				NODE_ENV: !options.production ? 'development' : 'production',
 				port: options.port || 62626
 			};
+		buildcmd = require('./build');
 		notifier = require('node-notifier');
 		utils = require('../utils');
 		livereload = require('gulp-livereload');
-
 		if (!options.production) {
+			let subdomains = require(path.join(process.cwd(), 'config', 'server'));
+			let hostname = subdomains.hostname;
+			let port = subdomains.port;
+			subdomains = subdomains.subdomains;
+
+			if (subdomains.indexOf("www") === -1) {
+				subdomains.push("www");
+			}
+			let hostsdlocation = "";
+			switch (os.platform()) {
+				case 'darwin':
+					hostsdlocation = '/private/etc/hosts';
+					break;
+				case 'linux':
+					hostsdlocation = '/etc/hosts';
+					break;
+				case 'win32':
+					hostsdlocation = "C:\\Windows\\System32\\drivers\\etc\\hosts"
+					break;
+				default:
+					console.log("your os is not detected, hosts files won't be updated".red);
+					break;
+
+			}
+			if (hostsdlocation !== "") {
+				let hostsd = fs.readFileSync(hostsdlocation, "utf-8");
+				for (const subdomain in subdomains) {
+					let entry = "127.0.0.1\t" + subdomains[subdomain] + "." + hostname;
+					if (hostsd.indexOf(entry) === -1) {
+						hostsd += "\n" + entry;
+					}
+				}
+				yield utils.write(hostsdlocation, hostsd.replace(/\n+/igm, "\n"), true);
+			}
 			livereload.listen({
 				port: 62627,
 				quiet: true
 			});
 		}
 		screen.start();
-		let ignoreemberdirs = [];
-		buildcmd = require('./build');
-		for (var ember_app in embercfg) {
-			ignoreemberdirs.push(path.join("public", ember_app, "/"));
-			if (!options.production) {
-				let serving = serveEmber(ember_app, embercfg[ember_app].mount);
-				building.push(serving);
-				const configuration = {
-					directory: embercfg[ember_app].directory,
-					mount: embercfg[ember_app].mount,
-					build: "development"
-				};
-				utils.log(`\tPreparing ${ember_app} ...`);
-				yield buildcmd.preBuildEmber(ember_app, configuration);
-				utils.log(`\Building ${ember_app} ...`);
-				yield serving;
-				yield buildcmd.postBuildEmber(ember_app, configuration);
-			} else {
-				building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
-			}
-		}
-		utils.log("");
 		if (!options.production) {
 			yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
 				persistent: true,
@@ -203,6 +239,7 @@ module.exports = {
 			}));
 			yield checkAssetsToBuild(options.production, chokidar.watch);
 		}
+		const co = require('co');
 		return new Promise(function(resolve) {
 			nodemon({
 				ext: '*',
@@ -224,18 +261,56 @@ module.exports = {
 				env: env,
 				stdout: true
 			}).once('start', function() {
-				screen.lift(env, building);
-				notifier.notify({
-					title: 'Koaton',
-					message: `Server running on localhost: ${env.port}`,
-					open: `http://localhost: ${env.port}`,
-					icon: path.join(__dirname, 'koaton.png'),
-					sound: 'Hero',
-					wait: false
+				co(function*() {
+					screen.line1(true);
+					let ignoreemberdirs = [];
+					let indexapp = 0;
+					for (var ember_app in embercfg) {
+						ignoreemberdirs.push(path.join("public", ember_app, "/"));
+						if (!options.production) {
+							const configuration = {
+								directory: embercfg[ember_app].directory,
+								mount: embercfg[ember_app].mount,
+								build: "development"
+							};
+							utils.nlog(`Building ${ember_app.green} second plane`);
+							yield buildcmd.preBuildEmber(ember_app, configuration);
+							let b = serveEmber(ember_app, embercfg[ember_app], indexapp)
+							building.push(b);
+							yield b;
+							yield buildcmd.postBuildEmber(ember_app, configuration);
+						} else {
+							building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
+						}
+						indexapp++;
+					}
+					screen.line1(true);
+				}).then(() => {
+					Promise.all(building).then((reports) => {
+						if (reports.length > 0) {
+							console.log("   Ember apps:");
+							console.log("     " + reports.map((r) => {
+								return r.result
+							}).join('\n     '));
+						}
+						reports.forEach((r) => {
+							r.log = true;
+						});
+						screen.line1();
+						console.log();
+					});
+					notifier.notify({
+						title: 'Koaton',
+						message: `Server running on ${mainhost}`,
+						open: `http://localhost: ${env.port}`,
+						icon: path.join(__dirname, 'koaton.png'),
+						sound: 'Hero',
+						wait: false
+					});
+					setTimeout(function() {
+						livereload.reload();
+					}, 1000);
 				});
-				setTimeout(function() {
-					livereload.reload();
-				}, 1000);
 			}).on('restart', function() {
 				setTimeout(function() {
 					livereload.reload();

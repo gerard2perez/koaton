@@ -21,7 +21,7 @@ const setupInit = function*() {
 	yield utils.copy("./.koaton_bundle", './.koaton_bundle');
 	yield utils.mkdir(path.join(proypath, "config"));
 }
-const setupConfig = function*() {
+const setupConfig = function*(app) {
 	const secret = require('../secret');
 	yield utils.compile('config/models.js');
 	yield utils.compile('config/views.js');
@@ -30,7 +30,7 @@ const setupConfig = function*() {
 	yield utils.compile('config/server.js', {
 		key: `"${(yield secret(48)).toString('hex')}"`
 	});
-	yield utils.compile('config/connections.js');
+	yield utils.compile('config/connections.js',{database:app});
 	yield utils.compile('config/bundles.js');
 	yield utils.compile('config/security.js');
 
@@ -140,20 +140,19 @@ module.exports = {
 		if (ok) {
 			process.stdin.destroy();
 			utils.to_env = path.join(utils.to_env, application);
-			yield setupInit();
-			yield setupAssets();
-			yield setupConfig();
-			yield setupOthers();
+			yield setupInit(app_name);
+			yield setupAssets(app_name);
+			yield setupConfig(app_name);
+			yield setupOthers(app_name);
 			yield setupDependencies(options, adapters.isOrDef(options.db), engines.isOrDef(options.viewEngine));
+			yield utils.shell("Initializing git".green, ["git", "init"], proypath);
 			console.log(print.line1);
 			console.log("   To run your app first: ");
 			console.log('     $' + ' cd %s '.bgWhite.black, application);
 			console.log('   and then: ');
 			console.log('     $' + ' koaton serve '.bgWhite.black);
 			console.log(print.line3("or"));
-			console.log('     $' + 'cd %s && koaton serve '.bgWhite.black, application);
-			console.log();
-			console.log();
+			console.log('     $' + 'cd %s && koaton serve \n'.bgWhite.black, application);
 			return 0;
 		} else {
 			utils.abort('aborting');

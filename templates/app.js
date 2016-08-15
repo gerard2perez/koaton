@@ -6,8 +6,7 @@ const ks = require('koa-socket');
 const io = new ks();
 const locale = require('koa-locale');
 const i18n = require('koa-i18n');
-const passport = require('koa-passport');
-
+const passport = require('"koaton/node_modules/koa-passport"');
 locale(koaton);
 koaton.use(i18n(koaton, {
 	directory: './config/locales',
@@ -21,23 +20,19 @@ koaton.use(i18n(koaton, {
         'tld' //  optional detect tld(the last domain) - `koajs.cn`
     ]
 }));
-
+koaton.use(koaton.detectsubdomain);
+koaton.use(koaton.conditional);
+koaton.use(require('koa-etag')());
 koaton.use(require('koa-helmet')());
 koaton.use(require('koa-bodyparser')(config.bodyparser));
 koaton.use(require('koa-static')(config.static.directory, config.static));
-// //app.use(require('koa-etag')());
-
 koaton.keys = config.keys;
 koaton.use(require('koa-session')(koaton));
-
 koaton.use(passport.initialize());
 koaton.use(passport.session());
 koaton.use(koaton.oAuth2Server);
 koaton.use(koaton.views);
-koaton.use(koaton.router.protected);
-koaton.use(koaton.router.public);
-
-
+koaton.use(koaton.subdomainrouter);
 //============================================
 io.attach(koaton);
 io.on('join', (ctx, data) => {
