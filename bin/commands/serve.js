@@ -108,7 +108,7 @@ const checkAssetsToBuild = function*(production, watch) {
 
 const serveEmber = function(app, cfg, index) {
 	return Promise.promisify((app, mount, subdomain, cb) => {
-		const appst = {
+		let appst = {
 			log: false,
 			result: ""
 		};
@@ -120,7 +120,6 @@ const serveEmber = function(app, cfg, index) {
 				console.log(buffer.toString());
 			} else if (buffer.toString().indexOf("Build successful") > -1) {
 				if (cb) {
-					//let host = (serverconf.hostname === "localhost"? "":serverconf.subdomain) + serverconf.hostname + (serverconf.port !== 80 ? ":"+serverconf.port:"");
 					subdomain = subdomain ? subdomain + "." : "";
 					let host = subdomain + serverconf.hostname + (serverconf.port !== 80 ? ":" + serverconf.port : "");
 					appst.result = `${app.yellow} → http://${host}${mount.cyan}`;
@@ -280,7 +279,12 @@ module.exports = {
 							yield b;
 							yield buildcmd.postBuildEmber(ember_app, configuration);
 						} else {
-							building.push(Promise.resolve(`${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`));
+							let host = embercfg[ember_app].subdomain + serverconf.hostname + (serverconf.port !== 80 ? ":" + serverconf.port : "");
+							building.push(Promise.resolve(
+								{
+									log: false,
+									result: `${ember_app.yellow} → ${embercfg[ember_app].mount.cyan}`
+								}));
 						}
 						indexapp++;
 					}
@@ -293,9 +297,9 @@ module.exports = {
 								return r.result
 							}).join('\n     '));
 						}
-						reports.forEach((r) => {
-							r.log = true;
-						});
+						for(let idx in reports){
+							reports[idx].log = true;
+						}
 						screen.line1();
 						console.log();
 					});

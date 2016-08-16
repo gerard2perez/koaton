@@ -115,7 +115,7 @@ const buildCss = function*(target, source, development, onlypaths,logger) {
 			yield utils.write(
 				path.join("public", "css", file),
 				concat.content.toString(),
-				'utf-8', true,printfn);
+				'utf-8', true,logger);
 			koatonhide[target] = `/css/${file}`;
 		}
 		fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
@@ -127,11 +127,13 @@ const buildJS = function*(target, source, development, onlypaths,logger) {
 	utils.writeuseslog = logger;
 	let AllFiles = [];
 	for (var index in source) {
-		AllFiles = AllFiles.concat(readSync(path.normalize(source[index])));
+		AllFiles = AllFiles.concat(readSync(path.join(process.cwd(),path.normalize(source[index]))));
+		console.log(readSync(path.join(process.cwd(),path.normalize(source[index]))),path.join(process.cwd(),path.normalize(source[index])));
 	}
 	if (onlypaths) {
 		return AllFiles;
 	}
+	//console.log(target, source);
 	let result = uglify.minify(AllFiles, {
 		outSourceMap: onlypaths ? false : " /js/" + target + ".map",
 		sourceMapIncludeSources: onlypaths ? false : development,
