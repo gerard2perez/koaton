@@ -171,8 +171,8 @@ module.exports = {
 	],
 	action: function*(options) {
 		process.env.port = options.port || 62626;
-		options.prod = options.prod ? "production" : "development";
-		process.env.NODE_ENV = options.prod;
+		options.production = options.production ? "production" : "development";
+		process.env.NODE_ENV = options.production;
 		buildcmd = require('./build');
 		notifier = require('node-notifier');
 		utils = require('../utils');
