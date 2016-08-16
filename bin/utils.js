@@ -138,9 +138,24 @@ module.exports = {
 				return "utf-8";
 		}
 	},
+	Copy(from,to,opts){
+		try{
+			return this.read(from, opts).then((data) => {
+				return this._write(to, data,opts);
+			}).catch((e) => {
+				console.log(e.red);
+				return false;
+			});
+		}catch(e){
+			return function*(){
+				return e;
+			}
+		}
+	},
 	copy(from, to) {
 		to = path.join(this.to_env, to || from);
 		from = path.join(this.from_env, from);
+		console.log(to,from);
 		return this.read(from, {
 			encoding: this.encoding(path.extname(from))
 		}).then((data) => {

@@ -128,7 +128,6 @@ const buildJS = function*(target, source, development, onlypaths,logger) {
 	let AllFiles = [];
 	for (var index in source) {
 		AllFiles = AllFiles.concat(readSync(path.join(process.cwd(),path.normalize(source[index]))));
-		console.log(readSync(path.join(process.cwd(),path.normalize(source[index]))),path.join(process.cwd(),path.normalize(source[index])));
 	}
 	if (onlypaths) {
 		return AllFiles;
@@ -231,8 +230,8 @@ const postBuildEmber = function*(ember_app, options) {
 			}),
 			indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8'),
 			meta = new RegExp(`<meta ?name="${emberinternalname}.*" ?content=".*" ?/>`);
-		const links = new RegExp(`<link rel="stylesheet" href=".*?assets/.*.css.*">`, "gm")
-		const scripts = new RegExp(`<script src=".*?assets/.*.js"></script>`, "gm")
+		const links = new RegExp(`<link rel="stylesheet" href=".*?assets/.*.css.*>`, "gm");
+		const scripts = new RegExp(`<script src=".*?assets/.*.js.*></script>`, "gm");
 		text = utils.Compile(indextemplate, {
 			path: options.directory,
 			mount: options.mount,
@@ -261,8 +260,10 @@ module.exports = {
 	],
 	action: function*(config_file, options) {
 		options.prod = options.prod ? "production" : "development";
+		process.env.NODE_ENV = options.prod;
 		config_file = config_file || process.cwd() + '/config/bundles.js';
 		const patterns = require(config_file);
+		yield utils.Copy(path.join('assets','favicon.ico'),path.join('public','favicon.ico'),{encoding:"binary"});
 		if (Object.keys(patterns).length === 0) {
 			console.log("Nothing to compile on: " + config_file);
 		} else {
@@ -304,6 +305,7 @@ module.exports = {
 			}
 			process.stdout.write("Compressing Images");
 			yield compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
+
 			process.stdout.clearLine();
 			process.stdout.cursorTo(0);
 			console.log("Images Compressed");

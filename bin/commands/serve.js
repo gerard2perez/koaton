@@ -10,7 +10,7 @@ let livereload = null;
 let utils = null;
 let buildcmd = null;
 let notifier = null;
-const serverconf = require(path.join(process.cwd(), "config", "server"));
+let serverconf = null;
 const deleted = function(file) {
 	const remove = require("graceful-fs").unlinkSync;
 	try {
@@ -171,6 +171,13 @@ module.exports = {
 	],
 	action: function*(options) {
 		process.env.port = options.port || 62626;
+		options.prod = options.prod ? "production" : "development";
+		process.env.NODE_ENV = options.prod;
+		buildcmd = require('./build');
+		notifier = require('node-notifier');
+		utils = require('../utils');
+		livereload = require('gulp-livereload');
+		serverconf = require(path.join(process.cwd(), "config", "server"));
 		const mainhost = `htpp://${serverconf.hostname}` + (serverconf.port !== 80 ? ":" + serverconf.port : "");
 		const os = require("os");
 		const Promise = require('bluebird'),
@@ -178,17 +185,25 @@ module.exports = {
 			embercfg = require(`${process.cwd()}/config/ember`),
 			env = {
 				welcome: false,
-				NODE_ENV: !options.production ? 'development' : 'production',
-				port: options.port || 62626
+				NODE_ENV: process.env.NODE_ENV,
+				port: process.env.port
 			};
-		buildcmd = require('./build');
-		notifier = require('node-notifier');
-		utils = require('../utils');
-		livereload = require('gulp-livereload');
+		let server_template = yield utils.read(path.join(__dirname,'..',"templates",'nginx_conf_server'),'utf-8');
+		let nginx_conf = yield utils.read(path.join(__dirname,'..',"templates",'nginx_conf_redirect'),'utf-8');
+		const hostname = require(`${process.cwd()}/config/server`).hostname;
+		nginx_conf = utils.Compile(nginx_conf,{hostname: hostname});
+		const subdomains = require(`${process.cwd()}/config/server`).subdomains;
+		for(const idx in subdomains){
+			nginx_conf +=utils.Compile(server_template,{
+				subdomain:subdomains[idx],
+				hostname:hostname,
+				port:process.env.port
+			});
+		}
+		yield utils.write(path.join(process.cwd(),`${require(path.join(process.cwd(),"package.json")).name}.conf`),nginx_conf);
 		if (!options.production) {
 			let subdomains = require(path.join(process.cwd(), 'config', 'server'));
 			let hostname = subdomains.hostname;
-			let port = subdomains.port;
 			subdomains = subdomains.subdomains;
 
 			if (subdomains.indexOf("www") === -1) {
