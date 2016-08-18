@@ -40,6 +40,7 @@ const WactchAndCompressImages = function*(watcher) {
 }
 
 const checkAssetsToBuild = function*(production, watch) {
+	production = production === "production";
 	const spinner = require('../spinner')();
 	spinner.start(50, "Building Bundles".green, undefined, process.stdout.columns);
 	const logger = function(msg) {
@@ -201,7 +202,7 @@ module.exports = {
 			});
 		}
 		yield utils.write(path.join(process.cwd(),`${require(path.join(process.cwd(),"package.json")).name}.conf`),nginx_conf);
-		if (!options.production) {
+		if (options.production==="development") {
 			let subdomains = require(path.join(process.cwd(), 'config', 'server'));
 			let hostname = subdomains.hostname;
 			subdomains = subdomains.subdomains;
@@ -241,7 +242,7 @@ module.exports = {
 			});
 		}
 		screen.start();
-		if (!options.production) {
+		if (options.production==="development") {
 			yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
 				persistent: true,
 				ignoreInitial: true,
@@ -281,7 +282,7 @@ module.exports = {
 					let indexapp = 0;
 					for (var ember_app in embercfg) {
 						ignoreemberdirs.push(path.join("public", ember_app, "/"));
-						if (!options.production) {
+						if (options.production==="development") {
 							const configuration = {
 								directory: embercfg[ember_app].directory,
 								mount: embercfg[ember_app].mount,

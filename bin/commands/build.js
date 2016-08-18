@@ -132,7 +132,6 @@ const buildJS = function*(target, source, development, onlypaths,logger) {
 	if (onlypaths) {
 		return AllFiles;
 	}
-	//console.log(target, source);
 	let result = uglify.minify(AllFiles, {
 		outSourceMap: onlypaths ? false : " /js/" + target + ".map",
 		sourceMapIncludeSources: onlypaths ? false : development,
@@ -186,19 +185,18 @@ const getInflections=function*(app_name,cfg){
 }
 const preBuildEmber = function*(ember_app, options) {
 	const ember_proyect_path = path.join(process.cwd(), "ember", ember_app);
-	const connections = require(`${process.cwd()}/config/connections`);
-	const connection = require(`${process.cwd()}/config/models`).connection;
-	const port = require(path.join(process.cwd(),"config","ember"))[ember_app].adapterport ||  process.env.port || 62626;
-	const hostname = require(`${process.cwd()}/config/server`).hostname;
-	const host = `www.${hostname}`;
+	//const connections = require(`${process.cwd()}/config/connections`);
+	//const connection = require(`${process.cwd()}/config/models`).connection;
+	//const port = require(path.join(process.cwd(),"config","ember"))[ember_app].adapterport ||  process.env.port || 62626;
+	//const hostname = require(`${process.cwd()}/config/server`).hostname;
+	//const host = `www.${hostname}`;
 	options.mount = path.join('/', options.mount || "", "/");
 	options.mount = options.mount.replace(/\\/igm, "/");
 	yield utils.mkdir(path.join(process.cwd(), "ember", ember_app, "app", "adapters"), -1);
 	yield getInflections(ember_app,null);
 	yield utils.compile('ember_apps/adapter.js',
 		path.join("ember", ember_app, "app", "adapters", "application.js"), {
-			localhost: host,
-			port: port
+			adapter: require(path.join(process.cwd(),"config","ember"))[ember_app].adapter
 		}, null);
 	let embercfg = yield utils.read(path.join(ember_proyect_path, "config", "environment.js"), {
 		encoding: 'utf-8'
@@ -237,8 +235,8 @@ const postBuildEmber = function*(ember_app, options) {
 			mount: options.mount,
 			app_name: ember_app,
 			meta: text.match(meta)[0],
-			cssfiles: text.match(links).join("\n").replace(/href=".*?assets/igm, `href="/${ember_app}/assets`),
-			jsfiles: text.match(scripts).join("\n").replace(/src=".*?assets/igm, `src="/${ember_app}/assets`)
+			cssfiles: text.match(links).join("\n").replace(/href=".*?assets/igm, `href="/${ember_app}/assets`).replace(new RegExp(ember_app+"/","gm"),options.directory+"/"),
+			jsfiles: text.match(scripts).join("\n").replace(/src=".*?assets/igm, `src="/${ember_app}/assets`).replace(new RegExp(ember_app+"/","gm"),options.directory+"/")
 		});
 		utils.mkdir(mount_views, -1);
 		yield utils.write(path.join(mount_views, "index.handlebars"), text, true);
@@ -284,9 +282,9 @@ module.exports = {
 			console.log(`Updating bundles (env: ${options.prod})`);
 			for (var key in patterns) {
 				if (key.indexOf(".css") > -1) {
-					yield buildCss(key, patterns[key], !options.prod);
+					yield buildCss(key, patterns[key], options.prod === "development");
 				} else if (key.indexOf(".js") > -1) {
-					yield buildJS(key, patterns[key], !options.prod);
+					yield buildJS(key, patterns[key], options.prod === "development");
 				}
 			}
 			const embercfg = require(`${process.cwd()}/config/ember`);
@@ -297,6 +295,7 @@ module.exports = {
 					build: "development"
 				};
 				yield preBuildEmber(ember_app, configuration);
+				console.log(options.prod);
 				yield buildEmber(ember_app, {
 					mount: embercfg[ember_app].directory,
 					build: options.prod
