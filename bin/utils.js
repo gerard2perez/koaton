@@ -155,7 +155,6 @@ module.exports = {
 	copy(from, to) {
 		to = path.join(this.to_env, to || from);
 		from = path.join(this.from_env, from);
-		console.log(to,from);
 		return this.read(from, {
 			encoding: this.encoding(path.extname(from))
 		}).then((data) => {

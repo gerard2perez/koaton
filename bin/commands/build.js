@@ -252,7 +252,8 @@ module.exports = {
 	description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 	args: ["config_file"],
 	options: [
-		["-p", "--production", "builds for production"]
+		["-p", "--production", "builds for production"],
+		["--port", "--port <port>", "port to build"]
 	],
 	action: function*(config_file, options) {
 		options.prod = options.prod ? "production" : "development";
@@ -276,12 +277,12 @@ module.exports = {
 					utils.rmdir(path.join("public", "css", index.replace(".css", ".css.map")));
 				}
 			}
-			console.log(`Updating bundles (env: ${options.prod})`);
+			console.log(`Updating bundles (env: ${scfg.env})`);
 			for (const key in patterns) {
 				if (key.indexOf(".css") > -1) {
-					yield buildCss(key, patterns[key], options.prod === "development");
+					yield buildCss(key, patterns[key], scfg.env === "development");
 				} else if (key.indexOf(".js") > -1) {
-					yield buildJS(key, patterns[key], options.prod === "development");
+					yield buildJS(key, patterns[key], scfg.env === "development");
 				}
 			}
 			const embercfg = require(`${process.cwd()}/config/ember`);
