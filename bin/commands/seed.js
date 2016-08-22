@@ -12,7 +12,7 @@ module.exports = {
 		let app = new Koa();
 		app.inflect = require(process.cwd() + '/node_modules/i')();
 		try{
-			yield require('../../lib/orm').initialize(app);
+			yield require('../../lib/orm').initialize(app,true);
 		}catch(e){
 			console.log(e.stack);
 		}

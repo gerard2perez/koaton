@@ -70,6 +70,12 @@ class spin {
 			msg: msg
 		});
 	}
+	update(msg){
+		this.pipe({
+			action: "extra",
+			msg: msg
+		});
+	}
 	pipe(msg) {
 		if (msg !== undefined && msg !== null) {
 			switch (msg.action) {

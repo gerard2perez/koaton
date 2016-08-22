@@ -26,12 +26,12 @@ const compressImages = function(files, dest) {
 			imageminMozjpeg({}),
 			imageminPngquant({
 				quality: '70-90',
-				verbose:true
+				verbose: true
 			})
 		]
 	});
 }
-const buildCss = function*(target, source, development, onlypaths,logger) {
+const buildCss = function*(target, source, development, onlypaths, logger) {
 	utils.writeuseslog = logger;
 	const less = require('less'),
 		sass = Promise(require('node-sass').render),
@@ -115,7 +115,7 @@ const buildCss = function*(target, source, development, onlypaths,logger) {
 			yield utils.write(
 				path.join("public", "css", file),
 				concat.content.toString(),
-				'utf-8', true,logger);
+				'utf-8', true, logger);
 			koatonhide[target] = `/css/${file}`;
 		}
 		fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
@@ -123,11 +123,11 @@ const buildCss = function*(target, source, development, onlypaths,logger) {
 	utils.writeuseslog = undefined;
 	return watchinFiles;
 }
-const buildJS = function*(target, source, development, onlypaths,logger) {
+const buildJS = function*(target, source, development, onlypaths, logger) {
 	utils.writeuseslog = logger;
 	let AllFiles = [];
 	for (var index in source) {
-		AllFiles = AllFiles.concat(readSync(path.join(process.cwd(),path.normalize(source[index]))));
+		AllFiles = AllFiles.concat(readSync(path.join(process.cwd(), path.normalize(source[index]))));
 	}
 	if (onlypaths) {
 		return AllFiles;
@@ -166,7 +166,7 @@ const loadConfig = function() {
 		}
 	}
 }
-const getInflections=function*(app_name,cfg){
+const getInflections = function*(app_name, cfg) {
 	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
 		irregular = (inflections.plural || [])
 		.concat(inflections.singular || [])
@@ -181,22 +181,17 @@ const getInflections=function*(app_name,cfg){
 			uncontable: JSON.stringify(uncontable)
 
 		});
-		yield utils.write(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, cfg);
+	yield utils.write(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, cfg);
 }
 const preBuildEmber = function*(ember_app, options) {
 	const ember_proyect_path = path.join(process.cwd(), "ember", ember_app);
-	//const connections = require(`${process.cwd()}/config/connections`);
-	//const connection = require(`${process.cwd()}/config/models`).connection;
-	//const port = require(path.join(process.cwd(),"config","ember"))[ember_app].adapterport ||  process.env.port || 62626;
-	//const hostname = require(`${process.cwd()}/config/server`).hostname;
-	//const host = `www.${hostname}`;
 	options.mount = path.join('/', options.mount || "", "/");
 	options.mount = options.mount.replace(/\\/igm, "/");
 	yield utils.mkdir(path.join(process.cwd(), "ember", ember_app, "app", "adapters"), -1);
-	yield getInflections(ember_app,null);
+	yield getInflections(ember_app, null);
 	yield utils.compile('ember_apps/adapter.js',
 		path.join("ember", ember_app, "app", "adapters", "application.js"), {
-			adapter: require(path.join(process.cwd(),"config","ember"))[ember_app].adapter
+			adapter: require(path.join(process.cwd(), "config", "ember"))[ember_app].adapter
 		}, null);
 	let embercfg = yield utils.read(path.join(ember_proyect_path, "config", "environment.js"), {
 		encoding: 'utf-8'
@@ -219,15 +214,15 @@ const buildEmber = function*(app_name, options) {
 	);
 }
 const postBuildEmber = function*(ember_app, options) {
-	const mount_public = path.normalize(path.join(process.cwd(), "public", options.directory));
-	const mount_views = path.normalize(path.join(process.cwd(), "views", "ember_apps", options.directory));
-	const emberinternalname = require(path.join(process.cwd(), "ember", ember_app,"package.json")).name;
-	if (options.build === "development") {
-		let text = yield utils.read(path.join(mount_public, "index.html"), {
+	const mount_views = ProyPath("views", "ember_apps", options.directory); //path.normalize(path.join(process.cwd(), "views", "ember_apps", options.directory));
+	const emberinternalname = require(ProyPath("ember", ember_app, "package.json" /*path.join(process.cwd(), "ember", ember_app,"package.json"*/ )).name;
+	if (scfg.isDev) {
+		let text = yield utils.read(ProyPath("public", ember_app, "index.html"), {
 				encoding: 'utf-8'
 			}),
-			indextemplate = yield utils.read(path.join(__dirname, "..", "templates", "ember_indexapp"), 'utf-8'),
+			indextemplate = yield utils.read(BinPath("templates", "ember_indexapp"), 'utf-8'),
 			meta = new RegExp(`<meta ?name="${emberinternalname}.*" ?content=".*" ?/>`);
+
 		const links = new RegExp(`<link rel="stylesheet" href=".*?assets/.*.css.*>`, "gm");
 		const scripts = new RegExp(`<script src=".*?assets/.*.js.*></script>`, "gm");
 		text = utils.Compile(indextemplate, {
@@ -235,15 +230,18 @@ const postBuildEmber = function*(ember_app, options) {
 			mount: options.mount,
 			app_name: ember_app,
 			meta: text.match(meta)[0],
-			cssfiles: text.match(links).join("\n").replace(/href=".*?assets/igm, `href="/${ember_app}/assets`).replace(new RegExp(ember_app+"/","gm"),options.directory+"/"),
-			jsfiles: text.match(scripts).join("\n").replace(/src=".*?assets/igm, `src="/${ember_app}/assets`).replace(new RegExp(ember_app+"/","gm"),options.directory+"/")
+			cssfiles: text.match(links).join("\n").replace(/href=".*?assets/igm, `href="/${ember_app}/assets`).replace(new RegExp(ember_app + "/", "gm"), options.directory + "/"),
+			jsfiles: text.match(scripts).join("\n").replace(/src=".*?assets/igm, `src="/${ember_app}/assets`).replace(new RegExp(ember_app + "/", "gm"), options.directory + "/")
 		});
 		utils.mkdir(mount_views, -1);
 		yield utils.write(path.join(mount_views, "index.handlebars"), text, true);
 	}
 }
+const clean = function(file) {
+	utils.rmdir(path.join("public", path.normalize(file)));
+}
 module.exports = {
-	getInflections:getInflections,
+	getInflections: getInflections,
 	compressImages: compressImages,
 	postBuildEmber: postBuildEmber,
 	preBuildEmber: preBuildEmber,
@@ -254,23 +252,22 @@ module.exports = {
 	description: "Make bundles of your .js .scss .css files and output to public folder.\n   Default value is ./config/bundles.js",
 	args: ["config_file"],
 	options: [
-		["-p", "--prod", "builds for production"]
+		["-p", "--production", "builds for production"]
 	],
 	action: function*(config_file, options) {
 		options.prod = options.prod ? "production" : "development";
 		process.env.NODE_ENV = options.prod;
 		config_file = config_file || process.cwd() + '/config/bundles.js';
 		const patterns = require(config_file);
-		yield utils.Copy(path.join('assets','favicon.ico'),path.join('public','favicon.ico'),{encoding:"binary"});
+		yield utils.Copy(path.join('assets', 'favicon.ico'), path.join('public', 'favicon.ico'), {
+			encoding: "binary"
+		});
 		if (Object.keys(patterns).length === 0) {
 			console.log("Nothing to compile on: " + config_file);
 		} else {
 			yield utils.mkdir(path.join(process.cwd(), "public", "js"), -1)
 			yield utils.mkdir(path.join(process.cwd(), "public", "css"), -1)
 			loadConfig();
-			const clean = function(file) {
-				utils.rmdir(path.join("public", path.normalize(file)));
-			}
 			for (let index in koatonhide) {
 				if (koatonhide[index] instanceof Array) {
 					koatonhide[index].forEach(clean);
@@ -280,7 +277,7 @@ module.exports = {
 				}
 			}
 			console.log(`Updating bundles (env: ${options.prod})`);
-			for (var key in patterns) {
+			for (const key in patterns) {
 				if (key.indexOf(".css") > -1) {
 					yield buildCss(key, patterns[key], options.prod === "development");
 				} else if (key.indexOf(".js") > -1) {
@@ -294,20 +291,18 @@ module.exports = {
 					mount: embercfg[ember_app].mount,
 					build: "development"
 				};
+				console.log(ember_app);
 				yield preBuildEmber(ember_app, configuration);
-				console.log(options.prod);
 				yield buildEmber(ember_app, {
 					mount: embercfg[ember_app].directory,
-					build: options.prod
+					build: options.prod,
+					directory: embercfg[ember_app].directory
 				});
 				yield postBuildEmber(ember_app, configuration);
 			}
-			process.stdout.write("Compressing Images");
+			utils.log("Compressing Images");
 			yield compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
-
-			process.stdout.clearLine();
-			process.stdout.cursorTo(0);
-			console.log("Images Compressed");
+			utils.nlog("Images Compressed");
 		}
 	}
 };

@@ -44,16 +44,12 @@ const checkAssetsToBuild = function*(production, watch) {
 	const spinner = require('../spinner')();
 	spinner.start(50, "Building Bundles".green, undefined, process.stdout.columns);
 	const logger = function(msg) {
-		spinner.pipe({
-			action: "extra",
-			msg: msg.replace(/\n|\t/igm, "")
-		});
-	}
+		spinner.update(msg.replace(/\n|\t/igm, ""));
+	};
 	yield utils.mkdir(path.join(process.cwd(), "public", "css"), -1);
 	yield utils.mkdir(path.join(process.cwd(), "public", "js"), -1);
 	const co = require('co'),
 		assets = require('./build'),
-		//bundles = JSON.parse(yield utils.read(path.join(process.cwd(), "./.koaton_bundle"))),
 		bundlescfg = require(path.join(process.cwd(), "config", "bundles.js"));
 	let files = {};
 	for (const file in bundlescfg) {
@@ -113,7 +109,7 @@ const serveEmber = function(app, cfg, index) {
 			log: false,
 			result: ""
 		};
-		const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", app), "--port", 4200 + index], {
+		const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", cfg.directory), "--port", 4200 + index], {
 			cwd: path.join(process.cwd(), "ember", app)
 		});
 		ember.stdout.on('data', (buffer) => {
@@ -288,14 +284,17 @@ module.exports = {
 								mount: embercfg[ember_app].mount,
 								build: "development"
 							};
+							console.log(1);
 							utils.nlog(`Building ${ember_app.green} second plane`);
 							yield buildcmd.preBuildEmber(ember_app, configuration);
+							console.log(2);
 							let b = serveEmber(ember_app, embercfg[ember_app], indexapp)
 							building.push(b);
 							yield b;
+							console.log(3);
 							yield buildcmd.postBuildEmber(ember_app, configuration);
+							console.log(4);
 						} else {
-							let host = embercfg[ember_app].subdomain + serverconf.hostname + (serverconf.port !== 80 ? ":" + serverconf.port : "");
 							building.push(Promise.resolve(
 								{
 									log: false,

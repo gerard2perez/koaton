@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /*eslint no-process-exit: 0*/
+"use strict";
 const path = require("upath");
 const program = require('commander');
 const commands = require('./commands');
@@ -13,6 +14,45 @@ if (!help || help === "-h" || help === "--help") {
 	console.log(h(commands));
 	process.exit(0);
 }
+process.env.NODE_ENV = process.argv.indexOf("-p")>-1||process.argv.indexOf("--production")>-1 ? "production":"development";
+var port = process.argv.indexOf("--port");
+port=parseInt(process.argv[port+1] || 62626,10);
+process.env.port = port;
+require('../lib/scfg');
+
+GLOBAL.ProyPath=function(){
+	var args = Array.prototype.slice.call(arguments);
+	args.splice(0,0,process.cwd());
+	return path.normalize(path.join.apply(path,args));
+};
+var dir = __dirname;
+GLOBAL.BinPath=function(){
+	var args = Array.prototype.slice.call(arguments);
+	args.splice(0,0,dir);
+	//args.splice(1,0,"bin");
+	return path.normalize(path.join.apply(path,args));
+};
+/*
+class live{
+	constructor(path){
+		this.data = require(path);
+		for(const property in this.data){
+			Object.defineProperty(this, property, {
+			    get: function() {
+			        return this.data[property];
+			    },
+			    set: function(name) {
+			        var words = name.split(' ');
+			        this.firstName = words[0] || '';
+			        this.lastName = words[1] || '';
+			    }
+			});
+		}
+	}
+}
+GLOBAL.liveOBJ=function(path){
+	var body=function(){}
+}*/
 commands.forEach(function(definition) {
 	try {
 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";

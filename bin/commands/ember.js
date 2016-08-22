@@ -4,6 +4,7 @@ const fs = require('graceful-fs');
 let ember_proyect_path;
 let utils;
 const newproyect = function*(app_name, options) {
+	console.log(scfg);
 	const buildcmd = require("./build");
 	const prompt = require("co-prompt");
 	let override = !utils.canAccess(ember_proyect_path);
@@ -73,7 +74,6 @@ module.exports = {
 			const host = connections[connection].host;
 			options.mount = path.join('/', options.mount || "");
 			options.mount = options.mount.replace(/\\/igm, "/");
-			//console.log(`mounting ${app_name.green} on path ${options.mount.cyan}`);
 			yield utils.mkdir(path.join(process.cwd(), "ember", app_name, "app", "adapters"));
 			yield utils.compile('ember_apps/adapter.js',
 				path.join("ember", app_name, "app", "adapters", "application.js"), {
@@ -86,6 +86,7 @@ module.exports = {
 				mount: options.mount,
 				directory: app_name,
 				access: "public",
+				adapter:"localhost",
 				subdomain:options.subdomain||"www"
 			};
 			yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
