@@ -106,6 +106,22 @@ module.exports = {
 	 */
 	_write: Promise.promisify(fs.writeFile),
 	writeuseslog:undefined,
+	writeSync(file,content,mode){
+		let printfn = this.writeuseslog ? this.writeuseslog:console.log;
+		file = path.normalize(file);
+		fs.writeFileSync(file,content);
+		if(this.canAccess(file)){
+			const head = path.basename(file);
+			const body = file.replace(path.join(process.cwd(), "/"), "").replace(head, "");
+			if(mode!==null){
+				printfn(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
+			}
+			return file;
+		}
+		else{
+			return null;
+		}
+	},
 	write(file, content, mode) {
 		let printfn = this.writeuseslog ? this.writeuseslog:console.log;
 		file = path.normalize(file);

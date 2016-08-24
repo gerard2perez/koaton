@@ -8,7 +8,6 @@ const uglify = require("uglify-js");
 const Promise = require('bluebird').promisify;
 const Concat = require('concat-with-sourcemaps');
 
-let koatonhide = {};
 const hasFileName = function(file, content) {
 	const basename = path.trimExt(file);
 	const ext = file.replace(basename, "");
@@ -32,6 +31,7 @@ const compressImages = function(files, dest) {
 	});
 }
 const buildCss = function*(target, source, development, onlypaths, logger) {
+	Kmetadata.bundles[target]=[];
 	utils.writeuseslog = logger;
 	const less = require('less'),
 		sass = Promise(require('node-sass').render),
@@ -42,7 +42,6 @@ const buildCss = function*(target, source, development, onlypaths, logger) {
 			advanced: true
 		}),
 		watchinFiles = [];
-	koatonhide[target] = [];
 	for (let index in source) {
 		if (!development) {
 			utils.rmdir(path.join("public", "css", index + target));
@@ -64,9 +63,9 @@ const buildCss = function*(target, source, development, onlypaths, logger) {
 			if (development) {
 				watchinFiles[index + target] = content.imports;
 				if (!onlypaths) {
-					yield utils.write(path.join("public", "css", index + target), content.css.toString(), 'utf-8', true);
+					utils.writeSync(path.join("public", "css", index + target), content.css.toString(), 'utf-8', true);
 				}
-				koatonhide[target].push(`/css/${index+target}`);
+				Kmetadata.bundles[target].push(`/css/${index+target}`);
 			} else {
 				concat.add(basename, content.css, concat.map);
 			}
@@ -83,9 +82,9 @@ const buildCss = function*(target, source, development, onlypaths, logger) {
 			if (development) {
 				watchinFiles[index + target] = content.stats.includedFiles;
 				if (!onlypaths) {
-					yield utils.write(path.join("public", "css", index + target), content.css.toString(), 'utf-8', true);
+					utils.writeSync(path.join("public", "css", index + target), content.css.toString(), 'utf-8', true);
 				}
-				koatonhide[target].push(`/css/${index+target}`);
+				Kmetadata.bundles[target].push(`/css/${index+target}`);
 			} else {
 				concat.add(basename, content.css, concat.map);
 			}
@@ -97,9 +96,9 @@ const buildCss = function*(target, source, development, onlypaths, logger) {
 					for (const url in watchinFiles[index + target]) {
 						concatCSS.add(target, fs.readFileSync(watchinFiles[index + target][url]));
 					}
-					yield utils.write(path.join("public", "css", index + target), concatCSS.content, 'utf-8', true);
+					utils.writeSync(ProyPath("public", "css", index + target), concatCSS.content);
+					Kmetadata.bundles[target].push(`/css/${index+target}`);
 				}
-				koatonhide[target].push(`/css/${index+target}`);
 			} else {
 				const concatCSS = new Concat(true, path.join("css", basename), '\n');
 				for (const url in watchinFiles[index + target]) {
@@ -112,13 +111,11 @@ const buildCss = function*(target, source, development, onlypaths, logger) {
 	if (!onlypaths) {
 		if (!development) {
 			const file = hasFileName(target, concat.content.toString());
-			yield utils.write(
+			utils.writeSync(
 				path.join("public", "css", file),
-				concat.content.toString(),
-				'utf-8', true, logger);
-			koatonhide[target] = `/css/${file}`;
+				concat.content.toString(),true);
+			Kmetadata.bundles[target] = `/css/${file}`;
 		}
-		fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
 	}
 	utils.writeuseslog = undefined;
 	return watchinFiles;
@@ -144,27 +141,17 @@ const buildJS = function*(target, source, development, onlypaths, logger) {
 	});
 	if (!onlypaths) {
 		const file = hasFileName(target, result.code.toString());
-		yield utils.write(path.join("public", "js", file), result.code, {
+		utils.writeSync(path.join("public", "js", file), result.code, {
 			encoding: 'utf-8'
 		}, true);
 		if (development) {
 			fs.writeFileSync(path.join("public", "js", target + ".map"), result.map, 'utf8');
 		}
 
-		koatonhide[target] = "/js/" + file;
-		fs.writeFileSync(".koaton_bundle", JSON.stringify(koatonhide), 'utf8');
+		Kmetadata.bundles[target] = "/js/" + file;
 	}
 	utils.writeuseslog = undefined;
 	return AllFiles;
-}
-const loadConfig = function() {
-	if (utils.canAccess(path.join(process.cwd(), ".koaton_bundle"))) {
-		try {
-			koatonhide = JSON.parse(fs.readFileSync(path.join(process.cwd(), ".koaton_bundle")));
-		} catch (err) {
-			koatonhide = {};
-		}
-	}
 }
 const getInflections = function*(app_name, cfg) {
 	const inflections = require(path.join(process.cwd(), "config", "inflections.js")),
@@ -181,7 +168,7 @@ const getInflections = function*(app_name, cfg) {
 			uncontable: JSON.stringify(uncontable)
 
 		});
-	yield utils.write(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, cfg);
+	utils.writeSync(path.join("ember", app_name, "app", "initializers", "inflector.js"), inflector, cfg);
 }
 const preBuildEmber = function*(ember_app, options) {
 	const ember_proyect_path = path.join(process.cwd(), "ember", ember_app);
@@ -198,7 +185,7 @@ const preBuildEmber = function*(ember_app, options) {
 	});
 	embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
 	embercfg = embercfg.replace(/rootURL: ?'.*',/, `rootURL: '${options.mount}',`);
-	yield utils.write(path.join(ember_proyect_path, "config", "environment.js"), embercfg, null);
+	utils.writeSync(path.join(ember_proyect_path, "config", "environment.js"), embercfg, null);
 }
 const buildEmber = function*(app_name, options) {
 	yield utils.mkdir(path.join(process.cwd(), "public", options.mount));
@@ -234,7 +221,7 @@ const postBuildEmber = function*(ember_app, options) {
 			jsfiles: text.match(scripts).join("\n").replace(/src=".*?assets/igm, `src="/${ember_app}/assets`).replace(new RegExp(ember_app + "/", "gm"), options.directory + "/")
 		});
 		utils.mkdir(mount_views, -1);
-		yield utils.write(path.join(mount_views, "index.handlebars"), text, true);
+		utils.writeSync(path.join(mount_views, "index.handlebars"), text, true);
 	}
 }
 const clean = function(file) {
@@ -268,12 +255,11 @@ module.exports = {
 		} else {
 			yield utils.mkdir(path.join(process.cwd(), "public", "js"), -1)
 			yield utils.mkdir(path.join(process.cwd(), "public", "css"), -1)
-			loadConfig();
-			for (let index in koatonhide) {
-				if (koatonhide[index] instanceof Array) {
-					koatonhide[index].forEach(clean);
+			for (let index in Kmetadata.bundles) {
+				if (Kmetadata.bundles[index] instanceof Array) {
+					Kmetadata.bundles[index].forEach(clean);
 				} else {
-					utils.rmdir(path.join("public", path.normalize(koatonhide[index])));
+					utils.rmdir(path.join("public", path.normalize(Kmetadata.bundles[index])));
 					utils.rmdir(path.join("public", "css", index.replace(".css", ".css.map")));
 				}
 			}

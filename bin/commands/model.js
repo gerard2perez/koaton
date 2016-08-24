@@ -133,7 +133,7 @@ module.exports = {
 	${"Fields syntax".yellow}:
 		${"field_name"}:${"type".cyan}	${"[ ".yellow+Object.keys(datatypes).map((c)=>{return c.toLowerCase().cyan}).join( " | ".yellow )+" ]".yellow}
 	${"example:".yellow}
-		koaton model User "active:integer name email password note:text created:date"
+		koaton model User "active:integer name email password note:text created:date\r\n\t\tkoaton model User hasmany Phone phones phoneId"
 `,
 	args: ["name", "fields|linkaction", "[destmodel]", "[relation_property]", "[foreign_key]"],
 	options: [
