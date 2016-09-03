@@ -4,6 +4,7 @@
 //process.stdout.write('\e[3J');
 //process.stdout.write('\x1Bc');
 //process.stdout.write('clear');
+require('../lib/scfg');
 process.stdout.write('\x1Bc');
 let prefix = "";
 const path = require('path');
@@ -227,8 +228,7 @@ testengine(function*(suite) {
 	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","js"));
 	try{
 		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".gitignore"));
-		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_bundle"));
-		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton_database"));
+		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton"));
 		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"app.js"));
 		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"bower.json"));
 		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"package.json"));

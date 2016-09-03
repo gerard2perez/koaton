@@ -1,56 +1,55 @@
 #!/usr/bin/env node
+
 /*eslint no-process-exit: 0*/
 "use strict";
+const utils = require('./utils');
+process.env.isproyect = utils.canAccess('public') &&
+	utils.canAccess('app.js') &&
+	utils.canAccess('bower.json') &&
+	utils.canAccess('package.json') &&
+	utils.canAccess('routes') &&
+	utils.canAccess('config');
+process.env.NODE_ENV = process.argv.indexOf("-p") > -1 || process.argv.indexOf("--production") > -1 ? "production" : "development";
+var port = process.argv.indexOf("--port");
+port = parseInt(process.argv[port + 1] || 62626, 10);
+process.env.port = port;
+
+require('../lib/scfg');
 const path = require("upath");
 const program = require('commander');
 const commands = require('./commands');
+const pcmds = require("./commands/help").include();
 const co = require("co");
-const utils = require('./utils');
 const help = process.argv.slice(2)[0];
+const version = require(BinPath("..", "package.json")).version;
 require('colors');
-
 if (!help || help === "-h" || help === "--help") {
+	let help = "";
+	help += `  version: ${version}\n`;
+	help += "  Command list:\n";
+	console.log(help);
 	const h = require("./commands/help").many;
 	console.log(h(commands));
+	if (pcmds.length > 0) {
+		console.log("Project commands:\n");
+		console.log(h(pcmds));
+	}
 	process.exit(0);
 }
-process.env.NODE_ENV = process.argv.indexOf("-p")>-1||process.argv.indexOf("--production")>-1 ? "production":"development";
-var port = process.argv.indexOf("--port");
-port=parseInt(process.argv[port+1] || 62626,10);
-process.env.port = port;
-require('../lib/scfg');
-GLOBAL.ProyPath=function(){
-	var args = Array.prototype.slice.call(arguments);
-	args.splice(0,0,process.cwd());
-	return path.normalize(path.join.apply(path,args));
-};
-var dir = __dirname;
-GLOBAL.BinPath=function(){
-	var args = Array.prototype.slice.call(arguments);
-	args.splice(0,0,dir);
-	return path.normalize(path.join.apply(path,args));
-};
-commands.forEach(function(definition) {
+
+commands.concat(pcmds).forEach(function(definition) {
 	try {
 		var args = definition.args.length > 0 ? `[${definition.args.join("] [")}]` : "";
 		var command = program.command(`${definition.cmd} ${args}`)
 			.description(definition.description)
 			.action(co.wrap(function*() {
 				try {
-					if ( !(definition.cmd === "new" || definition.cmd === "semver") && !(
-							utils.canAccess('public') &&
-							utils.canAccess('app.js') &&
-							utils.canAccess('bower.json') &&
-							utils.canAccess('package.json') &&
-							utils.canAccess('routes') &&
-							utils.canAccess('config')
-						)) {
+					if (!(definition.cmd === "new" || definition.cmd === "semver") && process.env.isproyect==='false') {
 						throw definition.cmd;
 					}
 					if (definition.cmd !== "new" && definition.cmd !== "barebone") {
 						const localversion = require(path.join(process.cwd(), "package.json")).dependencies.koaton;
 						console.log(`koaton ${require('../package.json').version} -> ${localversion}`);
-						console.log((new Date()).toString());
 					}
 				} catch (e) {
 					console.log();
@@ -66,7 +65,7 @@ commands.forEach(function(definition) {
 					console.log(err.stack);
 					process.exit(1);
 				}
-				process.exit(exitCode === 0 ? 0 : 1);
+				process.exit( (exitCode === 0 || exitCode === undefined) ? 0 : 1);
 			}));
 		if (definition.alias) {
 			command.alias(definition.alias);

@@ -71,5 +71,8 @@
     "uglify-js": "^2.6.4",
     "upath": "^0.2.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "ncp": "^2.0.0",
+    "tap": "^7.0.0"
+  }
 }

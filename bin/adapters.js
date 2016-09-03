@@ -18,5 +18,4 @@ module.exports.template=
 Object.keys(adapters).forEach((adapter)=>{
 	module.exports.adapters.push(adapter);
 });
-
-module.exports.connections = adapters;
+//module.exports.connections = adapters;

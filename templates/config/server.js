@@ -7,7 +7,10 @@ var host = 'http://localhost' + (port != 80 ? ':' + port : '');
 var DEBUG = env !== 'production'
 
 module.exports = {
-	hosts:[
+	pagination:{
+		limit:50
+	},
+	subdomains:[
 		"www"
 	],
 	//http://koajs.com/#application,

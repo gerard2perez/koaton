@@ -18,7 +18,6 @@ const setupInit = function*() {
 	yield utils.mkdir(path.join(proypath, "ember"));
 	yield utils.compile('app.js');
 	yield utils.copy("./.gitignore", './.gitignore');
-	yield utils.copy("./.koaton_bundle", './.koaton_bundle');
 	yield utils.mkdir(path.join(proypath, "config"));
 }
 const setupConfig = function*(app) {
@@ -27,6 +26,7 @@ const setupConfig = function*(app) {
 	yield utils.compile('config/views.js');
 	yield utils.compile('config/inflections.js');
 	yield utils.compile('config/ember.js');
+	yield utils.compile('config/copy.js');
 	yield utils.compile('config/server.js', {
 		key: `"${(yield secret(48)).toString('hex')}"`
 	});

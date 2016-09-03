@@ -1,334 +1,389 @@
 "use strict";
-const screen = require('../../lib/welcome');
-const chokidar = require('chokidar');
-const path = require('path');
-const watching = [];
-const Promise = require('bluebird');
-const fs = require("graceful-fs");
-let building = [];
-let livereload = null;
-let utils = null;
-let buildcmd = null;
-let notifier = null;
-let serverconf = null;
+const MM = require('../modelmanager'),
+	screen = require('../../lib/welcome'),
+	chokidar = require('chokidar'),
+	path = require('path'),
+	watching = [],
+	Promise = require('bluebird'),
+	fs = require("graceful-fs"),
+	co = require('co');
+let building = [],
+	livereload = null,
+	utils = null,
+	buildcmd = null,
+	notifier = null;
 const deleted = function(file) {
-	const remove = require("graceful-fs").unlinkSync;
-	try {
-		remove(file.replace("assets", "public"));
-	} catch (e) {
-		console.log(file.replace("assets", "public"));
-	}
-	livereload.reload(file);
-}
-
-const compress = function(file) {
-	buildcmd.compressImages([file], file.replace(path.basename(file), "").replace("assets", "public")).then(() => {
+		const remove = require("graceful-fs").unlinkSync;
+		try {
+			remove(file.replace("assets", "public"));
+		} catch (e) {
+			console.log(file.replace("assets", "public"));
+		}
 		livereload.reload(file);
-	});
-}
-const WactchAndCompressImages = function*(watcher) {
-	const spinner = require('../spinner')();
-	spinner.start(50, "Compressing Images".green, undefined, process.stdout.columns);
-	watching.push(watcher);
-	yield buildcmd.compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
-	watcher
-		.on('change', compress)
-		.on('unlink', deleted)
-		.on('add', compress);
-	spinner.end("Images Compressed " + `✓`.green);
-}
+	},
+	compress = function(file) {
+		buildcmd.compressImages([file], file.replace(path.basename(file), "").replace("assets", "public")).then(() => {
+			livereload.reload(file);
+		});
+	},
+	WactchAndCompressImages = function*(watcher) {
+		const spinner = require('../spinner')();
+		spinner.start(50, "Compressing Images".green, undefined, process.stdout.columns);
+		watching.push(watcher);
+		yield buildcmd.compressImages([path.join('assets', 'img', '*.{jpg,png}')], path.join('public', 'img'));
+		watcher
+			.on('change', compress)
+			.on('unlink', deleted)
+			.on('add', compress);
+		spinner.end("Images Compressed " + `✓`.green);
+	},
+	checkAssetsToBuild = function*(watch) {
+		//===Constants
+		const spinner = require('../spinner')(),
+			glob = require('glob'),
+			co = require('co'),
+			assets = require('./build');
+		spinner.start(50, "Building Bundles".green, undefined, process.stdout.columns);
+		yield utils.mkdir(ProyPath("public", "css"), -1);
+		yield utils.mkdir(ProyPath("public", "js"), -1);
+		//==>
+		let BundleMappings = {},
+			BundleDir = path.normalize(ProyPath("config", "bundles.js")),
+			BundleSource = require(BundleDir),
+			production = scfg.env === "production";
+		/*
+		 *	Usefull functions
+		 */
+		const DetectChanges = function() {
+				co(function*() {
+					try {
+						delete require.cache[BundleDir];
+						const newconf = require(BundleDir);
+						for (const branch in newconf) {
+							if (hasChanged(BundleSource[branch], newconf[branch])) {
+								let differences = getDiferences(BundleSource[branch], newconf[branch]);
+								let reload = differences.added[0];
+								if (differences.isnew) {
+									yield getMapping(branch, newconf[branch]);
+								} else {
+									BundleMappings[branch].watcher.unwatch(differences.removed);
+									BundleMappings[branch].watcher.add(differences.added);
 
-const checkAssetsToBuild = function*(watch) {
-	//===Constants
-	const spinner = require('../spinner')(),
-		glob = require('glob'),
-		co = require('co'),
-		assets = require('./build');
-	spinner.start(50, "Building Bundles".green, undefined, process.stdout.columns);
-	yield utils.mkdir(ProyPath("public", "css"), -1);
-	yield utils.mkdir(ProyPath("public", "js"), -1);
-	//==>
-	let BundleMappings = {},
-		BundleDir = path.normalize(ProyPath("config", "bundles.js")),
-		BundleSource = require(BundleDir),
-		production = scfg.env === "production";
-	/*
-	 *	Usefull functions
-	 */
-	const DetectChanges = function() {
-			co(function*() {
-				try {
-					delete require.cache[BundleDir];
-					const newconf = require(BundleDir);
-					for (const branch in newconf) {
-						if (hasChanged(BundleSource[branch], newconf[branch])) {
-							let differences = getDiferences(BundleSource[branch], newconf[branch]);
-							if (differences.isnew) {
-								yield getMapping(branch, newconf[branch]);
-							} else {
-								BundleMappings[branch].watcher.unwatch(differences.removed);
-								BundleMappings[branch].watcher.add(differences.added);
+								}
+								console.log("touching", reload);
+								fs.closeSync(fs.openSync(reload, 'a'));
 							}
 						}
+						BundleSource = newconf;
+					} catch (e) {
+						console.log(e.stack);
 					}
-					BundleSource = newconf;
-				} catch (e) {
-					console.log(e.stack);
-				}
-			});
-		},
-		RebuildAndReload = function(compiledFile, target, sources, build) {
-			co(function*() {
-				yield build(target, sources, !production);
-			}).then(() => {
-				livereload.reload(compiledFile);
-				notifier.notify({
-					title: 'Koaton',
-					message: `Reloading ${compiledFile} on ${target}`,
-					icon: path.join(__dirname, 'koaton.png'),
-					sound: 'Hero',
-					wait: false
 				});
-			});
-		},
-		getDiferences = function(oldbranch, newbranch) {
-			let isnew = oldbranch === undefined;
-			oldbranch = oldbranch || [];
-			newbranch = newbranch || [];
-			let added = [],
-				removed = [];
-			for (const file in newbranch) {
-				if (oldbranch.indexOf(newbranch[file]) === -1) {
-					added = added.concat(glob.sync(newbranch[file]));
+			},
+			RebuildAndReload = function(compiledFile, targets, sources, build) {
+				console.log("some loading");
+				co(function*() {
+					yield build(compiledFile, sources, !production);
+				}).then(() => {
+					targets.forEach(function(target) {
+						livereload.reload(target);
+					});
+					notifier.notify({
+						title: 'Koaton',
+						message: `Reloading ${compiledFile} on ${target}`,
+						icon: path.join(__dirname, 'koaton.png'),
+						sound: 'Hero',
+						wait: false
+					});
+				});
+			},
+			getDiferences = function(oldbranch, newbranch) {
+				let isnew = oldbranch === undefined;
+				oldbranch = oldbranch || [];
+				newbranch = newbranch || [];
+				let added = [],
+					removed = [];
+				for (const file in newbranch) {
+					if (oldbranch.indexOf(newbranch[file]) === -1) {
+						added = added.concat(glob.sync(newbranch[file]));
+					}
 				}
-			}
-			for (const file in oldbranch) {
-				if (newbranch.indexOf(oldbranch[file]) === -1) {
-					removed = removed.concat(glob.sync(oldbranch[file]));
+				for (const file in oldbranch) {
+					if (newbranch.indexOf(oldbranch[file]) === -1) {
+						removed = removed.concat(glob.sync(oldbranch[file]));
+					}
 				}
-			}
-			return {
-				isnew: isnew,
-				added: added.filter((file) => {
-					return removed.indexOf(file) === -1;
-				}),
-				removed: removed.filter((file) => {
-					return added.indexOf(file) === -1;
-				})
-			};
-		},
-		hasChanged = function(oldbranch, newbranch) {
-			if (oldbranch === undefined) {
-				return true;
-			}
-			for (const file in newbranch) {
-				if (oldbranch.indexOf(newbranch[file]) === -1) {
+				return {
+					isnew: isnew,
+					added: added.filter((file) => {
+						return removed.indexOf(file) === -1;
+					}),
+					removed: removed.filter((file) => {
+						return added.indexOf(file) === -1;
+					})
+				};
+			},
+			hasChanged = function(oldbranch, newbranch) {
+				if (oldbranch === undefined) {
 					return true;
 				}
-			}
-			for (const file in oldbranch) {
-				if (newbranch.indexOf(oldbranch[file]) === -1) {
-					return true;
+				for (const file in newbranch) {
+					if (oldbranch.indexOf(newbranch[file]) === -1) {
+						return true;
+					}
 				}
-			}
-			return false;
-		},
-		logger = function(msg) {
-			spinner.update(msg.replace(/\n|\t/igm, ""));
-		},
-		getMapping = function*(file, config) {
-			if (file.indexOf(".css") > -1) {
-				let buildresult = yield assets.buildCSS(file, config, !production, production && !(utils.canAccess(ProyPath("public", "css", file))), logger);
-				let paths = [];
-				for (let _ in buildresult) {
-					paths = paths.concat(buildresult[_]);
-					/*BundleMappings[f] = {
-						Target: file,
+				for (const file in oldbranch) {
+					if (newbranch.indexOf(oldbranch[file]) === -1) {
+						return true;
+					}
+				}
+				return false;
+			},
+			logger = function(msg) {
+				spinner.update(msg.replace(/\n|\t/igm, ""));
+			},
+			getMapping = function*(file, config) {
+				if (file.indexOf(".css") > -1) {
+					let buildresult = yield assets.buildCSS(file, config, !production, production && !(utils.canAccess(ProyPath("public", "css", file))), logger);
+					let paths = [];
+					let targets = [];
+					for (let _ in buildresult) {
+						targets.push(_);
+						paths = paths.concat(buildresult[_]);
+						/*BundleMappings[f] = {
+							Target: file,
+							Sources: config,
+							Build: assets.buildCSS,
+							watcher: new watch(ffs[f], {
+								persistent: true,
+								ignoreInitial: true,
+								alwaysStat: false,
+								awaitWriteFinish: {
+									stabilityThreshold: 1000,
+									pollInterval: 100
+								}
+							})
+						};*/
+					}
+					BundleMappings[file] = {
+						Target: targets,
 						Sources: config,
 						Build: assets.buildCSS,
-						watcher: new watch(ffs[f], {
+						watcher: new watch(paths, {
 							persistent: true,
 							ignoreInitial: true,
 							alwaysStat: false,
 							awaitWriteFinish: {
-								stabilityThreshold: 1000,
+								stabilityThreshold: 300,
 								pollInterval: 100
 							}
 						})
-					};*/
+					};
+				} else {
+					BundleMappings[path.basename(file)] = {
+						Target: [file],
+						Sources: config,
+						Build: assets.buildJS,
+						watcher: new watch(yield assets.buildJS(file, config, !production, production && !utils.canAccess(ProyPath("public", "js", file)), logger), {
+							persistent: true,
+							ignoreInitial: true,
+							alwaysStat: false,
+							awaitWriteFinish: {
+								stabilityThreshold: 300,
+								pollInterval: 100
+							}
+						})
+					};
 				}
-				BundleMappings[file] = {
-					Target: file,
-					Sources: config,
-					Build: assets.buildCSS,
-					watcher: new watch(paths, {
-						persistent: true,
-						ignoreInitial: true,
-						alwaysStat: false,
-						awaitWriteFinish: {
-							stabilityThreshold: 300,
-							pollInterval: 100
-						}
-					})
-				};
-			} else {
-				BundleMappings[path.basename(file)] = {
-					Target: file,
-					Sources: config,
-					Build: assets.buildJS,
-					watcher: new watch(yield assets.buildJS(file, config, !production, production && !utils.canAccess(ProyPath("public", "js", file)), logger), {
-						persistent: true,
-						ignoreInitial: true,
-						alwaysStat: false,
-						awaitWriteFinish: {
-							stabilityThreshold: 300,
-							pollInterval: 100
-						}
-					})
-				};
+				if (!production) {
+					let element = BundleMappings[file];
+					let rebuild = RebuildAndReload.bind(null, file, element.Target, element.Sources, element.Build);
+					element.watcher
+						.on('change', rebuild)
+				}
 			}
-		}
 
-	/*
-	 * Watch the bundle configuration file to rebuild changed or added bundles;
-	 */
-	const bwatcher = new watch(ProyPath("config", "bundles.js"), {
-		persistent: true,
-		ignoreInitial: true,
-		alwaysStat: false,
-		awaitWriteFinish: {
-			stabilityThreshold: 300,
-			pollInterval: 100
-		}
-	});
-	bwatcher.on('change', DetectChanges);
-	for (const file in BundleSource) {
-		yield getMapping(file, BundleSource[file]);
-	}
-	//console.log(BundleMappings);
-	if (!production) {
-		for (const watchfile in BundleMappings) {
-			const element = BundleMappings[watchfile];
-			let rebuild = RebuildAndReload.bind(null, watchfile, element.Target, element.Sources, element.Build);
-			element.watcher
-				.on('change', rebuild)
-				//.on('unlink', rebuild)
-				//.on('add', rebuild)
-				//.on('unlinkDir', rebuild);
-			;
-		}
-	}
-	/*let production = scfg.env === "production";
-
-
-		bundlescfg = require(ProyPath("config", "bundles.js"));
-	for (const file in bundlescfg) {
-		if (file.indexOf(".css") > -1) {
-			let ffs = yield assets.buildCSS(file, bundlescfg[file], !production, production && !(utils.canAccess(path.join(process.cwd(), "public", "css", file))), logger);
-			for (let f in ffs) {
-				BundleMappings[f] = {
-					Paths: ffs[f],
-					Target: file,
-					Sources: bundlescfg[file],
-					Build: assets.buildCSS,
-					watcher: null
-				};
+		/*
+		 * Watch the bundle configuration file to rebuild changed or added bundles;
+		 */
+		const bwatcher = new watch(ProyPath("config", "bundles.js"), {
+			persistent: true,
+			ignoreInitial: true,
+			alwaysStat: false,
+			awaitWriteFinish: {
+				stabilityThreshold: 300,
+				pollInterval: 100
 			}
-		} else {
-			BundleMappings[path.basename(file)] = {
-				Paths: yield assets.buildJS(file, bundlescfg[file], !production, production && !utils.canAccess(path.join(process.cwd(), "public", "js", file)), logger),
-				Target: file,
-				Sources: bundlescfg[file],
-				Build: assets.buildJS,
-				watcher: null
+		});
+		bwatcher.on('change', DetectChanges);
+		for (const file in BundleSource) {
+			yield getMapping(file, BundleSource[file]);
+		}
+		spinner.end("Bundles Built " + `✓`.green);
+		return true;
+	},
+	serveEmber = function(app, cfg, index) {
+		return Promise.promisify((app, mount, subdomain, cb) => {
+			let appst = {
+				log: false,
+				result: ""
 			};
-		}
-	}
-	if (!production) {
-		for (const watchfile in BundleMappings) {
-			const element = BundleMappings[watchfile];
-			let rebuild = RebuildAndReload.bind(null, watchfile, element.Target, element.Sources, element.Build);
-			element.watcher = new watch(element.Paths, {
-				persistent: true,
-				ignoreInitial: true,
-				alwaysStat: false,
-				awaitWriteFinish: {
-					stabilityThreshold: 1000,
-					pollInterval: 100
+			const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", cfg.directory), "--port", 4200 + index], {
+				cwd: path.join(process.cwd(), "ember", app)
+			});
+			ember.stdout.on('data', (buffer) => {
+				if (appst.log) {
+					console.log(buffer.toString());
+				} else if (buffer.toString().indexOf("Build successful") > -1) {
+					if (cb) {
+						subdomain = subdomain ? subdomain + "." : "";
+						appst.result = `${app.yellow} → http://${scfg.hostname}:${scfg.port}${mount.cyan}`;
+						cb(null, appst);
+						cb = null;
+						let watcher = new chokidar.watch(path.join(process.cwd(), 'public', app, '/'), {
+							persistent: true,
+							ignoreInitial: true,
+							alwaysStat: false,
+							awaitWriteFinish: {
+								stabilityThreshold: 2000,
+								pollInterval: 100
+							}
+						});
+						const rebuild = function() {
+							co(function*(){
+								yield TriggerEvent('post', 'ember_build');
+								yield koaton_modules_postbuild();
+							});
+							livereload.reload();
+							notifier.notify({
+								title: 'Koaton',
+								message: `EmberApp ${app} changed ...`,
+								icon: path.join(__dirname, 'koaton.png'),
+								sound: 'Basso'
+							});
+						}
+						watcher
+							.on('change', rebuild)
+							.on('unlink', rebuild)
+							.on('add', rebuild)
+							.on('unlinkDir', rebuild);
+					}
+
 				}
 			});
-			element.watcher
-				.on('change', rebuild)
-				.on('unlink', rebuild)
-				.on('add', rebuild)
-				.on('unlinkDir', rebuild);
-		}
-	}
-	*/
-	spinner.end("Bundles Built " + `✓`.green);
-	return true;
-}
-
-const serveEmber = function(app, cfg, index) {
-	return Promise.promisify((app, mount, subdomain, cb) => {
-		let appst = {
-			log: false,
-			result: ""
-		};
-		const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", cfg.directory), "--port", 4200 + index], {
-			cwd: path.join(process.cwd(), "ember", app)
-		});
-		ember.stdout.on('data', (buffer) => {
-			if (appst.log) {
-				console.log(buffer.toString());
-			} else if (buffer.toString().indexOf("Build successful") > -1) {
+			ember.stderr.on('data', (buffer) => {
 				if (cb) {
-					subdomain = subdomain ? subdomain + "." : "";
-					let host = subdomain + serverconf.hostname + (serverconf.port !== 80 ? ":" + serverconf.port : "");
-					appst.result = `${app.yellow} → http://${host}${mount.cyan}`;
-					cb(null, appst);
+					cb(null, `${app.yellow} ${"✗".red} build failed.`);
 					cb = null;
-					let watcher = new chokidar.watch(path.join(process.cwd(), 'public', app, '/'), {
-						persistent: true,
-						ignoreInitial: true,
-						alwaysStat: false,
-						awaitWriteFinish: {
-							stabilityThreshold: 2000,
-							pollInterval: 100
-						}
-					});
-					const rebuild = function() {
-						livereload.reload();
-						notifier.notify({
-							title: 'Koaton',
-							message: `EmberApp ${app} changed ...`,
-							icon: path.join(__dirname, 'koaton.png'),
-							sound: 'Basso'
-						});
-					}
-					watcher
-						.on('change', rebuild)
-						.on('unlink', rebuild)
-						.on('add', rebuild)
-						.on('unlinkDir', rebuild);
 				}
+				console.log(buffer.toString());
+			});
+		})(app, cfg.mount, cfg.subdomain || "");
+	},
+	seedkoaton_modules = function() {
+		fs.access(ProyPath("koaton_modules"), fs.RF_OK | fs.W_OK, (err) => {
+			if (!err) {
+				fs.readdirSync(ProyPath("koaton_modules")).forEach((Module) => {
+					try {
+						requireNoCache(ProyPath("koaton_modules", Module, "koaton_prebuild.js"))();
+					} catch (e) {}
+				});
+			}
+		});
+	},
+	koaton_modules_postbuild = function() {
+		fs.access(ProyPath("koaton_modules"), fs.RF_OK | fs.W_OK, (err) => {
+			if (!err) {
+				fs.readdirSync(ProyPath("koaton_modules")).forEach((Module) => {
+					co.wrap(Events(`koaton_modules/${Module}/events`, 'post', 'ember-build'));
+				});
+			}
+		});
+	},
+	WatchModels = function WatchModels(chokidar) {
+		const addmodelfn = function addmodelfn(file) {
+			let model = path.basename(file).replace(".js", "");
+			let Model = MM(model, requireNoCache(file)).toMeta();
+			Kmetadata.database.models[model] = Model.model;
+			if (Model.relations.length > 0) {
+				Kmetadata.database.relations[model] = Model.relations;
+			}
+		};
+		let watchmodels = new chokidar.watch(ProyPath("models", "**"), {
+			persistent: true,
+			ignoreInitial: true,
+			alwaysStat: false,
+			awaitWriteFinish: {
+				stabilityThreshold: 250,
+				pollInterval: 100
+			}
+		});
+		watchmodels.on('add', addmodelfn).on('change', addmodelfn).on('unlink', (file) => {
+			let model = path.basename(file).replace(".js", "");
+			delete Kmetadata.database.models[model];
+			delete Kmetadata.database.relations[model];
+			let deletions = [];
+			const check = function check(rel) {
+				if (Kmetadata.database.relations[idx][rel].indexOf(` ${model} `) > -1) {
+					deletions.push({
+						idx: idx,
+						rel: rel
+					});
+				}
+			}
+			for (var idx in Kmetadata.database.relations) {
+				Object.keys(Kmetadata.database.relations[idx]).forEach(check);
+			}
+			deletions.forEach((obj) => {
+				delete Kmetadata.database.relations[obj.idx][obj.rel];
+			});
+		});
+	},
+	TriggerEvent = function* TriggerEvent(event, phase) {
+		yield Events("events", event, phase);
+	},
+	buildHosts = function* buildHosts() {
+		const os = require("os");
+		let subdomains = require(ProyPath('config', 'server'));
+		let hostname = subdomains.hostname;
+		subdomains = subdomains.subdomains;
 
+		if (subdomains.indexOf("www") === -1) {
+			subdomains.push("www");
+		}
+		let hostsdlocation = "";
+		switch (os.platform()) {
+			case 'darwin':
+				hostsdlocation = '/private/etc/hosts';
+				break;
+			case 'linux':
+				hostsdlocation = '/etc/hosts';
+				break;
+			case 'win32':
+				hostsdlocation = "C:\\Windows\\System32\\drivers\\etc\\hosts"
+				break;
+			default:
+				console.log("your os is not detected, hosts files won't be updated".red);
+				break;
+
+		}
+		if (hostsdlocation !== "") {
+			let hostsd = fs.readFileSync(hostsdlocation, "utf-8");
+			for (const subdomain in subdomains) {
+				let entry = "127.0.0.1\t" + subdomains[subdomain] + "." + hostname;
+				if (hostsd.indexOf(entry) === -1) {
+					hostsd += "\n" + entry;
+				}
 			}
-		});
-		ember.stderr.on('data', (buffer) => {
-			if (cb) {
-				cb(null, `${app.yellow} ${"✗".red} build failed.`);
-				cb = null;
-			}
-			console.log(buffer.toString());
-		});
-	})(app, cfg.mount, cfg.subdomain || "");
-}
+			yield utils.write(hostsdlocation, hostsd.replace(/\n+/igm, "\n"), true);
+		}
+	};
 module.exports = {
 	cmd: "serve",
 	description: "Runs your awsome Koaton applicaction using nodemon",
 	args: [],
 	options: [
+		["-s", "--skip-build"],
 		["-p", "--production", "Runs with NODE_ENV = production"],
 		["--port", "--port <port>", "Run on the especified port (port 80 requires sudo)."]
 	],
@@ -340,9 +395,6 @@ module.exports = {
 		notifier = require('node-notifier');
 		utils = require('../utils');
 		livereload = require('gulp-livereload');
-		serverconf = require(path.join(process.cwd(), "config", "server"));
-		const mainhost = `htpp://${serverconf.hostname}` + (serverconf.port !== 80 ? ":" + serverconf.port : "");
-		const os = require("os");
 		const Promise = require('bluebird'),
 			nodemon = require('nodemon'),
 			embercfg = require(`${process.cwd()}/config/ember`),
@@ -367,39 +419,7 @@ module.exports = {
 		}
 		yield utils.write(path.join(process.cwd(), `${require(path.join(process.cwd(),"package.json")).name}.conf`), nginx_conf);
 		if (options.production === "development") {
-			let subdomains = require(path.join(process.cwd(), 'config', 'server'));
-			let hostname = subdomains.hostname;
-			subdomains = subdomains.subdomains;
-
-			if (subdomains.indexOf("www") === -1) {
-				subdomains.push("www");
-			}
-			let hostsdlocation = "";
-			switch (os.platform()) {
-				case 'darwin':
-					hostsdlocation = '/private/etc/hosts';
-					break;
-				case 'linux':
-					hostsdlocation = '/etc/hosts';
-					break;
-				case 'win32':
-					hostsdlocation = "C:\\Windows\\System32\\drivers\\etc\\hosts"
-					break;
-				default:
-					console.log("your os is not detected, hosts files won't be updated".red);
-					break;
-
-			}
-			if (hostsdlocation !== "") {
-				let hostsd = fs.readFileSync(hostsdlocation, "utf-8");
-				for (const subdomain in subdomains) {
-					let entry = "127.0.0.1\t" + subdomains[subdomain] + "." + hostname;
-					if (hostsd.indexOf(entry) === -1) {
-						hostsd += "\n" + entry;
-					}
-				}
-				yield utils.write(hostsdlocation, hostsd.replace(/\n+/igm, "\n"), true);
-			}
+			yield buildHosts();
 			livereload.listen({
 				port: 62627,
 				quiet: true
@@ -407,29 +427,34 @@ module.exports = {
 		}
 		screen.start();
 		if (options.production === "development") {
+			yield require('./build').copystatic();
 			yield WactchAndCompressImages(new chokidar.watch(path.join('assets', 'img'), {
 				persistent: true,
 				ignoreInitial: true,
 				alwaysStat: false,
 				awaitWriteFinish: {
-					stabilityThreshold: 2000,
+					stabilityThreshold: 1000,
 					pollInterval: 100
 				}
 			}));
 			yield checkAssetsToBuild(chokidar.watch);
+			WatchModels(chokidar);
 		}
-		const co = require('co');
+		yield TriggerEvent('pre', 'serve');
+		seedkoaton_modules();
 		return new Promise(function(resolve) {
 			nodemon({
 				ext: '*',
 				quiet: true,
-				delay: 500,
+				delay: 300,
 				ignore: [
-					"/views/*.*",
+					"/views/ember_apps/*.*",
 					"/node_modules/*.*",
-					"/bower_components/*.*",
+					"/node_modules/*.*",
+					"/koaton_modules/*.*",
 					"/ember/*.*",
 					"/assets/*.*",
+					"/models/*.*",
 					"/public/",
 					"/config/bundles.js",
 					"*.tmp",
@@ -442,27 +467,26 @@ module.exports = {
 				stdout: true
 			}).once('start', function() {
 				co(function*() {
+					yield TriggerEvent('pre', 'serve');
 					screen.line1(true);
 					let ignoreemberdirs = [];
 					let indexapp = 0;
+					yield TriggerEvent('pre', 'ember_build');
 					for (var ember_app in embercfg) {
 						ignoreemberdirs.push(path.join("public", ember_app, "/"));
-						if (options.production === "development") {
+						if (options.production === "development" && !options.skipBuild) {
 							const configuration = {
 								directory: embercfg[ember_app].directory,
 								mount: embercfg[ember_app].mount,
-								build: "development"
+								build: "development",
+								layout: embercfg[ember_app].layout
 							};
-							console.log(1);
 							utils.nlog(`Building ${ember_app.green} second plane`);
 							yield buildcmd.preBuildEmber(ember_app, configuration);
-							console.log(2);
 							let b = serveEmber(ember_app, embercfg[ember_app], indexapp)
 							building.push(b);
 							yield b;
-							console.log(3);
 							yield buildcmd.postBuildEmber(ember_app, configuration);
-							console.log(4);
 						} else {
 							building.push(Promise.resolve({
 								log: false,
@@ -485,6 +509,10 @@ module.exports = {
 						}
 						screen.line1();
 						console.log();
+						co(function*() {
+							yield TriggerEvent('post', 'ember_build');
+							koaton_modules_postbuild();
+						});
 					});
 					notifier.notify({
 						title: 'Koaton',
@@ -498,7 +526,8 @@ module.exports = {
 						livereload.reload();
 					}, 1000);
 				});
-			}).on('restart', function() {
+			}).on('restart', function(a, b, c) {
+				console.log(a, b, c);
 				setTimeout(function() {
 					livereload.reload();
 				}, 1000);
@@ -509,7 +538,7 @@ module.exports = {
 					sound: 'Basso'
 				});
 			}).on('crash', () => {
-
+				resolve(1);
 			});
 			const exitHandler = function() {
 				nodemon.emit('exit');

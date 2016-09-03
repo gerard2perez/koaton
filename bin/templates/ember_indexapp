@@ -1,4 +1,4 @@
-{{#extend "main"}}
+{{#extend "{{layout}}"}}
 	{{#content "title"}}
 		{{app_name}}
 	{{/content}}
