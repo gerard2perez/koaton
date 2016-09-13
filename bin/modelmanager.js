@@ -1,9 +1,12 @@
 "use strict";
 const datatypes = require("./adapter").datatypes;
 const inflector = require('i')();
-const inflections = requireSafe(ProyPath('config', 'inflections')) || {irregular:[]};
-inflections.irregular.forEach((inflect) => {
+const inflections = requireSafe(ProyPath('config', 'inflections')) || {irregular:[],singular:[]};
+(inflections.irregular || []).forEach((inflect) => {
 	inflector.inflections.irregular(inflect[0], inflect[1]);
+});
+(inflections.singular || []).forEach((inflect) => {
+	inflector.inflections.singular(inflect[0], inflect[1]);
 });
 
 class model {
@@ -13,7 +16,8 @@ class model {
 				let opts = relation[property].split(" ");
 				opts[2] = opts[2] ? opts[2]:`${property}Id`;
 				relation[property]=opts;
-				opts.push(allmodels[opts[1]].split(' ')[0]);
+				//console.log(allmodels[opts[1]].split(' ')[0]);
+				//opts.push(allmodels[opts[1]].split(' ')[0]);
 			});
 		});
 		Object.defineProperty(this, '_relations', {
@@ -68,7 +72,7 @@ class model {
 	toCaminte() {
 		let definition=[];
 		Object.keys(this).forEach((key)=>{
-			definition.push(`${key}:{type:schema.${datatypes[this[key]]}}`);
+			definition.push(`${key}:{type:schema.${datatypes[this[key]].caminte}}`);
 		});
 		let relations=[];
 		this._relations.forEach((relation)=>{
@@ -114,20 +118,34 @@ export default Model.extend({
 	${definition.join(',\n\t')}
 });`;
 	}
-	toCRUDTable(){
+	evalModel(fn){
+		return fn(datatypes,schema);
+	}
+	toCRUDTable(HOSTMODEL){
+		HOSTMODEL=HOSTMODEL||{fields:{}};
 		let definition=[];
 		let actions=[];
 		Object.keys(this).forEach((key)=>{
+			let entity={};
+			entity[key]={};
 			let type=this[key].crud;
-			let placeholder="";
 			switch (type) {
 				case "email":
-					placeholder=",PlaceHolder:'account@your.domain'";
+					entity[key].PlaceHolder='account@your.domain';
 					break;
 				default:
 
 			}
-			definition.push(`${key}:{Type:'${type}'${placeholder}}`);
+			entity[key].Type=type;
+			console.log(HOSTMODEL);
+			if(HOSTMODEL.fields[key]){
+				Object.keys(HOSTMODEL.fields[key]).forEach((dfield)=>{
+					entity[key][dfield]=HOSTMODEL.fields[key][dfield];
+				});
+			}
+			entity = JSON.stringify(entity);
+			definition.push(entity.substr(1,entity.length-2));
+			console.log(definition[definition.length-1]);
 		});
 		this._relations.forEach((relation)=>{
 			Object.keys(relation).forEach((property)=>{
@@ -201,11 +219,17 @@ const clone = function clone(source){
 
 	return dest;
 }
-
+const schema={
+	hasMany(rel){
+		rel = rel.split('.').join(' ');
+		return `hasMany ${rel}`;
+	}
+}
+schema.belongsTo=schema.hasMany;
 module.exports = (n, f, r,m) => {
 	let name=n, fields=f, relations={},models=m||{};
 	if(typeof f === 'function'){
-		fields = modelize(f(datatypes));
+		fields = modelize(f(datatypes,schema));
 		relations = fields[1];
 		fields=fields[0];
 	}else{

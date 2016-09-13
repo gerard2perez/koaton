@@ -163,15 +163,17 @@ module.exports = {
 		inflections.irregular.forEach((inflect) => {
 			inflector.inflections.irregular(inflect[0], inflect[1]);
 		});
-		let relations = Kmetadata.database.relations[name];
+		let relations = Kmetadata.database.relations[name] || [];
+		name = inflector.singularize(name.toLowerCase());
 		if (as === "as") {
 			linkaction = linkactions[fields.toLowerCase()]
 			destmodel = inflector.singularize(destmodel.toLowerCase());
 			let relation = {};
+			fields=Kmetadata.database.models[name];
 			relation[`${relation_property}`] = `${emberrel[linkaction]} ${destmodel} ${foreign_key}`;
 			relations.push(relation);
 		}
-		name = inflector.singularize(name.toLowerCase());
+
 		let modelmaker = require('../modelmanager'),
 			models = Kmetadata.database.models,
 			m = modelmaker(name, fields, relations, models),
@@ -210,6 +212,9 @@ module.exports = {
 			Kmetadata.database.relations[name].pop();
 		}
 		modelMeta.relations.forEach((relation) => {
+			if(Kmetadata.database.relations[name]===undefined){
+				Kmetadata.database.relations[name] = [];
+			}
 			Kmetadata.database.relations[name].push(relation);
 		});
 		console.log();

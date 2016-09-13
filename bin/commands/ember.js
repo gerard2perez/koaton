@@ -36,14 +36,15 @@ module.exports = {
 		["-u", "--use <ember_addon>", "Install the especified addon in the especified app."],
 		["-m", "--mount <path>", "(Default: /) Sets the mounting path in the koaton app. Can be used with -n or alone."],
 		["-b", "--build <env>", "[ development | production] Builds the especified ember app in the Koaton app."],
-		["-s", "--subdomain <subdomain>", "(Default: www) Sets the subdomain to mount the application."]
+		["-s", "--subdomain <subdomain>", "(Default: www) Sets the subdomain to mount the application."],
+		["--port", "--port <port>", "port to build"]
 	],
 	action: function*(app_name, options) {
 		let res = false;
 		utils = require("../utils");
 		ember_proyect_path = ProyPath("ember", app_name || "");
 		if (app_name === undefined) {
-			fs.readdirSync('./ember').forEach((dir) => {
+			readDir('./ember').forEach((dir) => {
 				console.log(`${dir}@${require(ProyPath("ember",dir,"bower.json")).dependencies.ember}`);
 			});
 		} else if (options.use) {

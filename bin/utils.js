@@ -185,6 +185,11 @@ module.exports = {
 			return false;
 		});
 	},
+	render(source,dest,compiling_data){
+		let raw = fs.readFileSync(dest,'utf-8');
+		let compiled = fs.writeFileSync(source,this.Compile(raw,compiling_data));
+		return {raw:raw,compiled:compiled };
+	},
 	read: Promise.promisify(fs.readFile),
 	Compile(text, options) {
 		for (let prop in options) {
@@ -249,7 +254,7 @@ module.exports = {
 			let that = this;
 			if (fs.existsSync(folder)) {
 				if (fs.lstatSync(folder).isDirectory()) {
-					fs.readdirSync(folder).forEach((file) => {
+					readDir(folder).forEach((file) => {
 						let current = path.join(folder, file);
 						if (fs.lstatSync(current).isDirectory()) {
 							that.rmdir((current));
@@ -278,7 +283,7 @@ module.exports = {
 		var files = [];
 		var that = this;
 		if (fs.existsSync(folder)) {
-			files = fs.readdirSync(folder);
+			files = readDir(folder);
 			files.forEach(function(file) {
 				var curPath = path.join(folder, "/", file);
 				if (fs.lstatSync(curPath).isDirectory()) { // recurse
@@ -297,7 +302,7 @@ module.exports = {
 	 **/
 	isEmpty(path) {
 		try {
-			var files = fs.readdirSync(path);
+			var files = readDir(path);
 			return !files || !files.length;
 		} catch (e) {
 			return true;

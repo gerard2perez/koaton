@@ -11,7 +11,7 @@ process.env.isproyect = utils.canAccess('public') &&
 	utils.canAccess('config');
 process.env.NODE_ENV = process.argv.indexOf("-p") > -1 || process.argv.indexOf("--production") > -1 ? "production" : "development";
 var port = process.argv.indexOf("--port");
-port = parseInt(process.argv[port + 1] || 62626, 10);
+port = parseInt(process.argv[port + 1], 10)|| 62626;
 process.env.port = port;
 
 require('../lib/scfg');

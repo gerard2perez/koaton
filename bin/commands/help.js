@@ -32,7 +32,7 @@ module.exports.include = function() {
 	let utils = require("../utils");
 	let mods = [];
 	if (utils.canAccess(ProyPath("commands"))) {
-		fs.readdirSync(ProyPath("commands"))
+		readDir(ProyPath("commands"))
 			.filter(item => !(/(^|\/)\.[^\/\.]/g).test(item))
 			.filter(item => item !== "index.js")
 			.filter(item => item !== "help.js")

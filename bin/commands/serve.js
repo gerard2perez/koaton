@@ -229,7 +229,7 @@ const deleted = function(file) {
 				result: ""
 			};
 			const ember = utils.spawn("ember", ["serve", "-lr", "false", "--output-path", path.join("..", "..", "public", cfg.directory), "--port", 4200 + index], {
-				cwd: path.join(process.cwd(), "ember", app)
+				cwd: ProyPath("ember", app)
 			});
 			ember.stdout.on('data', (buffer) => {
 				if (appst.log) {
@@ -238,35 +238,44 @@ const deleted = function(file) {
 					if (cb) {
 						subdomain = subdomain ? subdomain + "." : "";
 						appst.result = `${app.yellow} → http://${scfg.hostname}:${scfg.port}${mount.cyan}`;
-						cb(null, appst);
-						cb = null;
-						let watcher = new chokidar.watch(path.join(process.cwd(), 'public', app, '/'), {
-							persistent: true,
-							ignoreInitial: true,
-							alwaysStat: false,
-							awaitWriteFinish: {
-								stabilityThreshold: 2000,
-								pollInterval: 100
-							}
-						});
-						const rebuild = function() {
-							co(function*(){
-								yield TriggerEvent('post', 'ember_build');
-								yield koaton_modules_postbuild();
-							});
-							livereload.reload();
-							notifier.notify({
-								title: 'Koaton',
-								message: `EmberApp ${app} changed ...`,
-								icon: path.join(__dirname, 'koaton.png'),
-								sound: 'Basso'
-							});
-						}
-						watcher
-							.on('change', rebuild)
-							.on('unlink', rebuild)
-							.on('add', rebuild)
-							.on('unlinkDir', rebuild);
+
+						// let watcher = new chokidar.watch(ProyPath('public', app, '/'), {
+						// 	ignored:[
+						// 		"**/adapters/application.js",
+						//
+						// 	],
+						// 	persistent: true,
+						// 	ignoreInitial: true,
+						// 	alwaysStat: false,
+						// 	awaitWriteFinish: {
+						// 		stabilityThreshold: 2000,
+						// 		pollInterval: 100
+						// 	}
+						// });
+						// setTimeout(function(){
+						// 	console.log("w",watcher.getWatched());
+						// },1000);
+						// //watcher.unwatch('new-file*');
+						// const rebuild = function() {
+						// 	co(function*(){
+						// 		yield TriggerEvent('post', 'ember_build');
+						// 		yield koaton_modules_postbuild();
+						// 	});
+						// 	livereload.reload();
+						// 	notifier.notify({
+						// 		title: 'Koaton',
+						// 		message: `EmberApp ${app} changed ...`,
+						// 		icon: path.join(__dirname, 'koaton.png'),
+						// 		sound: 'Basso'
+						// 	});
+						// }
+						// watcher
+						// 	.on('change', rebuild)
+						// 	.on('unlink', rebuild)
+						// 	.on('add', rebuild)
+						// 	.on('unlinkDir', rebuild);
+							cb(null, appst);
+							cb = null;
 					}
 
 				}
@@ -283,7 +292,7 @@ const deleted = function(file) {
 	seedkoaton_modules = function() {
 		fs.access(ProyPath("koaton_modules"), fs.RF_OK | fs.W_OK, (err) => {
 			if (!err) {
-				fs.readdirSync(ProyPath("koaton_modules")).forEach((Module) => {
+				readDir(ProyPath("koaton_modules")).forEach((Module) => {
 					try {
 						requireNoCache(ProyPath("koaton_modules", Module, "koaton_prebuild.js"))();
 					} catch (e) {}
@@ -292,13 +301,19 @@ const deleted = function(file) {
 		});
 	},
 	koaton_modules_postbuild = function() {
+		let promises=[];
 		fs.access(ProyPath("koaton_modules"), fs.RF_OK | fs.W_OK, (err) => {
 			if (!err) {
-				fs.readdirSync(ProyPath("koaton_modules")).forEach((Module) => {
-					co.wrap(Events(`koaton_modules/${Module}/events`, 'post', 'ember-build'));
+				readDir(ProyPath("koaton_modules")).forEach((Module) => {
+					console.log("start post building")
+					promises.push(co(function*(){
+						yield Events(`koaton_modules/${Module}/events`, 'post', 'ember_build');
+					}));
+					console.log("end post building")
 				});
 			}
 		});
+		return Promise.all(promises);
 	},
 	WatchModels = function WatchModels(chokidar) {
 		const addmodelfn = function addmodelfn(file) {
@@ -399,7 +414,7 @@ module.exports = {
 			nodemon = require('nodemon'),
 			embercfg = require(`${process.cwd()}/config/ember`),
 			env = {
-				welcome: false,
+				welcome: true,
 				NODE_ENV: process.env.NODE_ENV,
 				port: process.env.port
 			};
@@ -442,6 +457,7 @@ module.exports = {
 		}
 		yield TriggerEvent('pre', 'serve');
 		seedkoaton_modules();
+		console.log(env);
 		return new Promise(function(resolve) {
 			nodemon({
 				ext: '*',
@@ -511,7 +527,7 @@ module.exports = {
 						console.log();
 						co(function*() {
 							yield TriggerEvent('post', 'ember_build');
-							koaton_modules_postbuild();
+							yield koaton_modules_postbuild();
 						});
 					});
 					notifier.notify({

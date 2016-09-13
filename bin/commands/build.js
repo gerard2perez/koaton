@@ -8,7 +8,7 @@ const uglify = require("uglify-js");
 const Promise = require('bluebird').promisify;
 const Concat = require('concat-with-sourcemaps');
 const copystatic = function*() {
-	const copy = require(ProyPath("config", "copy"));
+	const copy = requireSafe(ProyPath("config", "copy"),{});
 	for (const dir in copy) {
 		yield utils.mkdir(ProyPath("public", dir), -1);
 		for (const idx in copy[dir]) {
@@ -44,6 +44,9 @@ const compressImages = function(files, dest) {
 }
 const buildCss = function*(target, source, development, onlypaths, logger) {
 	if (!Kmetadata.bundles[target]) {
+		Kmetadata.bundles[target] = [];
+	}
+	if(development && !(Kmetadata.bundles[target] instanceof Array)){
 		Kmetadata.bundles[target] = [];
 	}
 	while (Kmetadata.bundles[target] instanceof Array && Kmetadata.bundles[target].length > 0) {
@@ -83,6 +86,8 @@ const buildCss = function*(target, source, development, onlypaths, logger) {
 				if (!onlypaths) {
 					utils.writeSync(path.join("public", "css", index + target), content.css.toString(), 'utf-8', true);
 				}
+				console.log();
+				console.log(Kmetadata.bundles[target]);
 				Kmetadata.bundles[target].push(`/css/${index+target}`);
 			} else {
 				concat.add(basename, content.css, concat.map);
@@ -199,10 +204,11 @@ const preBuildEmber = function*(ember_app, options) {
 	if (adapter.indexOf("http://") !== 0) {
 		adapter = "http://" + adapter;
 	}
-	yield utils.compile('ember_apps/adapter.js',
-		path.join("ember", ember_app, "app", "adapters", "application.js"), {
-			adapter: adapter
-		}, null);
+	let raw = fs.readFileSync(ProyPath("ember",ember_app,"app","adapters","application.js"),'utf-8');
+	var exp = (/host: (.*),?/i).exec(raw);
+	if(raw.indexOf("K:custom-adapter")===-1){
+		fs.writeFileSync(ProyPath("ember",ember_app,"app","adapters","application.js"),raw.replace(exp[1],`'${adapter}'`));
+	}
 	let embercfg = yield utils.read(path.join(ember_proyect_path, "config", "environment.js"), {
 		encoding: 'utf-8'
 	});
@@ -220,13 +226,13 @@ const buildEmber = function*(app_name, options) {
 			options.build,
 			"-o", path.join("..", "..", "public", options.mount)
 		],
-		 path.join(process.cwd(), "ember", app_name)
+		ProyPath("ember", app_name)
 	);
 }
 const postBuildEmber = function*(ember_app, options) {
 	const emberinternalname = require(ProyPath("ember", ember_app, "package.json" /*path.join(process.cwd(), "ember", ember_app,"package.json"*/ )).name;
 	//if (scfg.isDev) {
-		let text = yield utils.read(ProyPath("public", ember_app, "index.html"), {
+		let text = yield utils.read(ProyPath("public", options.directory, "index.html"), {
 				encoding: 'utf-8'
 			}),
 			indextemplate = yield utils.read(BinPath("templates", "ember_indexapp"), 'utf-8'),
@@ -244,7 +250,7 @@ const postBuildEmber = function*(ember_app, options) {
 			jsfiles: text.match(scripts).join("\n").replace(/src=".*?assets/igm, `src="/${ember_app}/assets`).replace(new RegExp(ember_app + "/", "gm"), options.directory + "/")
 		});
 		utils.mkdir(ProyPath("views","ember_apps"), -1);
-		utils.writeSync(ProyPath("views","ember_apps",`${ember_app}.handlebars`), text, true);
+		utils.writeSync(ProyPath("views","ember_apps",`${options.directory}.handlebars`), text, true);
 	//}
 }
 const clean = function(file) {
