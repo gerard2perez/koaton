@@ -21,19 +21,9 @@ const commands = require('./commands');
 const pcmds = require("./commands/help").include();
 const co = require("co");
 const help = process.argv.slice(2)[0];
-const version = require(BinPath("..", "package.json")).version;
 require('colors');
 if (!help || help === "-h" || help === "--help") {
-	let help = "";
-	help += `  version: ${version}\n`;
-	help += "  Command list:\n";
-	console.log(help);
-	const h = require("./commands/help").many;
-	console.log(h(commands));
-	if (pcmds.length > 0) {
-		console.log("Project commands:\n");
-		console.log(h(pcmds));
-	}
+	console.log(require('./commands/help').render());
 	process.exit(0);
 }
 

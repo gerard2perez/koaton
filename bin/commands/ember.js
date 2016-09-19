@@ -30,7 +30,7 @@ module.exports = {
 	description: "If no app_name epecified it lists all the installed ember apps.",
 	args: ["app_name"],
 	options: [
-		["-p","---prod","Build for production environment"],
+		["-p", "---prod", "Build for production environment"],
 		["-n", "--new", "Creates a new ember app with the especified named."],
 		["-f", "--force", "Overrides the current app."],
 		["-u", "--use <ember_addon>", "Install the especified addon in the especified app."],
@@ -55,9 +55,6 @@ module.exports = {
 		} else if (options.build) {
 			const buildcmd = require("./build");
 			const embercfg = require(path.join(process.cwd(), "config", "ember"))[app_name];
-			/*yield buildcmd.preBuildEmber(app_name, embercfg);
-			yield buildcmd.buildEmber(app_name, { mount: embercfg.directory,build: options.buid });
-			yield buildcmd.postBuildEmber(app_name, embercfg);*/
 			res = (yield buildcmd.preBuildEmber(app_name, embercfg)) ||
 				(yield buildcmd.buildEmber(app_name, {
 					mount: embercfg.directory,
@@ -72,13 +69,13 @@ module.exports = {
 			const host = connections[connection].host;
 			options.mount = path.join('/', options.mount || "");
 			options.mount = options.mount.replace(/\\/igm, "/");
-			res = (yield utils.mkdir(ProyPath("ember", app_name, "app", "adapters"))) ||
-				(yield utils.compile('ember_apps/adapter.js', path.join("ember", app_name, "app", "adapters", "application.js"), {
+
+			res = !((yield utils.mkdir(ProyPath("ember", app_name, "app", "adapters"))) ||
+				utils.render(TemplatePath("ember_apps", "adapters.js"), ProyPath("ember", app_name, "app", "adapters", "application.js"), {
 					localhost: host,
 					port: port
 				}));
 			var emberjs = require(`${process.cwd()}/config/ember.js`);
-
 			emberjs[app_name] = {
 				mount: options.mount,
 				directory: app_name,
@@ -87,7 +84,7 @@ module.exports = {
 				subdomain: options.subdomain || "www",
 				layout: "main"
 			};
-			yield utils.write(`${process.cwd()}/config/ember.js`, `"use strict";
+			yield utils.write(ProyPath("config", "ember.js"), `"use strict";
 module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			let embercfg = yield utils.read(path.join(ember_proyect_path, "config", "environment.js"), {
 				encoding: 'utf-8'
@@ -95,6 +92,6 @@ module.exports=${ JSON.stringify(emberjs,null,'\t')};`, true);
 			embercfg = embercfg.replace(/baseURL: ?'.*',/, `baseURL: '${options.mount}',`);
 			yield utils.write(path.join(ember_proyect_path, "config", "environment.js"), embercfg, true);
 		}
-		return res;
+		return res ? 1 : 0;
 	}
 };

@@ -1,6 +1,6 @@
 {{#extend "{{layout}}"}}
 	{{#content "title"}}
-		{{app_name}}
+		{{title}}
 	{{/content}}
 	{{#content "meta"}}
 		<meta charset="utf-8">

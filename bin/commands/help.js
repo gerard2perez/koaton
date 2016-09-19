@@ -27,7 +27,7 @@ const hsingle = function(definition) {
 };
 module.exports.many = hmany;
 module.exports.single = hsingle;
-module.exports.include = function() {
+const include = function() {
 	'use strict';
 	let utils = require("../utils");
 	let mods = [];
@@ -41,4 +41,18 @@ module.exports.include = function() {
 			});
 	}
 	return mods;
+};
+module.exports.include = include;
+module.exports.render = function(version){
+	version = version||require(BinPath("..", "package.json")).version;
+	let help = "";
+	help += `  version: ${version}\n`;
+	help += "  Command list:\n";
+	help += hmany(require('./index'));
+	const proycommands = include();
+	if (proycommands.length > 0) {
+		help += "Project commands:\n";
+		help += hmany(proycommands);
+	}
+	return help;
 };

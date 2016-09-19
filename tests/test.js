@@ -39,19 +39,19 @@ const koaton = Promise.promisify((command, cb) => {
 	});
 });
 const testengine = require('./engine');
-const commands = require("../bin/commands");
-const h = require("../bin/commands/help").many;
-const help = h(commands).replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "") + "\n";
+//const commands = require("../bin/commands");
+//const h = require("../bin/commands/help").many;
+const help = require("../bin/commands/help").render().replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/igm, "") + "\n";
 
 const addtoBundle = (data) => {
 	let bundle = {};
-	if (exists(path.join(process.cwd(), testdir, prefix, "config","bundles.js"))) {
-		bundle = require(path.join(process.cwd(), testdir, prefix, "config","bundles.js"));
+	if (exists(path.join(process.cwd(), testdir, prefix, "config", "bundles.js"))) {
+		bundle = require(path.join(process.cwd(), testdir, prefix, "config", "bundles.js"));
 	}
 	for (const file in data) {
 		bundle[file] = data[file];
 	}
-	fs.writeFileSync(path.join(process.cwd(), testdir, prefix, "config","bundles.js"), `module.exports =${JSON.stringify(bundle)} ;`, 'utf8');
+	fs.writeFileSync(path.join(process.cwd(), testdir, prefix, "config", "bundles.js"), `module.exports =${JSON.stringify(bundle)} ;`, 'utf8');
 
 }
 testengine(function*(suite) {
@@ -98,19 +98,18 @@ testengine(function*(suite) {
 		let res = yield koaton(["ember", "restapi", "-nf"]);
 		assert.equal(0, res[0], "Installs the app.");
 		assert.equal("/", require("../running_test/dummy/config/ember.js").restapi.mount, "Mount the app on /");
-		const def = require(`../running_test/dummy/config/server`);
+		//const def = require(`../running_test/dummy/config/server`);
 		assert.equal(
 			compile(yield read("./templates/ember_apps/adapter.js", {
 				encoding: "utf-8"
 			}), {
-				localhost: def.host || 'localhost',
-				port: def.port
+				adapter: 'http://localhost'
 			}),
-			yield read(path.join(process.cwd(),"/running_test/dummy/ember/restapi/app/adapters/application.js"), {
+			yield read(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/adapters/application.js"), {
 				encoding: "utf-8"
 			}),
 			"Creates the default adapter.");
-		const enviroment = require(path.join(process.cwd(),"/running_test/dummy/ember/restapi/config/environment.js"))();
+		const enviroment = require(path.join(process.cwd(), "/running_test/dummy/ember/restapi/config/environment.js"))();
 		assert.equal("/", enviroment.baseURL || enviroment.rootURL, "Mounted on the right path");
 	});
 	yield suite("koaton adapter <driver>", function*(assert) {
@@ -142,39 +141,32 @@ testengine(function*(suite) {
 		assert.equal("awsome", dbadapter.database, "Database is awsome");
 	});
 	yield suite("koaton model <name> <fields>", function*(assert) {
+		const ModelManager = require('../bin/modelmanager');
 		let model = 'user';
-		const testType = {
-			type: undefined
-		};
-		assert.equal(0, yield koaton(['model', model, 'active:number name email password note:text created:date', '-e', 'restapi', '-fr']), "Run command with full arguments");
-		const mdefinition = require(path.join(process.cwd(), "/running_test/dummy/models", `${model}.js`))({});
-		assert.equal(testType, mdefinition.model.active, "active atribute added");
-		assert.equal(testType, mdefinition.model.name, "name atribute added");
-		assert.equal(testType, mdefinition.model.email, "email atribute added");
-		assert.equal(testType, mdefinition.model.password, "password atribute added");
-		assert.equal(testType, mdefinition.model.note, "note atribute added");
-		assert.equal(testType, mdefinition.model.created, "created atribute added");
-		let emberdef = yield read(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`), {
-			encoding: "utf-8"
-		});
-		// console.log(emberdef);JSON.parse()
-		emberdef = emberdef.replace(/\n/igm, "").match(/{(.*)}/igm)[0].replace(/\t+/igm, "").replace(/\{|\}/igm, "").replace(/([^:]*):([^,]*),/g, "\"$1\":\"$1\",");
-		emberdef = JSON.parse("{" + emberdef.substr(0, emberdef.length - 1) + "}");
-		const fields = ["active", "name", "email", "password", "note", "created"];
-		for (let index in fields) {
-			assert.ok(emberdef[fields[index]], `ember model constains ${fields[index]}`);
-		}
+		assert.equal(0, yield koaton(['model', model, 'active:number name email:email password:password note:text created:date', '-e', 'restapi', '-fr']), "Run command with full arguments");
+		let modeldef = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/running_test/dummy/.koaton'), 'utf-8')).database.models.user;
+		let modelresult = ModelManager(model, modeldef);
+		assert.equal('number', modelresult.active.toString(), "active atribute added");
+		assert.equal('string', modelresult.name.toString(), "name atribute added");
+		assert.equal('email', modelresult.email.toString(), "email atribute added");
+		assert.equal('password', modelresult.password.toString(), "password atribute added");
+		assert.equal('text', modelresult.note.toString(), "note atribute added");
+		assert.equal('date', modelresult.created.toString(), "created atribute added");
+		assert.equal(modelresult.toCaminte(), fs.readFileSync(path.join(process.cwd(), '/running_test/dummy/models', `${model}.js`), 'utf-8'), 'Camintejs model created');
+		assert.equal(modelresult.toEmberModel(), fs.readFileSync(path.join(process.cwd(), '/running_test/dummy/ember/restapi/app/models', `${model}.js`), 'utf-8'), 'Emberjs model created');
+		assert.equal(modelresult.toCRUDTable(), fs.readFileSync(path.join(process.cwd(), '/running_test/dummy/ember/restapi/app/controllers', `${model}.js`), 'utf-8'), 'ember-cli-crudtable model created');
 		model = "consumer";
 		assert.equal(0, yield koaton(['model', model, 'active:number name email password note:text created:date', '-fr']), "Creates models only on the Back End");
-		//console.log(['koaton', 'model', model, '"active:number name email password note:text created:date"','-fr'].join(" "));
-		const consumerdef = require(path.join(process.cwd(), "/running_test/dummy/models", `${model}.js`))({});
-		assert.ok(consumerdef, "Model is created");
+		modeldef = JSON.parse(fs.readFileSync(path.join(process.cwd(), '/running_test/dummy/.koaton'), 'utf-8')).database.models.consumer;
+		modelresult = ModelManager(model, modeldef);
+		assert.equal(modelresult.toCaminte(), fs.readFileSync(path.join(process.cwd(), '/running_test/dummy/models', `${model}.js`), 'utf-8'), 'Camintejs model created');
 		assert.equal(false, exists(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/models", `${model}.js`)), "No ember models created.");
+		assert.equal(false, exists(path.join(process.cwd(), "/running_test/dummy/ember/restapi/app/controllers", `${model}.js`)), "No ember-cli-crudtable models created.");
 
 	});
 	yield suite("koaton build <config_file>", function*(assert) {
-		yield mkdir(path.join(process.cwd(),testdir,prefix,"public","css"), -1);
-		yield mkdir(path.join(process.cwd(),testdir,prefix,"public","js"), -1);
+		yield mkdir(path.join(process.cwd(), testdir, prefix, "public", "css"), -1);
+		yield mkdir(path.join(process.cwd(), testdir, prefix, "public", "js"), -1);
 		let res = yield koaton(["build"]);
 		assert.equal(true, res[1].indexOf("Nothing to compile") > -1, "Nothing to compile");
 		yield shell("Getting flatadmin", ["git", "clone", "https://github.com/gerard2p/koatonstyle.git", "assets/flatadmin"], path.join(process.cwd(), testdir, prefix));
@@ -199,13 +191,13 @@ testengine(function*(suite) {
 				"./assets/flatadmin/js/index.js"
 			]
 		});
-		let csscount = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","css")).length;
-		let jscount = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","js")).length;
+		let csscount = fs.readdirSync(path.join(process.cwd(), testdir, prefix, "public", "css")).length;
+		let jscount = fs.readdirSync(path.join(process.cwd(), testdir, prefix, "public", "js")).length;
 		res = yield koaton(["build"]);
-		let csscount2 = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","css")).length;
-		let jscount2 = fs.readdirSync(path.join(process.cwd(),testdir,prefix,"public","js")).length;
-		assert.equal(csscount, csscount2-1, "CSS Bundle was created.");
-		assert.equal(jscount, jscount2-1, "JS Bundle was created.");
+		let csscount2 = fs.readdirSync(path.join(process.cwd(), testdir, prefix, "public", "css")).length;
+		let jscount2 = fs.readdirSync(path.join(process.cwd(), testdir, prefix, "public", "js")).length;
+		assert.equal(csscount, csscount2 - 1, "CSS Bundle was created.");
+		assert.equal(jscount, jscount2 - (1+1), "JS Bundle was created.");
 	});
 	yield suite("koaton forever", function*(assert) {
 		assert.equal(0, yield koaton(["adapter", "mongoose"]), "Uses the mongoose adapter");
@@ -217,26 +209,27 @@ testengine(function*(suite) {
 		res = yield koaton(["forever", "-l"]);
 		assert.ok(res[1].indexOf("koaton_dummy") === -1, "Process has being stopped");
 	});
-
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"public"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"views"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"routes"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"controllers"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"models"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","css"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","img"));
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets","js"));
-	try{
-		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".gitignore"));
-		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,".koaton"));
-		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"app.js"));
-		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"bower.json"));
-		fs.unlinkSync(path.join(process.cwd(),testdir,prefix,"package.json"));
-		require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"assets"));
-	}catch(e){
-		(()=>{})(e);
+	const rmdir = require('../bin/utils').rmdir.bind(require('../bin/utils'));
+	rmdir(path.join(process.cwd(), testdir, prefix, "public"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "views"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "routes"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "controllers"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "models"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "assets", "css"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "assets", "img"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "assets", "js"));
+	try {
+		rmdir(path.join(process.cwd(), testdir, prefix, ".gitignore"));
+		rmdir(path.join(process.cwd(), testdir, prefix, ".koaton"));
+		rmdir(path.join(process.cwd(), testdir, prefix, "app.js"));
+		rmdir(path.join(process.cwd(), testdir, prefix, "bower.json"));
+		rmdir(path.join(process.cwd(), testdir, prefix, "package.json"));
+		rmdir(path.join(process.cwd(), testdir, prefix, "assets"));
+	} catch (e) {
+		(() => {})(e);
 	}
-	require('../bin/utils').deleteFolderRecursive(path.join(process.cwd(),testdir,prefix,"config"));
+	rmdir(path.join(process.cwd(), testdir, prefix, "config"));
+
 }).then((a) => {
 	process.exit(a);
 }).catch((err) => {

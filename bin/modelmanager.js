@@ -1,7 +1,7 @@
 "use strict";
 const datatypes = require("./adapter").datatypes;
 const inflector = require('i')();
-const inflections = requireSafe(ProyPath('config', 'inflections')) || {irregular:[],singular:[]};
+const inflections = requireSafe(ProyPath('config', 'inflections'),{irregular:[],singular:[]});
 (inflections.irregular || []).forEach((inflect) => {
 	inflector.inflections.irregular(inflect[0], inflect[1]);
 });
@@ -16,8 +16,6 @@ class model {
 				let opts = relation[property].split(" ");
 				opts[2] = opts[2] ? opts[2]:`${property}Id`;
 				relation[property]=opts;
-				//console.log(allmodels[opts[1]].split(' ')[0]);
-				//opts.push(allmodels[opts[1]].split(' ')[0]);
 			});
 		});
 		Object.defineProperty(this, '_relations', {
@@ -136,8 +134,7 @@ export default Model.extend({
 				default:
 
 			}
-			entity[key].Type=type;
-			console.log(HOSTMODEL);
+			entity[key].Type=type;;
 			if(HOSTMODEL.fields[key]){
 				Object.keys(HOSTMODEL.fields[key]).forEach((dfield)=>{
 					entity[key][dfield]=HOSTMODEL.fields[key][dfield];
@@ -145,7 +142,6 @@ export default Model.extend({
 			}
 			entity = JSON.stringify(entity);
 			definition.push(entity.substr(1,entity.length-2));
-			console.log(definition[definition.length-1]);
 		});
 		this._relations.forEach((relation)=>{
 			Object.keys(relation).forEach((property)=>{

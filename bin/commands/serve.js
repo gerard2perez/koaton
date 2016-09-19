@@ -495,7 +495,8 @@ module.exports = {
 								directory: embercfg[ember_app].directory,
 								mount: embercfg[ember_app].mount,
 								build: "development",
-								layout: embercfg[ember_app].layout
+								layout: embercfg[ember_app].layout,
+								title:embercfg[ember_app].title
 							};
 							utils.nlog(`Building ${ember_app.green} second plane`);
 							yield buildcmd.preBuildEmber(ember_app, configuration);

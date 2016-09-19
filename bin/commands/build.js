@@ -241,6 +241,7 @@ const postBuildEmber = function*(ember_app, options) {
 		const links = new RegExp(`<link rel="stylesheet" href=".*?assets/.*.css.*>`, "gm");
 		const scripts = new RegExp(`<script src=".*?assets/.*.js.*></script>`, "gm");
 		text = utils.Compile(indextemplate, {
+			title:options.title || app_name,
 			layout: options.layout || "main",
 			path: options.directory,
 			mount: options.mount,

@@ -185,10 +185,17 @@ module.exports = {
 			return false;
 		});
 	},
-	render(source,dest,compiling_data){
-		let raw = fs.readFileSync(dest,'utf-8');
-		let compiled = fs.writeFileSync(source,this.Compile(raw,compiling_data));
-		return {raw:raw,compiled:compiled };
+	render(source, dest, compiling_data) {
+		try {
+			let raw = fs.readFileSync(dest, 'utf-8');
+			let compiled = fs.writeFileSync(source, this.Compile(raw, compiling_data));
+			return {
+				raw: raw,
+				compiled: compiled
+			};
+		} catch (e) {
+			return null;
+		}
 	},
 	read: Promise.promisify(fs.readFile),
 	Compile(text, options) {
