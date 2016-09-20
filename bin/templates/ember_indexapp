@@ -1,21 +1,20 @@
-{{#extend "main"}}
+{{#extend "{{layout}}"}}
+	{{#content "title"}}
+		{{title}}
+	{{/content}}
 	{{#content "meta"}}
 		<meta charset="utf-8">
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="description" content="">
 		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<base href="{{mount}}" />
 		{{meta}}
 	{{/content}}
-	{{#content "title"}}{{app_name}}{{/content}}
 	{{#content "css"}}
-		<link rel="stylesheet" href="/{{path}}/assets/vendor.css">
-		<link rel="stylesheet" href="/{{path}}/assets/{{app_name}}.css">
+		{{cssfiles}}
 		{{{bundle "{{app_name}}.css"}}}
 	{{/content}}
 	{{#content "js"}}
-		<script src="/{{path}}/assets/vendor.js"></script>
-		<script src="/{{path}}/assets/{{app_name}}.js"></script>
+		{{jsfiles}}
 		{{{bundle "{{app_name}}.js"}}}
 	{{/content}}
 {{/extend}}

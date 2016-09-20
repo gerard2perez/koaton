@@ -7,7 +7,17 @@ var host = 'http://localhost' + (port != 80 ? ':' + port : '');
 var DEBUG = env !== 'production'
 
 module.exports = {
-	//http://koajs.com/#application
+	pagination:{
+		limit:50
+	},
+	subdomains:[
+		"www"
+	],
+	//http://koajs.com/#application,
+	host:{
+		dev:'localhost',
+		prod:'127.0.0.1'
+	},
 	name: "koaton",
 	keys: ['9184f115438655076a7675827bbfa1d98745217f'],
 	env: env,

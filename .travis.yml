@@ -18,12 +18,14 @@ cache:
 
 before_install:
   - "npm config set spin false"
-  - npm install -g ember-cli
+  - npm install -g glob
+  - npm install -g ember-cli@2.7.0
   - npm install -g bower
   - npm install -g forever
 
 install:
-  - npm install . -g
+  - npm i
+  - npm i . -g
 
 script:
   - npm test

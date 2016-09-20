@@ -1,16 +1,42 @@
 "use strict";
 const fs = require('graceful-fs');
 const mkdirp = require('mkdirp');
-const path = require('path');
+const path = require('upath');
 const Promise = require('bluebird');
-const spawn = require('cross-spawn-async');
-const spinner = require('./spinner');
+const spawn = require('cross-spawn');
+const spinner = require('./spinner')();
 const exec = require('child_process').exec;
 let log = "";
 exports.koatonPath = path.resolve();
 exports.sourcePath = path.join(__dirname, '..', 'templates');
 module.exports = {
-	exec:(cmd, opts) => {
+	challenge: function*(location, message, force) {
+		const prompt = require('co-prompt');
+		let ok = true;
+		if (this.canAccess(location) && !force) {
+			ok = yield prompt.confirm(`${message} [y/n]: `);
+		}
+		return ok;
+	},
+	log(text) {
+		try {
+			process.stdout.clearLine();
+			process.stdout.cursorTo(0);
+			process.stdout.write(text);
+		} catch (e) {}
+	},
+	nlog(text) {
+		try {
+			process.stdout.clearLine();
+			process.stdout.cursorTo(0);
+			process.stdout.write(text + '\n');
+		} catch (e) {}
+	},
+	no_print: -1,
+	print: 1,
+	spawn: spawn,
+	exec: (cmd, opts) => {
+		opts = opts || {};
 		return new Promise((resolve, reject) => {
 			const child = exec(cmd, opts, (err, stdout, stderr) => err ? reject(err) : resolve({
 				stdout: stdout,
@@ -24,10 +50,14 @@ module.exports = {
 			}
 		});
 	},
-	shell_log:()=>{
+	shell_log: () => {
 		return log;
 	},
 	shell: Promise.promisify((display, command, cwd, cb) => {
+		if (cb === undefined) {
+			cb = cwd;
+			cwd = process.cwd();
+		}
 		let buffer = "";
 		let c = null;
 		const output = function(data) {
@@ -47,7 +77,7 @@ module.exports = {
 				cwd: path.join(cwd, "/"),
 				shell: true
 			});
-			spinner.start(50, display).then(() => {
+			spinner.start(50, display, undefined, process.stdout.columns).then(() => {
 				(cb || (() => {
 					console.log("No Callback".red)
 				}))(null, c || child.exitCode);
@@ -73,47 +103,8 @@ module.exports = {
 	to_env: (() => {
 		return path.resolve();
 	})(),
-	info(env, promises) {
-		var jutsus = require('./jutsus');
-		jutsus = jutsus.S.concat(jutsus.A, jutsus.B, jutsus.C);
-		var index = Math.floor((Math.random() * jutsus.length));
-		var total = "===-----------------------------------------------------===".length;
-
-		function center(text) {
-			var m = Math.floor((total - text.length) / 2);
-			var r = "";
-			while (r.length < m) {
-				r += " ";
-			}
-			return r + text;
-		}
-		if (env.NODE_ENV !== 'production') {
-			if (env.welcome === false) {
-				console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-				console.log(center("Koaton: " + jutsus[index].name));
-				console.log("   " + "-------------------------===-------------------------".dim + "   ");
-				console.log(`   Server running in ${this.proyect_path}\n` +
-					`   To see your app, visit ` + `http://localhost:${env.port}\n`.underline +
-					`   To shut down Koaton, press <CTRL> + C at any time.`);
-				Promise.all(promises).then((a) => {
-					console.log(a.join('\n'));
-					console.log("===".grey + "-----------------------------------------------------".dim + "===".grey);
-					console.log('   Enviroment:\t\t' + (env.NODE_ENV).green);
-					console.log('   Port:\t\t' + (env.port + "").green);
-				});
-			}
-		}
-	},
 	version: require('../package.json').version,
 	proyect_path: path.resolve(),
-	rmdir(folder){
-		try {
-			fs.unlinkSync(folder);
-		} catch (e) {
-			return false;
-		}
-		return true;
-	},
 	source_path: path.join(__dirname, '..', 'templates'),
 	/**
 	 * echo str > path.
@@ -122,12 +113,32 @@ module.exports = {
 	 * @param {String} str
 	 */
 	_write: Promise.promisify(fs.writeFile),
+	writeuseslog: undefined,
+	writeSync(file, content, mode) {
+		let printfn = this.writeuseslog ? this.writeuseslog : console.log;
+		file = path.normalize(file);
+		fs.writeFileSync(file, content);
+		if (this.canAccess(file)) {
+			const head = path.basename(file);
+			const body = file.replace(path.join(process.cwd(), "/"), "").replace(head, "");
+			if (mode !== null) {
+				printfn(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
+			}
+			return file;
+		} else {
+			return null;
+		}
+	},
 	write(file, content, mode) {
+		let printfn = this.writeuseslog ? this.writeuseslog : console.log;
+		file = path.normalize(file);
 		return this._write(file, content, {}).then(() => {
-			var head = path.basename(file);
-			var body = file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
-			console.log(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
-			return true;
+			const head = path.basename(file);
+			const body = file.replace(path.join(process.cwd(), "/"), "").replace(head, ""); //file.replace(head, "").replace(this.to_env.replace(path.basename(this.to_env), ""), "");
+			if (mode !== null) {
+				printfn(`   ${mode?'update':'create'}`.cyan + ': ' + body + head.green);
+			}
+			return file;
 		}, (e) => {
 			console.log(e.toString().red);
 		}).catch((e) => {
@@ -150,6 +161,18 @@ module.exports = {
 				return "utf-8";
 		}
 	},
+	Copy(from, to, opts) {
+		try {
+			return this.read(from, opts).then((data) => {
+				return this._write(to, data, opts);
+			}).catch((e) => {
+				console.log(e.red);
+				return false;
+			});
+		} catch (e) {
+			return Promise.reject(e);
+		}
+	},
 	copy(from, to) {
 		to = path.join(this.to_env, to || from);
 		from = path.join(this.from_env, from);
@@ -162,6 +185,18 @@ module.exports = {
 			return false;
 		});
 	},
+	render(source, dest, compiling_data) {
+		try {
+			let raw = fs.readFileSync(dest, 'utf-8');
+			let compiled = fs.writeFileSync(source, this.Compile(raw, compiling_data));
+			return {
+				raw: raw,
+				compiled: compiled
+			};
+		} catch (e) {
+			return null;
+		}
+	},
 	read: Promise.promisify(fs.readFile),
 	Compile(text, options) {
 		for (let prop in options) {
@@ -169,7 +204,7 @@ module.exports = {
 		}
 		return text;
 	},
-	compile(from, to, options) {
+	compile(from, to, options, mode) {
 		if (options === undefined) {
 			options = to;
 			to = undefined;
@@ -178,7 +213,7 @@ module.exports = {
 		return this.read(path.join(this.from_env, from), {
 			encoding: this.encoding(path.extname(from))
 		}).then((data) => {
-			return this.write(to, this.Compile(data, options || {}));
+			return this.write(to, this.Compile(data, options || {}), mode);
 		}).catch((e) => {
 			console.log(e.red);
 			return false;
@@ -191,19 +226,26 @@ module.exports = {
 	 * @param {String} path
 	 * @param {Function} fn
 	 */
-	mkdir: Promise.promisify(function(file, cb) {
+	mkdir: Promise.promisify(function(file, mode, cb) {
+		file = path.normalize(file);
+		if (cb === undefined && typeof mode === "function") {
+			cb = mode;
+			mode = undefined;
+		}
+		mode = mode || 1;
 		mkdirp(file, '0755', function(err) {
 			if (err) {
 				throw err;
 			}
+			const location = file;
 			file = file.replace(path.join(process.cwd(), "/"), "");
-			var head = path.basename(file);
-			file = file.replace(head, "");
-
-			console.log('   create'.cyan + ': ' + file + head.green);
+			const head = path.basename(file);
+			if (mode !== -1) {
+				console.log('   create'.cyan + ': ' + file.replace(head, "") + head.green);
+			}
 			(cb || (() => {
-				console.log("No Callback".red)
-			}))();
+				console.log("No Callback".red);
+			}))(null, location);
 		});
 	}),
 	canAccess(path) {
@@ -214,11 +256,41 @@ module.exports = {
 			return false;
 		}
 	},
+	rmdir(folder) {
+		try {
+			let that = this;
+			if (fs.existsSync(folder)) {
+				if (fs.lstatSync(folder).isDirectory()) {
+					readDir(folder).forEach((file) => {
+						let current = path.join(folder, file);
+						if (fs.lstatSync(current).isDirectory()) {
+							that.rmdir((current));
+						} else {
+							fs.unlinkSync(current);
+						}
+					});
+					fs.rmdirSync(folder);
+				} else {
+					fs.unlinkSync(folder);
+
+				}
+			}
+			return true;
+		} catch (e) {
+			console.log(e.stack);
+			return false
+		}
+	},
+	// cp(source,target){
+	// 	if(fs.existsSync(target)){
+	// 		this.rm(target);
+	// 	}
+	// },
 	deleteFolderRecursive(folder) {
 		var files = [];
 		var that = this;
 		if (fs.existsSync(folder)) {
-			files = fs.readdirSync(folder);
+			files = readDir(folder);
 			files.forEach(function(file) {
 				var curPath = path.join(folder, "/", file);
 				if (fs.lstatSync(curPath).isDirectory()) { // recurse
@@ -237,7 +309,7 @@ module.exports = {
 	 **/
 	isEmpty(path) {
 		try {
-			var files = fs.readdirSync(path);
+			var files = readDir(path);
 			return !files || !files.length;
 		} catch (e) {
 			return true;
