@@ -1,24 +1,16 @@
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.createUser = createUser;
-exports.getuser = getuser;
-exports.initialize = initialize;
-
-const hash = require('bcrypt').hash;
-
-const compare = require('bcrypt').compare;
-
-const passport = require('koa-passport');
-
-const orm = require('./orm').orm;
+import {
+	hash,
+	compare
+} from 'bcrypt';
+import * as passport from 'koa-passport';
+import {
+	orm
+} from './orm';
 
 let AuthModel;
 let AuthConfig;
 
-function* createUser(username, password, body) {
+export function* createUser(username, password, body) {
 	const user = yield this.getuser(username, password);
 	body[AuthConfig.username] = username;
 	body[AuthConfig.password] = yield hash(password, 5);
@@ -30,12 +22,12 @@ function* createUser(username, password, body) {
 		};
 	}
 }
-function getuser(username, password, done) {
+export function getuser(username, password, done) {
 	let query = {};
 	query[AuthConfig.username] = username;
 	AuthModel.findOne({
 		where: query
-	}).then(user => {
+	}).then((user) => {
 		if (user !== null) {
 			compare(password, user[AuthConfig.password], (err, res) => {
 				if (err) {
@@ -46,28 +38,28 @@ function getuser(username, password, done) {
 		} else {
 			done(null, null);
 		}
-	}, err => {
+	}, (err) => {
 		done(err, null);
 	});
 }
-function initialize(app) {
+export function initialize(app) {
 	AuthConfig = require(ProyPath("config", "security"));
 	AuthModel = orm[app.inflect.pluralize(AuthConfig.model)];
 	const Model = orm[app.inflect.pluralize(AuthConfig.model)];
-	passport.serializeUser(function (user, done) {
+	passport.serializeUser(function(user, done) {
 		done(null, user._id);
 	});
-	passport.deserializeUser(function (id, done) {
-		Model.findById(id).then(user => {
+	passport.deserializeUser(function(id, done) {
+		Model.findById(id).then((user) => {
 			done(null, user);
-		}, err => {
+		}, (err) => {
 			done(err, null);
 		});
 	});
-	Object.keys(AuthConfig.strategies).forEach(strategy => {
+	Object.keys(AuthConfig.strategies).forEach((strategy) => {
 		const STR = AuthConfig.strategies[strategy];
 		try {
-			let component = STR.package || `passport-${ strategy }`;
+			let component = STR.package || `passport-${strategy}`;
 			let Strategy = require(component)[STR.strategy || "Strategy"];
 			if (STR.options) {
 				passport.use(STR.identifier, new Strategy(STR.options, STR.secret));
@@ -76,8 +68,8 @@ function initialize(app) {
 			}
 		} catch (err) {
 			console.log(err.stack);
-			console.log(app.inflect.camelize(`${ strategy }_strategy`) + " not found");
-			console.log(`You might try koaton oauth2server install ${ STR.package }`);
+			console.log(app.inflect.camelize(`${strategy}_strategy`) + " not found");
+			console.log(`You might try koaton oauth2server install ${STR.package}`);
 		}
 		console.log();
 	});

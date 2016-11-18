@@ -1,39 +1,31 @@
 ---
 engines:
-  duplication:
-    enabled: true
-    exclude_fingerprints:
-    - 75482e36b2a61b803d0f2bd1b2a1850c
-    - 631e101a0a1ea6fe8122daaf91d6532d
-    - 6cfac5dbfb935ae391ba6b266238ccde
-    - bf09f6cc08caf4577b9d5e4168e7bc69
-    - c6aee1f503a1b590c929893e3fcd792b
-    - b817f63feb4d13fcf2cbfbd6f3693047
-    - adde4ea72fb21ddab2d71e43ad9ac329
-    - 5cf1e97b71d2375e6cdc0f0fe1a99bd7
-    - b62ce1cafcb8628482e772cf66f44b59
-    - 11a60711cde39ea644f0bda2acb15924
-    - 8da499abe9ab0bd4050d71e72ee570c1
-    - 113841629cb77dfc12af6f244fbb4f05
-    - e81f7d3341b2f696c24c1e850a79afac
-    - 70d2c37bcd1231ef09a354488e68af18
-    - 3afc1181baa03ac7ec9b5e1292898a1a
-    - 5c3e2c0b173890fc5c9c59d6db8cb981
-    - fca86fa9535a2bc557f94df20e3a6c0c
-    - b5fe0d3d968954ea1a3acc2f349797fe
-    config:
-      languages:
-      - javascript
-  eslint:
-    enabled: true
-  fixme:
-    enabled: true
+    duplication:
+        enabled: true
+        config:
+            languages:
+                javascript:
+                    mass_threshold: 59
+
+    eslint:
+        enabled: true
+        channel: eslint-3
+    fixme:
+        enabled: true
 ratings:
-  paths:
-  - "**.js"
+    paths:
+        - src/**
 exclude_paths:
-- tests/
-- templates/views/
-- "README.md"
-- "LICENSE.md"
-- "changelog.md"
+    - ".nyc_output/"
+    - docs/
+    - core/
+    - node_modules/
+    - lib/
+    - test/
+    - testcoverage/
+    - testingapp/
+    - templates/
+    - koaton
+    - ".*"
+    - "./**.json"
+    - "./*.js"

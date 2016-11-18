@@ -1,0 +1,3 @@
+--require test/.init.js
+--bail
+--slow 0

@@ -1,9 +1,4 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.default = {
+export default {
 	oauth2accesstoken(schema) {
 		return {
 			"model": {
@@ -27,9 +22,9 @@ exports.default = {
 				}
 			},
 			"extra": {
-				TimeStamps: false
+				TimeStamps:false
 			},
-			relations: {}
+			relations:{}
 		};
 	},
 	oauth2application(schema) {
@@ -53,12 +48,12 @@ exports.default = {
 				"Name": {
 					type: schema.String
 				},
-				"Skip": {
-					type: schema.Boolean
+				"Skip":{
+					type:schema.Boolean
 				}
 			},
 			"extra": {},
-			relations: {}
+			relations:{}
 		};
 	}
 };

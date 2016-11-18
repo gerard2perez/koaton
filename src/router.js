@@ -1,29 +1,21 @@
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-
-const path = require('upath');
-
-const Promise = require('bluebird');
-
-const include = require('./support/include').default;
+import * as path from 'upath';
+import * as Promise from 'bluebird';
+import include from './support/include';
 
 let koaton_app;
 let router;
 let secured;
 
-const Router = requireSafe(ProyPath('node_modules', 'koa-router'), {});
-const passport = requireSafe(ProyPath('node_modules', 'koa-passport'), {});
+const Router = requireSafe(ProyPath('node_modules', 'koa-router'),{});
+const passport = requireSafe(ProyPath('node_modules', 'koa-passport'),{});
 
-function* restify(modelinstance, modelname) {
+async function restify(modelinstance, modelname) {
 	const relation = require(ProyPath("models", modelname))({}, {
 		hasMany(field) {
-			return field.split(".")[1];
+			return field.split(".")[1]
 		},
 		belongsTo(field) {
-			return field.split(".")[1];
+			return field.split(".")[1]
 		}
 	}).relations;
 	let model = modelinstance.toJSON();
@@ -32,14 +24,14 @@ function* restify(modelinstance, modelname) {
 			let find = Promise.promisify(modelinstance[key].find, {
 				context: modelinstance
 			});
-			let relations = yield find({});
+			let relations = await find({});
 			if (scfg.relations_mode) {
 				Object.defineProperty(model, key, {
 					enumerable: true,
 					configurable: true,
 					writable: true,
-					value: relations.map(function (record) {
-						return record.id;
+					value: relations.map((record) => {
+						return record.id
 					})
 				});
 			} else {
@@ -47,7 +39,7 @@ function* restify(modelinstance, modelname) {
 					enumerable: true,
 					configurable: true,
 					writable: true,
-					value: relations.map(function (record) {
+					value: relations.map((record) => {
 						let property = record.toObject();
 						property[relation[key]] = modelinstance.id;
 						return property;
@@ -57,41 +49,42 @@ function* restify(modelinstance, modelname) {
 		}
 	}
 	return model;
+
 }
 
-function* findmodel(next) {
-	let pmodel = this.request.url.split('?')[0].split('/');
+async function findmodel(ctx, next) {
+	let pmodel = ctx.request.url.split('?')[0].split('/');
 	for (const partialpath of pmodel) {
 		console.log(partialpath);
-		if (this.model === undefined && this.db) {
-			this.model = this.db[partialpath];
+		if (ctx.model === undefined && ctx.db) {
+			ctx.model = ctx.db[partialpath];
 		}
 	}
-	yield next;
+	await next();
 }
 
-function* protect(next) {
-	if (this.isAuthenticated()) {
-		yield next;
+async function protect(ctx, next) {
+	if (ctx.isAuthenticated()) {
+		await next();
 	} else {
-		yield passport.authenticate('bearer', {
+		await passport.authenticate('bearer', {
 			session: false
-		}, function* (err, user) {
+		}, async function(err, user) {
 			if (err) {
-				throw err;
+				throw err
 			}
-			yield next;
+			await next();
 			if (user === false) {
-				this.status = 401;
+				ctx.status = 401
 			}
-		}).call(this, next);
+		}).call(ctx, next);
 	}
 }
 
-const pOrp = function (routers, spec) {
+const pOrp = function(routers, spec) {
 	let router = spec || "private";
 	return routers[router];
-};
+}
 
 function getQuery(filtergroup) {
 	let group = [];
@@ -102,17 +95,17 @@ function getQuery(filtergroup) {
 		}
 		switch (filter.condition) {
 			case "like":
-				group.push(`(this.${ filter.key }.search(/${ filter.value }/ig)>-1) `);
+				group.push(`(this.${filter.key}.search(/${filter.value}/ig)>-1) `);
 				break;
 			case "in":
-				group.push(`(["${ filter.value.join('","') }"].indexOf(this.${ filter.key })>-1)`);
+				group.push(`(["${filter.value.join('","')}"].indexOf(this.${filter.key})>-1)`);
 				break;
 			case "==":
-				group.push(`this.${ filter.key }.search(${ filter.value })>-1`);
+				group.push(`this.${filter.key}.search(${filter.value})>-1`);
 				break;
 			default:
-				group.push(`(this.${ filter.key } ${ filter.condition } "${ filter.value }") `);
-				break;
+				group.push(`(this.${filter.key} ${filter.condition} "${filter.value}") `);
+				break
 		}
 	}
 	return group.join(' ');
@@ -139,48 +132,48 @@ function makeRestModel(options, route, modelname) {
 	let mount_route = route.replace(/\/$/, "");
 	pOrp(routers, undefined).options(mount_route, allowmethods).options(path.join(mount_route, "*"), allowmethods);
 
-	pOrp(routers, options.get).get("/", function* REST_GET(next) {
+	pOrp(routers, options.get).get("/", async function REST_GET(ctx, next) {
 		let res = {},
-		    filteroptions = {
-			skip: 0
-		},
-		    filterset = this.query.filterset || [];
-		filteroptions.limit = isNaN(this.query.size) ? isNaN(server.pagination.limit) ? 50 : server.pagination.limit : parseInt(this.query.size, 50);
-		if (this.query.size) {
-			delete this.query.size;
+			filteroptions = {
+				skip: 0
+			},
+			filterset = ctx.query.filterset || [];
+		filteroptions.limit = isNaN(this.query.size) ? (isNaN(server.pagination.limit) ? 50 : server.pagination.limit) : parseInt(this.query.size, 50);
+		if (ctx.query.size) {
+			delete ctx.query.size;
 		}
-		if (this.query.page) {
-			filteroptions.skip = (this.query.page * 1 - 1) * filteroptions.limit;
-			delete this.query.page;
+		if (ctx.query.page) {
+			filteroptions.skip = ((ctx.query.page * 1) - 1) * filteroptions.limit;
+			delete ctx.query.page;
 		}
-		if (this.query.filterset) {
-			delete this.query.filterset;
+		if (ctx.query.filterset) {
+			delete ctx.query.filterset;
 		}
-		if (this.query) {
+		if (ctx.query) {
 			let searchgroup = {
 				filters: [],
 				link: null
 			};
-			for (let item in this.query) {
+			for (let item in ctx.query) {
 				if (item.indexOf(".") > -1) {
 					let terms = item.split(".");
 					let prequery = {};
-					prequery[terms[1]] = new RegExp(`.*${ this.query[item] }.*`, "i");
-					let finds = yield this.db[koaton_app.inflect.pluralize(terms[0])].find({
+					prequery[terms[1]] = new RegExp(`.*${ctx.query[item]}.*`, "i");
+					let finds = await ctx.db[koaton_app.inflect.pluralize(terms[0])].find({
 						where: prequery
 					});
 					searchgroup.filters.push({
 						key: terms[0],
 						condition: 'in',
-						value: finds.map(function (m) {
-							return m._id;
+						value: finds.map((m) => {
+							return m._id
 						})
 					});
 				} else {
 					searchgroup.filters.push({
 						key: item,
 						condition: '==',
-						value: new RegExp(`.*${ this.query[item] }.*`, "i")
+						value: new RegExp(`.*${this.query[item]}.*`, "i")
 					});
 				}
 				if (filterset.length > 0) {
@@ -189,78 +182,80 @@ function makeRestModel(options, route, modelname) {
 				filterset.push(searchgroup);
 			}
 		}
-		filterset = makeit(filterset) || function () {
-			return true;
+		filterset = makeit(filterset) || function() {
+			return true
 		};
 		if (filteroptions.skip >= 0) {
 			res.meta = {
-				total: yield this.model.rawCount(filterset)
+				total: await ctx.model.rawCount(filterset)
 			};
 		}
-		res[modelname] = yield this.model.rawWhere(filterset, filteroptions);
-		this.body = res;
-		yield next;
+		res[modelname] = await ctx.model.rawWhere(filterset, filteroptions);
+		ctx.body = res;
+		await next();
 	});
-	pOrp(routers, options.get).get(`/:id`, function* REST_GET_ID(next) {
+	pOrp(routers, options.get).get(`/:id`, async function REST_GET_ID(ctx, next) {
 		let res = {};
-		res[koaton_app.inflect.singularize(modelname)] = yield restify((yield this.model.findById(this.params.id)), koaton_app.inflect.singularize(modelname));
-		this.body = res;
-		yield next;
+		res[koaton_app.inflect.singularize(modelname)] = await restify(await ctx.model.findById(ctx.params.id), koaton_app.inflect.singularize(modelname));
+		ctx.body = res;
+		await next();
 	});
-	pOrp(routers, options.post).post("/", function* REST_POST(next) {
+	pOrp(routers, options.post).post("/", async function REST_POST(ctx, next) {
 		let res = {};
-		res[koaton_app.inflect.singularize(modelname)] = yield this.model.create(this.request.body[koaton_app.inflect.singularize(modelname)]);
-		this.body = res;
-		yield next;
+		res[koaton_app.inflect.singularize(modelname)] = await ctx.model.create(ctx.request.body[koaton_app.inflect.singularize(modelname)]);
+		ctx.body = res;
+		await next();
 	});
-	pOrp(routers, options.put).put(`/:id`, function* REST_PUT(next) {
-		let body = this.request.body[koaton_app.inflect.singularize(modelname)];
-		let record = yield this.model.findById(this.params.id);
+	pOrp(routers, options.put).put(`/:id`, async function REST_PUT(ctx, next) {
+		let body = ctx.request.body[koaton_app.inflect.singularize(modelname)];
+		let record = await ctx.model.findById(ctx.params.id);
 		for (const prop in body) {
 			if (record[prop] !== undefined) {
 				record[prop] = body[prop];
 			}
 		}
 		record.save();
-		this.body = {};
-		this.body[koaton_app.inflect.singularize(modelname)] = record;
-		yield next;
+		ctx.body = {};
+		ctx.body[koaton_app.inflect.singularize(modelname)] = record;
+		await next();
 	});
-	pOrp(routers, options.delete).del(`/:id`, function* REST_DELETE(next) {
-		yield this.model.destroyById(this.params.id);
-		this.body = {
-			id: this.params.id
+	pOrp(routers, options.delete).del(`/:id`, async function REST_DELETE(ctx, next) {
+		await this.model.destroyById(ctx.params.id);
+		ctx.body = {
+			id: ctx.params.id
 		};
-		yield next;
+		await next();
 	});
 	router.use(path.join("/", mount_route), routers.public.routes());
 	secured.use(path.join("/", mount_route), routers.private.routes());
 }
 
-function* allowmethods(next) {
-	yield next;
-	this.response.set('Access-Control-Allow-Methods', 'OPTIONS,' + this.request.get('Access-Control-Request-Method'));
-	this.status = 200;
-	this.response.remove('ETag');
-	this.response.remove('Content-Type');
-	this.response.remove('Date');
+async function allowmethods(ctx, next) {
+	await next();
+	ctx.response.set('Access-Control-Allow-Methods', 'OPTIONS,' + ctx.request.get('Access-Control-Request-Method'));
+	ctx.status = 200;
+	ctx.response.remove('ETag');
+	ctx.response.remove('Content-Type');
+	ctx.response.remove('Date');
 }
 
 function initialize(koa) {
 	let subdomainRouters = [];
 	for (const subdomain of scfg.subdomains) {
-		subdomainRouters[subdomain] = {
+		subdomainRouters[subdomain]={
 			public: new Router(),
 			protected: new Router()
-		};
+		}
 		subdomainRouters[subdomain].protected.use(protect);
 		subdomainRouters[subdomain].public.use(findmodel);
 		subdomainRouters[subdomain].protected.use(findmodel);
 	}
+
 }
 
+
 // module.exports.restify = makeRestModel;
-exports.default = initialize;
+export default initialize;
 /*
 module.exports.initialize = function(app) {
 	koaton_app = app;

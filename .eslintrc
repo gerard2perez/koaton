@@ -1,6 +1,20 @@
+extends: airbnb-base
 ecmaFeatures:
   modules: true
   jsx: true
+globals:
+    ProyPath: true
+    scfg: true
+    readDir: true
+    requireNoCache: false
+    TemplatePath: true
+    requireSafe: true
+    Events: true
+    LibPath: true
+    makeObjIterable: true
+    __ok: true
+    __nok: true
+    skipshell: true
 env:
   amd: true
   browser: false
@@ -8,11 +22,22 @@ env:
   jquery: true
   node: true
 
+parserOptions:
+  sourceType: module
+  ecmaVersion: 2017
 # http://eslint.org/docs/rules/
 rules:
+  no-param-reassign:
+  - error
+  - props: false
+
+  import/no-mutable-exports: 0
+  import/no-dynamic-require: 0
+  import/no-unresolved: 0
+  no-tabs: 0
   # Possible Errors
   comma-dangle: [2, never]
-  no-cond-assign: 2
+  no-cond-assign: [2, except-parens]
   no-console: 0
   no-constant-condition: 2
   no-control-regex: 2
@@ -75,7 +100,7 @@ rules:
   no-multi-str: 0
   no-native-reassign: 2
   no-new-func: 2
-  no-new-wrappers: 2
+  no-new-wrappers: 0
   no-new: 2
   no-octal-escape: 2
   no-octal: 2
@@ -108,7 +133,7 @@ rules:
   no-shadow-restricted-names: 2
   no-shadow: 0
   no-undef-init: 2
-  no-undef: 0
+  no-undef: 2
   no-undefined: 0
   no-unused-vars: 1
   no-use-before-define: 0
@@ -147,7 +172,7 @@ rules:
   max-len: 0
   max-nested-callbacks: 0
   max-params: 0
-  max-statements: [2, 30]
+  max-statements: [2, 50]
   new-cap: 0
   new-parens: 0
   newline-after-var: 0

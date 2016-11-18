@@ -1,26 +1,19 @@
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-
-const dirname = require('upath').dirname;
-
-const extname = require('upath').extname;
-
-const join = require('path').join;
-
-const send = require('koa-send');
-
-const fs = require('graceful-fs');
-
-const Promise = require('bluebird');
+import {
+	dirname,
+	extname
+} from 'upath';
+import {
+	join
+} from 'path';
+import * as send from 'koa-send';
+import * as fs from 'graceful-fs';
+import * as Promise from 'bluebird';
 
 const adapter = require(CLIPath('support', 'adapter'));
 const config = require(ProyPath('config', 'views'));
 const cons = require(ProyPath('node_modules', 'co-views'));
 const isHtml = ext => ext === 'html';
-const toFile = (fileName, ext) => `${ fileName }.${ ext }`;
+const toFile = (fileName, ext) => `${fileName}.${ext}`;
 const stat = Promise.promisify(fs.stat);
 const npmpackage = require(ProyPath("package.json"));
 /**
@@ -30,26 +23,26 @@ const npmpackage = require(ProyPath("package.json"));
  * @param  {String} ext File extension
  * @return {Object} tuple of { abs, rel }
  */
-function* getPaths(abs, rel, ext) {
+async function getPaths(abs, rel, ext) {
 	try {
-		if ((yield stat(join(abs, rel))).isDirectory()) {
+		if ((await stat(join(abs, rel))).isDirectory()) {
 			// a directory
 			return {
 				rel: join(rel, toFile('index', ext)),
 				abs: join(abs, dirname(rel), rel)
-			};
+			}
 		}
 		// a file
 		return {
 			rel,
 			abs
-		};
+		}
 	} catch (e) {
 		// not a valid file/directory
 		return {
 			rel: toFile(rel, ext),
 			abs: toFile(abs, ext)
-		};
+		}
 	}
 }
 
@@ -66,30 +59,30 @@ const enginesSetup = {
 		const layouts = require(ProyPath("/node_modules", "handlebars-layouts"));
 		const templatesDir = ProyPath("views", "layouts");
 		Handlebars.registerHelper(layouts(Handlebars));
-		Handlebars.registerHelper('bundle', function (bundle) {
+		Handlebars.registerHelper('bundle', function(bundle) {
 			if (Kmetadata.bundles[bundle] === undefined) {
 				return "";
 			}
 			let res = "";
 			if (bundle.indexOf(".css") > -1) {
 				if (Kmetadata.bundles[bundle] instanceof Array) {
-					Kmetadata.bundles[bundle].forEach(file => {
-						res += `<link rel="stylesheet" href="${ file }">`;
+					Kmetadata.bundles[bundle].forEach((file) => {
+						res += `<link rel="stylesheet" href="${file}">`;
 					});
 				} else {
-					res = `<link rel="stylesheet" href="${ Kmetadata.bundles[bundle] }">`;
+					res = `<link rel="stylesheet" href="${Kmetadata.bundles[bundle]}">`;
 				}
 			} else if (bundle.indexOf(".js") > -1) {
-				res = `<script src="${ Kmetadata.bundles[bundle] }"></script>`;
+				res = `<script src="${Kmetadata.bundles[bundle]}"></script>`;
 			}
 			return res;
 		});
-		readDir("koaton_modules").forEach(folder => {
-			readDir("koaton_modules", folder, "views", "layouts").forEach(file => {
+		readDir("koaton_modules").forEach((folder) => {
+			readDir("koaton_modules", folder, "views", "layouts").forEach((file) => {
 				Handlebars.registerPartial(file.replace(".handlebars", ""), fs.readFileSync(join("koaton_modules", folder, "views", "layouts", file), 'utf8'));
 			});
-		});
-		readDir(templatesDir).forEach(function (file) {
+		})
+		readDir(templatesDir).forEach(function(file) {
 			if (file.indexOf(".handlebars") > -1) {
 				Handlebars.registerPartial(file.replace(".handlebars", ""), fs.readFileSync(join(templatesDir, file), 'utf8'));
 			}
@@ -113,29 +106,29 @@ const views = function views() {
 	for (const engine in engines) {
 		enginesSetup[engine]();
 	}
-	return function* a(next) {
-		if (this.render) {
-			return yield next;
+	return async function a(ctx, next) {
+		if (ctx.render) {
+			return await next();
 		}
 		const render = cons(path, opts);
-		let prerender = function* prerender(relPath) {
+		let prerender = async function prerender(relPath) {
 			let ext = (extname(relPath) || '.' + opts.extension).slice(1);
-			const paths = yield getPaths(path, relPath, ext);
-			var state = this.state;
+			const paths = await getPaths(path, relPath, ext)
+			var state = ctx.state;
 			state.env_dev = process.env.NODE_ENV === "development";
-			this.type = 'text/html';
+			ctx.type = 'text/html'
 			if (isHtml(ext) && !opts.map) {
-				yield send(this, paths.rel, {
+				await send(ctx, paths.rel, {
 					root: path,
 					maxage: 1000 * 60 * 60
-				});
+				})
 			} else {
-				this.body = state.body = yield render(paths.rel, state);
+				ctx.body = state.body = await render(paths.rel, state);
 			}
 		};
-		this.render = prerender;
-		return yield next;
+		ctx.render = prerender;
+		return await next();
 	};
 };
 
-exports.default = views;
+export default views;

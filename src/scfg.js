@@ -1,14 +1,10 @@
-'use strict';
-
 // import * as rawpath from 'path';
-const path = require('upath');
+import * as path from 'upath';
 // const rawpath = require('path');
 // const path = require('upath');
 // const fs = require('graceful-fs');
-
-
-console.log(process.cwd());
-require(path.join(process.cwd(), 'node_modules', 'koaton-cli', 'lib', 'globals'));
+console.log(process.cwd())
+require(path.join(process.cwd(),'node_modules','koaton-cli','lib','globals'));
 
 // GLOBAL.CLIPath = function CLIPath(...args) {
 // 	args.splice(0, 0, 'lib');

@@ -1,23 +1,11 @@
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.addModel = addModel;
-exports.initialize = initialize;
-
-const Promise = require('bluebird');
-
-const co = require('co');
-
-const line2 = require('./support/consoleLines').line2;
+import * as Promise from 'bluebird';
+import * as co from "co";
+import {line2} from './support/consoleLines';
 
 //TODO: Create your own ORM caminte worked but is not enough, remember LORM?
-
-
 const caminte = require(ProyPath('node_modules', 'caminte'));
 const promesifythem = ['exists', 'create', 'findOrCreate', 'findOne', 'findById', 'find', 'all', 'run', 'updateOrCreate', 'upsert', 'update', 'remove', 'destroyById', 'destroy', 'count'
-//, 'destroyAll'
+	//, 'destroyAll'
 ];
 const connection = require(ProyPath('config', 'connections'))[require(ProyPath('config', 'models')).connection];
 let schema = new caminte.Schema(connection.driver, connection);
@@ -29,7 +17,7 @@ const exp = {
 let relations = {};
 
 function belongsTo(dest) {
-	let [parent, key] = dest.split(".");
+	let [parent,key] = dest.split(".");
 	relations[this].push({
 		Children: parent,
 		key: key,
@@ -40,7 +28,7 @@ function belongsTo(dest) {
 }
 
 function hasMany(dest) {
-	let [children, key] = dest.split(".");
+	let [children,key] = dest.split(".");
 	relations[this].push({
 		//parent:this,
 		Children: children,
@@ -50,9 +38,9 @@ function hasMany(dest) {
 	});
 	return relations[this].length - 1;
 }
-let orm = exports.orm = exp.databases;
-function addModel(...args) {
-	let [model_name, definition] = args;
+export let orm = exp.databases;
+export function addModel(...args) {
+	let [model_name, definition]=args;
 	relations[model_name] = [];
 	const rel = {
 		belongsTo: belongsTo.bind(model_name),
@@ -71,7 +59,7 @@ function addModel(...args) {
 	let model = schema.define(model_name, definition.model, definition.extra || {});
 	model.rawAPI = {};
 	exp.databases[model_name] = {};
-	promesifythem.forEach(function (fn) {
+	promesifythem.forEach(function(fn) {
 		if (model[fn]) {
 			model.rawAPI[fn] = model[fn].bind(model);
 			model[fn] = Promise.promisify(model[fn], {
@@ -81,7 +69,7 @@ function addModel(...args) {
 			switch (fn) {
 				case "create":
 					{
-						model[fn] = function (data) {
+						model[fn] = function(data) {
 							data.created = Date.now();
 							data.updated = data.created;
 							return magic(data);
@@ -89,8 +77,8 @@ function addModel(...args) {
 						break;
 					}
 				case "count":
-					model[fn] = function (query) {
-						return new Promise(function (resolve, reject) {
+					model[fn] = function(query) {
+						return new Promise(function(resolve, reject) {
 							model.rawAPI[fn]((err, count) => {
 								if (err) {
 									reject(err);
@@ -98,15 +86,16 @@ function addModel(...args) {
 									resolve(count);
 								}
 							}, query);
-						});
+						})
+
 					};
 					break;
 				case "update":
 					{
-						model[fn] = function (query, data) {
+						model[fn] = function(query, data) {
 							data.updated = Date.now();
 							return magic(query, data);
-						};
+						}
 						break;
 					}
 				default:
@@ -117,7 +106,7 @@ function addModel(...args) {
 		}
 		model.rawWhere = function rawWhere(stringquery, opts) {
 			let that = this;
-			return new Promise(function (resolve, reject) {
+			return new Promise(function(resolve, reject) {
 				let where = that.$where(stringquery);
 				for (let prop in opts) {
 					if (where[prop]) {
@@ -128,11 +117,11 @@ function addModel(...args) {
 					if (err) {
 						reject(err);
 					} else {
-						resolve(result.map(r => {
+						resolve(result.map((r) => {
 							let rr = {};
 							for (let p in r.toObject()) {
 								if (p === "_id") {
-									rr.id = r._id;
+									rr.id = r._id
 								} else if (p !== "__v") {
 									rr[p] = r[p];
 								}
@@ -145,7 +134,7 @@ function addModel(...args) {
 		}.bind(model.adapter);
 		model.rawCount = function rawCount(stringquery) {
 			let that = this;
-			return new Promise(function (resolve, reject) {
+			return new Promise(function(resolve, reject) {
 				that.$where(stringquery).count((err, result) => {
 					if (err) {
 						reject(err);
@@ -155,7 +144,7 @@ function addModel(...args) {
 				});
 			});
 		}.bind(model.adapter);
-		model.findcre = Promise.promisify(function (...args) {
+		model.findcre = Promise.promisify(function(...args) {
 			let [query, data, cb] = args;
 			if (cb === undefined) {
 				cb = data;
@@ -163,12 +152,12 @@ function addModel(...args) {
 			}
 			let that = this;
 			data = data || {};
-			Object.keys(query).forEach(function (field) {
+			Object.keys(query).forEach(function(field) {
 				data[field] = query[field];
 			});
 			that.rawAPI.findOne({
 				where: query
-			}, function (err, model) {
+			}, function(err, model) {
 				if (model === null) {
 					data.created = Date.now();
 					data.updated = data.created;
@@ -180,7 +169,7 @@ function addModel(...args) {
 		}, {
 			context: model
 		});
-		model.mongooseFilter = Promise.promisify(function (filter, cb) {
+		model.mongooseFilter = Promise.promisify(function(filter, cb) {
 			// console.log(filter);
 			this.rawAPI.find(filter, cb); //.exec(cb);
 		}, {
@@ -189,18 +178,21 @@ function addModel(...args) {
 	});
 	exp.databases[model_name] = model;
 }
-function initialize(app, seed) {
+export function initialize(app, seed) {
 	let res = null;
-	schema.on('error', err => {
+	schema.on('error', (err) => {
 		console.log(err.stack);
-	});
-	readDir(ProyPath('models')).forEach(function (...args) {
-		let [file] = args;
+	})
+	readDir(ProyPath('models')).forEach(function(...args) {
+		let [file]=args;
 		file = file.replace(".js", "");
-		addModel(app.inflect.pluralize(file), require(ProyPath('models', file)));
+		addModel(
+			app.inflect.pluralize(file),
+			require(ProyPath('models', file))
+		);
 	});
 
-	const makerelation = function (model, relation) {
+	const makerelation = function(model, relation) {
 		let options = {
 			as: relation.As,
 			foreignKey: relation.key
@@ -209,21 +201,21 @@ function initialize(app, seed) {
 		let target = exp.databases[app.inflect.pluralize(relation.Children)];
 		// console.log(model,relation.Rel,target,options);
 		exp.databases[model][relation.Rel](target, options);
-	};
+	}
 	for (let model in relations) {
 		relations[model].forEach(makerelation.bind(null, model));
 	}
 	if (process.env.NODE_ENV === "development") {
-		res = co(function* () {
+		res = co(function*() {
 			let files = readDir(ProyPath('seeds'));
 			for (let index in files) {
 				let file = files[index].replace(".js", "");
 				// let Model = exp.databases[app.inflect.pluralize(file.toLowerCase())];
 				try {
 					/*let records = yield Model.find({});
-     for (let index in records) {
-     	yield Model.destroyById(records[index].id);
-     }*/
+					for (let index in records) {
+						yield Model.destroyById(records[index].id);
+					}*/
 					console.log("Sedding " + file);
 					let model = exp.databases[app.inflect.pluralize(file.toLowerCase())];
 					yield require(ProyPath('seeds', file))(model.findcre);

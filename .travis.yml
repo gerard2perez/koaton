@@ -1,7 +1,9 @@
 ---
+services:
+  - mongodb
 language: node_js
 node_js:
-  - "4.4.4"
+  - "6.5.0"
 sudo: false
 env:
   - CXX=g++-4.8
@@ -12,20 +14,20 @@ addons:
     packages:
     - gcc-4.8
     - g++-4.8
+    - nginx
 cache:
   directories:
     - node_modules
 
 before_install:
-  - "npm config set spin false"
+  - npm config set spin false
   - npm install -g glob
-  - npm install -g ember-cli@2.7.0
+  - npm install -g ember-cli@2.9.1
   - npm install -g bower
   - npm install -g forever
 
 install:
-  - npm i
-  - npm i . -g
+  - npm i .
 
 script:
   - npm test

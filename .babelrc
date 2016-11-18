@@ -1,0 +1,22 @@
+{
+
+	"env": {
+		"koaton": {
+			"plugins": [
+				"babel-plugin-transform-koaton-es6-modules",
+				"babel-plugin-transform-koa2-async-to-generator",
+				"istanbul"
+			],
+			"ignore": [
+				"serverconf",
+				"config/",
+				"docs/",
+				"lib/",
+				"node_modules/",
+				"templates/",
+				"testcoverage/",
+				"testingapp/",
+			]
+		}
+	}
+}
