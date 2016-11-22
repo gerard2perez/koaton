@@ -1,33 +1,34 @@
 
-import * as fs from 'fs';
-import './scfg';
+import * as fs from 'fs-extra';
+import './support/globals';
 import view from './views';
 import oauth2server from './server';
 import {initialize as init_orm} from './orm';
 import {initialize as init_auth} from './auth';
-import {initialize as init_router} from './router';
+import {initialize as init_router,routers} from './router';
 import {line1,line2} from './support/consoleLines';
 import inflector from './support/inflector';
 
-let app = new require(ProyPath('/node_modules','koa'))();
+let app = require(ProyPath('node_modules','koa'));
+app = new app();
 
 const logger = require(ProyPath('node_modules','koa-logger'));
 const server = require(ProyPath("config", "server"));
 const hasconnections = requireSafe(ProyPath('config','models'),null) !== null;
 
-Object.defineProperty(app,'inflect',{
+Object.defineProperty(app,'inflector',{
 	get(){
 		return inflector;
 	}
 })
 
 //Enable Debugger if we're in development
-if (process.env.NODE_ENV === "development") {
+// if (process.env.NODE_ENV === "development") {
 	app.use(logger());
-}
+// }
 
 if (hasconnections) {
-	app.use(init_orm(app));
+	app.use(init_orm(false));
 	init_auth(app)
 	// app.use();
 }
@@ -47,7 +48,6 @@ app.detectsubdomain = async function detectsubdomain(ctx, next) {
 };
 
 app.conditional = async function conditional(ctx, next) {
-	ctx.hola=true;
 	await next();
 	if (ctx.fresh) {
 		ctx.response.set('Cache-Control', "public," + ctx.response.get('Cache-Control'));
@@ -68,16 +68,17 @@ app.subdomainrouter = async function subdomainrouter(ctx, next) {
 			ctx.response.set('Access-Control-Allow-Headers', "Origin, X-Requested-With, Content-Type, Accept");
 		}
 	}
-	await app.routers[ctx.subdomain].protected.call(ctx, next);
-	await app.routers[ctx.subdomain].public.call(ctx, next);
+	await routers(ctx.subdomain).secured.call(ctx, next);
+	await routers(ctx.subdomain).public.call(ctx, next);
 	await next();
 };
-app.router = init_router(app);
+init_router(app)
+// app.use();
 
 app.start = function(port) {
 	fs.access("koaton_modules", fs.RF_OK | fs.W_OK, (err) => {
 		if (!err) {
-			readDir("koaton_modules").forEach((Module) => {
+			fs.readdirSync("koaton_modules").forEach((Module) => {
 				requireSafe(ProyPath("koaton_modules", Module, "app.js"), () => {})(app);
 			});
 		}

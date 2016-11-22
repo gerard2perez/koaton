@@ -11,8 +11,8 @@ import {
 	getuser,
 	findUser
 } from './auth';
+import secret from './support/secret';
 
-const secret = CLIPath('lib', 'secret');
 const AuthConfig = require(ProyPath("config", "security"));
 const server = oauth2orize.createServer();
 
@@ -27,10 +27,10 @@ let AuthModel = null;
 
 const oauth2server = function oauth2server(app) {
 	for (let model in models) {
-		addModel(app.inflect.pluralize(model), models[model]);
+		addModel(app.inflector.pluralize(model), models[model]);
 	}
 	const router = new Router();
-	AuthModel = orm[app.inflect.pluralize(AuthConfig.model)];
+	AuthModel = orm[app.inflector.pluralize(AuthConfig.model)];
 	// passport.use(new DigestStrategy(getUser));
 	passport.use(new BasicStrategy(getuser));
 	passport.use(new ClientStrategy(getuser));
@@ -185,7 +185,7 @@ const oauth2server = function oauth2server(app) {
 	router.post('/token/', passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], {
 			session: false
 		}),
-		async function token(ctx,next) {
+		async function token(ctx, next) {
 			ctx.state = {
 				data: {
 					client: await orm.oauth2applications.findOne({

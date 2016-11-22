@@ -12,3 +12,4 @@
 /cli/
 .npmignore
 /testingapp/
+/lib/

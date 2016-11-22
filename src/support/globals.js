@@ -1,6 +1,8 @@
 import * as rawpath from 'path';
 import * as path from 'upath';
 import configuration from './configuration';
+import * as fs from 'fs-extra';
+import BundleItem from './BundleItem';
 
 global.makeObjIterable = function makeObjIterable(obj) {
 	obj[Symbol.iterator] = function() {
@@ -39,4 +41,12 @@ global.ProyPath = function(...args) {
 	args.splice(0, 0, process.cwd());
 	return path.normalize(path.join.apply(path, args));
 };
-global.scfg = new configuration();
+global.configuration = new configuration();
+
+global.Kmetadata = {
+	bundles: {}
+};
+let bundles = fs.readJsonSync(ProyPath('.koaton')).bundles;
+for (const idx in bundles){
+	global.Kmetadata.bundles[idx] = new BundleItem(idx,bundles[idx]);
+}

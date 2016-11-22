@@ -44,8 +44,8 @@ export function getuser(username, password, done) {
 }
 export function initialize(app) {
 	AuthConfig = require(ProyPath("config", "security"));
-	AuthModel = orm[app.inflect.pluralize(AuthConfig.model)];
-	const Model = orm[app.inflect.pluralize(AuthConfig.model)];
+	AuthModel = orm[app.inflector.pluralize(AuthConfig.model)];
+	const Model = orm[app.inflector.pluralize(AuthConfig.model)];
 	passport.serializeUser(function(user, done) {
 		done(null, user._id);
 	});
@@ -60,7 +60,7 @@ export function initialize(app) {
 		const STR = AuthConfig.strategies[strategy];
 		try {
 			let component = STR.package || `passport-${strategy}`;
-			let Strategy = require(component)[STR.strategy || "Strategy"];
+			let Strategy = require(ProyPath('node_modules',component))[STR.strategy || "Strategy"];
 			if (STR.options) {
 				passport.use(STR.identifier, new Strategy(STR.options, STR.secret));
 			} else {
@@ -68,7 +68,7 @@ export function initialize(app) {
 			}
 		} catch (err) {
 			console.log(err.stack);
-			console.log(app.inflect.camelize(`${strategy}_strategy`) + " not found");
+			console.log(app.inflector.camelize(`${strategy}_strategy`) + " not found");
 			console.log(`You might try koaton oauth2server install ${STR.package}`);
 		}
 		console.log();

@@ -8,7 +8,6 @@ export default function loadmodules(dir) {
 		.filter(item => item !== "index.js")
 		.filter(item => item !== ".*.js")
 		.forEach((file) => {
-			console.log(file);
 			let name = path.basename(file).replace(".js", "");
 			let module = require(path.join(dir, name));
 			mods[name] = module.default ? module.default : module;

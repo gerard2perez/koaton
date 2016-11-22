@@ -15,6 +15,7 @@ globals:
     __ok: true
     __nok: true
     skipshell: true
+    Kmetadata: true
 env:
   amd: true
   browser: false
