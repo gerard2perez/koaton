@@ -1,11 +1,11 @@
 import * as path from 'upath';
 
 const bundletemplates = {
-	".css": (file) => {
-		return `<link rel="stylesheet" href="${file}">`;
+	'.css': (file) => {
+		return `<link rel='stylesheet' href='${file}'>`;
 	},
-	".js": (file) => {
-		return `<script src="${file}"></script>`;
+	'.js': (file) => {
+		return `<script src='${file}'></script>`;
 	}
 }
 
@@ -16,7 +16,7 @@ export default class BundleItem {
 	constructor(target, source) {
 		Object.defineProperty(this, 'kind', {
 			enumerable: false,
-			value: target.replace(path.trimExt(target), "")
+			value: target.replace(path.trimExt(target), '')
 		});
 		Object.defineProperty(this, 'file', {
 			enumerable: true,
@@ -47,7 +47,7 @@ export default class BundleItem {
 		return this.content;
 	}
 	toString() {
-			let res = "";
+			let res = '';
 			for (const idx in this.content) {
 				res += bundletemplates[this.kind](this.content[idx]);
 			}

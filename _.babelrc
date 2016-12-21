@@ -1,7 +1,6 @@
 {
-
 	"env": {
-		"koaton": {
+		"development": {
 			"plugins": [
 				"babel-plugin-transform-koaton-es6-modules",
 				"babel-plugin-transform-koa2-async-to-generator",

@@ -16,7 +16,7 @@ const cons = require(ProyPath('node_modules', 'co-views'));
 const isHtml = ext => ext === 'html';
 const toFile = (fileName, ext) => `${fileName}.${ext}`;
 const stat = Promise.promisify(fs.stat);
-const npmpackage = require(ProyPath("package.json"));
+const npmpackage = require(ProyPath('package.json'));
 /**
  * Get the right path, respecting `index.[ext]`.
  * @param  {String} abs absolute path
@@ -56,18 +56,18 @@ async function getPaths(abs, rel, ext) {
  */
 const enginesSetup = {
 	handlebars() {
-		const Handlebars = require(ProyPath("node_modules", "handlebars"));
-		const layouts = require(ProyPath("node_modules", "handlebars-layouts"));
+		const Handlebars = require(ProyPath('node_modules', 'handlebars'));
+		const layouts = require(ProyPath('node_modules', 'handlebars-layouts'));
 		Handlebars.registerHelper(layouts(Handlebars));
 		Handlebars.registerHelper('bundle', function(bundle) {
 			if (Kmetadata.bundles[bundle] === undefined) {
-				return "";
+				return '';
 			}
 			return Kmetadata.bundles[bundle].toString();
 		});
-		const layoutFiles = glob(ProyPath("views", "layouts","*.handlebars")).concat(glob(ProyPath("koaton_modules","**","views", "layouts","*.handlebars")));
+		const layoutFiles = glob(ProyPath('views', 'layouts','*.handlebars')).concat(glob(ProyPath('koaton_modules','**','views', 'layouts','*.handlebars')));
 		for (const file of layoutFiles){
-			Handlebars.registerPartial(basename(file).replace(".handlebars", ""),fs.readFileSync(file, 'utf8'));
+			Handlebars.registerPartial(basename(file).replace('.handlebars', ''),fs.readFileSync(file, 'utf8'));
 		}
 	}
 };
@@ -99,7 +99,7 @@ const views = function views() {
 			let ext = (extname(relPath) || '.' + opts.extension).slice(1);
 			const paths = await getPaths(path, relPath, ext)
 			var state = ctx.state;
-			state.env_dev = process.env.NODE_ENV === "development";
+			state.env_dev = process.env.NODE_ENV === 'development';
 			ctx.type = 'text/html'
 			if (isHtml(ext) && !opts.map) {
 				await send(ctx, paths.rel, {

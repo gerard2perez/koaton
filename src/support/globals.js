@@ -1,7 +1,7 @@
+import * as fs from 'fs-extra';
 import * as rawpath from 'path';
 import * as path from 'upath';
 import configuration from './configuration';
-import * as fs from 'fs-extra';
 import BundleItem from './BundleItem';
 
 global.makeObjIterable = function makeObjIterable(obj) {
@@ -17,7 +17,7 @@ global.makeObjIterable = function makeObjIterable(obj) {
 	};
 }
 global.cleanString = (text) => {
-	return text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, "")
+	return text.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '')
 };
 global.requireSafe = function requireSafe(lib, defaults) {
 	try {
@@ -31,8 +31,8 @@ global.requireSafe = function requireSafe(lib, defaults) {
 }
 global.requireNoCache = function requireNoCache(lib, defaults) {
 	let library = rawpath.normalize(rawpath.resolve(lib));
-	if (library.indexOf(".json") === -1) {
-		library = library.replace(".js", "") + ".js";
+	if (library.indexOf('.json') === -1) {
+		library = library.replace('.js', '') + '.js';
 	}
 	delete require.cache[library];
 	return requireSafe(library, defaults);
@@ -41,12 +41,21 @@ global.ProyPath = function(...args) {
 	args.splice(0, 0, process.cwd());
 	return path.normalize(path.join.apply(path, args));
 };
+
+//TODO I don't like this here
+process.env.NODE_PATH = path.join(process.cwd(),'node_modules');
+require('module').Module._initPaths();
+
 global.configuration = new configuration();
 
 global.Kmetadata = {
 	bundles: {}
 };
-let bundles = fs.readJsonSync(ProyPath('.koaton')).bundles;
-for (const idx in bundles){
-	global.Kmetadata.bundles[idx] = new BundleItem(idx,bundles[idx]);
+try {
+	let bundles = fs.readJsonSync(ProyPath('.koaton')).bundles;
+	for (const idx in bundles) {
+		global.Kmetadata.bundles[idx] = new BundleItem(idx, bundles[idx]);
+	}
+} catch (e) {
+	//do nothing
 }

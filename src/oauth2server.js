@@ -1,8 +1,9 @@
+import * as Router from 'koa-router';
 import * as oauth2orize from 'oauth2orize-koa';
 import * as passport from 'koa-passport';
-import models from './server_models';
+import oauth2models from './oauth2models';
 import {
-	orm,
+	models,
 	addModel
 } from './orm';
 
@@ -12,8 +13,9 @@ import {
 	findUser
 } from './auth';
 import secret from './support/secret';
+import inflector from './support/inflector';
 
-const AuthConfig = require(ProyPath("config", "security"));
+const AuthConfig = require(ProyPath('config', 'security'));
 const server = oauth2orize.createServer();
 
 
@@ -22,15 +24,14 @@ const BasicStrategy = require('passport-http').BasicStrategy,
 	ClientStrategy = require('passport-oauth2-client-password').Strategy,
 	BearerStrategy = require('passport-http-bearer').Strategy;
 //headerStrategy = require('passport-http-header-strategy').Strategy;
-let Router = require(ProyPath('node_modules', 'koa-router'));
 let AuthModel = null;
 
-const oauth2server = function oauth2server(app) {
-	for (let model in models) {
-		addModel(app.inflector.pluralize(model), models[model]);
+const oauth2server = function oauth2server() {
+	for (let model in oauth2models) {
+		addModel(inflector.pluralize(model), oauth2models[model]);
 	}
 	const router = new Router();
-	AuthModel = orm[app.inflector.pluralize(AuthConfig.model)];
+	AuthModel = models[inflector.pluralize(AuthConfig.model)];
 	// passport.use(new DigestStrategy(getUser));
 	passport.use(new BasicStrategy(getuser));
 	passport.use(new ClientStrategy(getuser));
@@ -38,7 +39,7 @@ const oauth2server = function oauth2server(app) {
 		header: 'Authorization',
 		passReqToCallback: true
 	}, function(req, token, done) {
-		orm.oauth2accesstokens.rawAPI.findOne({
+		models.oauth2accesstokens.rawAPI.findOne({
 			where: {
 				Token: token
 			}
@@ -60,7 +61,7 @@ const oauth2server = function oauth2server(app) {
 	}));*/
 	passport.use(new BearerStrategy(
 		function(token, done) {
-			orm.oauth2accesstokens.rawAPI.findOne({
+			models.oauth2accesstokens.rawAPI.findOne({
 				where: {
 					Token: token
 				}
@@ -97,7 +98,7 @@ const oauth2server = function oauth2server(app) {
 		});
 	});
 	server.grant(oauth2orize.exchange.refreshToken(function(client, refreshToken, scope, done) {
-		console.log("grant refreshToken");
+		console.log('grant refreshToken');
 	}));
 	server.grant(oauth2orize.grant.code(function(client, redirectURI, user, ares) {
 		console.log(client, redirectURI, user, ares);
@@ -108,13 +109,13 @@ const oauth2server = function oauth2server(app) {
 		if (data.client !== null && data.user !== null) {
 			return secret(16).then((refreshtoken) => {
 				let date = new Date(Date.now() + (1 * scfg.token_timeout * 1000));
-				return orm.oauth2accesstokens.create({
-					"UserId": data.user._id,
-					"RefreshToken": refreshtoken.toString('hex'),
-					"Token": accesstoken.toString('hex'),
-					"ApplicationId": data.client._id,
-					"Expires": date,
-					"Scope": "read write"
+				return models.oauth2accesstokens.create({
+					'UserId': data.user._id,
+					'RefreshToken': refreshtoken.toString('hex'),
+					'Token': accesstoken.toString('hex'),
+					'ApplicationId': data.client._id,
+					'Expires': date,
+					'Scope': 'read write'
 				}).then((access) => {
 					const response = [
 						access.Token, {
@@ -135,13 +136,13 @@ const oauth2server = function oauth2server(app) {
 				return secret(16).then((token) => {
 					return secret(16).then((refreshtoken) => {
 						let date = new Date(Date.now() + (1 * 60 * 1000));
-						return orm.oauth2accesstokens.create({
-							"UserId": user._id,
-							"RefreshToken": refreshtoken.toString('hex'),
-							"Token": token.toString('hex'),
-							"ApplicationId": client._id,
-							"Expires": date,
-							"Scope": "read write"
+						return models.oauth2accesstokens.create({
+							'UserId': user._id,
+							'RefreshToken': refreshtoken.toString('hex'),
+							'Token': token.toString('hex'),
+							'ApplicationId': client._id,
+							'Expires': date,
+							'Scope': 'read write'
 						}).then((access) => {
 							const response = [
 								access.Token, {
@@ -170,7 +171,7 @@ const oauth2server = function oauth2server(app) {
 		await next();
 		ctx.body = {
 			logged: ctx.isAuthenticated(),
-			cookie: ["koa:sess.sig", "koa:sess"]
+			cookie: ['koa:sess.sig', 'koa:sess']
 		};
 	});
 	const exchanges = {
@@ -179,7 +180,7 @@ const oauth2server = function oauth2server(app) {
 		'code': 'authorization_code'
 	};
 	const grant_type = {
-		"password": ['2'],
+		'password': ['2'],
 		'refresh_token': ['3', '2']
 	};
 	router.post('/token/', passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], {
@@ -188,7 +189,7 @@ const oauth2server = function oauth2server(app) {
 		async function token(ctx, next) {
 			ctx.state = {
 				data: {
-					client: await orm.oauth2applications.findOne({
+					client: await models.oauth2applications.findOne({
 						where: {
 							ClientId: ctx.query.client_id
 						}

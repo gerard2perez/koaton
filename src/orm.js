@@ -1,9 +1,10 @@
+import * as fs from 'fs-extra';
+import * as co from 'co';
 import * as path from 'upath';
 import {
 	sync as glob
 } from 'glob';
 import * as caminte from 'caminte';
-import * as co from "co";
 import {
 	line2
 } from './support/consoleLines';
@@ -11,10 +12,6 @@ import inflector from './support/inflector';
 import exendModel from './support/extend_caminte'
 
 //TODO: Create your own ORM, caminte worked but is not enough, remember LORM?
-
-
-
-
 const connection = require(ProyPath('config', 'connections'))[require(ProyPath('config', 'models')).connection];
 
 let schema = new caminte.Schema(connection.driver, connection);
@@ -31,28 +28,28 @@ async function expose_orm(ctx, next) {
 	await next();
 }
 function belongsTo(dest) {
-	let [parent, key] = dest.split(".");
+	let [parent, key] = dest.split('.');
 	relations[this].push({
 		Children: parent,
 		key: key,
-		Rel: "belongsTo",
-		As: ""
+		Rel: 'belongsTo',
+		As: ''
 	});
 	return relations[this].length - 1;
 }
 
 function hasMany(dest) {
-	let [children, key] = dest.split(".");
+	let [children, key] = dest.split('.');
 	relations[this].push({
 		//parent:this,
 		Children: children,
 		key: key,
-		Rel: "hasMany",
-		As: ""
+		Rel: 'hasMany',
+		As: ''
 	});
 	return relations[this].length - 1;
 }
-export let orm = exp.databases;
+export let models = exp.databases;
 export function addModel(...args) {
 	let [model_name, definition] = args;
 	relations[model_name] = [];
@@ -79,9 +76,9 @@ export function initialize(seed) {
 	schema.on('error', (err) => {
 		console.log(err.stack);
 	})
-	const models = glob('koaton_modules/**/models/*.js').concat(glob("models/*.js"));
+	const models = glob('koaton_modules/**/models/*.js').concat(glob('models/*.js'));
 	for (const model of models) {
-		let file = path.basename(model).replace(".js", "");
+		let file = path.basename(model).replace('.js', '');
 		addModel(
 			inflector.pluralize(file),
 			require(ProyPath(model))
@@ -101,13 +98,13 @@ export function initialize(seed) {
 	for (let model in relations) {
 		relations[model].forEach(makerelation.bind(null, model));
 	}
-	if (process.env.NODE_ENV === "development") {
+	if (process.env.NODE_ENV === 'development') {
 		res = co(function *() {
-			let files = readDir(ProyPath('seeds'));
+			let files = fs.readdirSync(ProyPath('seeds'));
 			for (let index in files) {
-				let file = files[index].replace(".js", "");
+				let file = files[index].replace('.js', '');
 				try {
-					console.log("Sedding " + file);
+					console.log('Sedding ' + file);
 					let model = exp.databases[inflector.pluralize(file.toLowerCase())];
 					yield require(ProyPath('seeds', file))(model.findcre);
 				} catch (err) {
@@ -116,10 +113,10 @@ export function initialize(seed) {
 				}
 			}
 			if (files.length === 0) {
-				console.log("Nothing to seed");
+				console.log('Nothing to seed');
 			}
 			line2(true);
-		});
+		}).catch(e=>console.log(e));
 	}
 	if (seed) {
 		return res;

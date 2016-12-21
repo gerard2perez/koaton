@@ -1,33 +1,27 @@
 ---
+branches:
+  only:
+    - master
 services:
   - mongodb
 language: node_js
 node_js:
-  - "6.5.0"
+  - "6.9.1"
 sudo: false
-env:
-  - CXX=g++-4.8
 addons:
   apt:
-    sources:
-    - ubuntu-toolchain-r-test
     packages:
-    - gcc-4.8
-    - g++-4.8
     - nginx
 cache:
   directories:
     - node_modules
-
 before_install:
   - npm config set spin false
   - npm install -g glob
   - npm install -g ember-cli@2.9.1
   - npm install -g bower
   - npm install -g forever
-
 install:
   - npm i .
-
 script:
   - npm test

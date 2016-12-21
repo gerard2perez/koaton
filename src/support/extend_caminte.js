@@ -5,7 +5,7 @@ const promesifythem = ['exists', 'create', 'findOrCreate', 'findOne', 'findById'
 ];
 
 export default function(model) {
-	for (const fn in promesifythem) {
+	for (const fn of promesifythem) {
 		if (model[fn]) {
 			model.rawAPI[fn] = model[fn].bind(model);
 			model[fn] = Promise.promisify(model[fn], {
@@ -13,7 +13,7 @@ export default function(model) {
 			});
 			const magic = model[fn].bind(model);
 			switch (fn) {
-				case "create":
+				case 'create':
 					{
 						model[fn] = function(data) {
 							data.created = Date.now();
@@ -22,7 +22,7 @@ export default function(model) {
 						};
 						break;
 					}
-				case "count":
+				case 'count':
 					model[fn] = function(query) {
 						return new Promise(function(resolve, reject) {
 							model.rawAPI[fn]((err, count) => {
@@ -36,7 +36,7 @@ export default function(model) {
 
 					};
 					break;
-				case "update":
+				case 'update':
 					{
 						model[fn] = function(query, data) {
 							data.updated = Date.now();
@@ -66,9 +66,9 @@ export default function(model) {
 						resolve(result.map((r) => {
 							let rr = {};
 							for (let p in r.toObject()) {
-								if (p === "_id") {
+								if (p === '_id') {
 									rr.id = r._id
-								} else if (p !== "__v") {
+								} else if (p !== '__v') {
 									rr[p] = r[p];
 								}
 							}
@@ -79,9 +79,8 @@ export default function(model) {
 			});
 		}.bind(model.adapter);
 		model.rawCount = function rawCount(stringquery) {
-			let that = this;
-			return new Promise(function(resolve, reject) {
-				that.$where(stringquery).count((err, result) => {
+			return new Promise((resolve, reject) => {
+				this.$where(stringquery).count((err, result) => {
 					if (err) {
 						reject(err);
 					} else {

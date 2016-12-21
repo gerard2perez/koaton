@@ -1,64 +1,59 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.default = {
+export default {
 	oauth2accesstoken(schema) {
 		return {
-			"model": {
-				"UserId": {
+			'model': {
+				'UserId': {
 					type: schema.String
 				},
-				"Token": {
+				'Token': {
 					type: schema.String
 				},
-				"RefreshToken": {
+				'RefreshToken': {
 					type: schema.String
 				},
-				"ApplicationId": {
+				'ApplicationId': {
 					type: schema.String
 				},
-				"Expires": {
+				'Expires': {
 					type: schema.Date
 				},
-				"Scope": {
+				'Scope': {
 					type: schema.Text
 				}
 			},
-			"extra": {
-				TimeStamps: false
+			'extra': {
+				TimeStamps:false
 			},
-			relations: {}
+			relations:{}
 		};
 	},
 	oauth2application(schema) {
 		return {
-			"model": {
-				"ClientId": {
+			'model': {
+				'ClientId': {
 					type: schema.String
 				},
-				"UserId": {
+				'UserId': {
 					type: schema.String
 				},
-				"ClientType": {
+				'ClientType': {
 					type: schema.String
 				},
-				"AuthorizationGrantType": {
+				'AuthorizationGrantType': {
 					type: schema.String
 				},
-				"ClientSecret": {
+				'ClientSecret': {
 					type: schema.String
 				},
-				"Name": {
+				'Name': {
 					type: schema.String
 				},
-				"Skip": {
-					type: schema.Boolean
+				'Skip':{
+					type:schema.Boolean
 				}
 			},
-			"extra": {},
-			relations: {}
+			'extra': {},
+			relations:{}
 		};
 	}
 };

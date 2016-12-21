@@ -1,112 +1,116 @@
-
-import * as fs from 'fs-extra';
+import 'colors';
+import * as passport from 'koa-passport';
+import {
+	line1,
+	line2
+} from './support/consoleLines';
 import './support/globals';
-import view from './views';
-import oauth2server from './server';
-import {initialize as init_orm} from './orm';
-import {initialize as init_auth} from './auth';
-import {initialize as init_router,routers} from './router';
-import {line1,line2} from './support/consoleLines';
+import include from './support/.include';
 import inflector from './support/inflector';
 
-let app = require(ProyPath('node_modules','koa'));
+//TODO: This setup is for legacy compability
+
+let app = require(ProyPath('node_modules', 'koa'));
 app = new app();
 
-const logger = require(ProyPath('node_modules','koa-logger'));
-const server = require(ProyPath("config", "server"));
-const hasconnections = requireSafe(ProyPath('config','models'),null) !== null;
+if (process.env.NODE_ENV === 'development') {
+	const logger = require('koa-logger');
+	app.use(logger());
+}
+console.log(1);
+let koaton = include(__dirname);
+console.log(2);
+const views = koaton.views();
 
-Object.defineProperty(app,'inflector',{
-	get(){
+app.use(koaton.orm.initialize(false));
+koaton.auth.initialize();
+
+app.use(koaton.router.initialize());
+const oAuth2Server = koaton.oauth2server = koaton.oauth2server();
+
+delete koaton.auth.initialize;
+delete koaton.router.initialize;
+delete koaton.orm.initialize;
+delete koaton.server_models;
+
+Object.defineProperty(app, 'inflector', {
+	enumerable: true,
+	get() {
 		return inflector;
 	}
-})
-
-//Enable Debugger if we're in development
-// if (process.env.NODE_ENV === "development") {
-	app.use(logger());
-// }
-
-if (hasconnections) {
-	app.use(init_orm(false));
-	init_auth(app)
-	// app.use();
-}
-app.views = view(app);
-if (hasconnections) {
-	app.oAuth2Server = oauth2server(app);
-}
-
-/**
- * @param {Object} ctx  - node current context
- * @param {MyClass} next - await this promise function.
- */
-app.detectsubdomain = async function detectsubdomain(ctx, next) {
-	ctx.subdomain = ctx.request.hostname.split(".");
-	ctx.subdomain = ctx.subdomain.length >= 3 ? ctx.subdomain[0] : "www";
-	await next();
-};
-
-app.conditional = async function conditional(ctx, next) {
-	await next();
-	if (ctx.fresh) {
-		ctx.response.set('Cache-Control', "public," + ctx.response.get('Cache-Control'));
-		ctx.response.remove('Last-Modified');
-		ctx.status = 304;
-		ctx.body = null;
-	}
-	//});
-};
-app.subdomainrouter = async function subdomainrouter(ctx, next) {
-	let origin = ctx.request.get("origin").replace("http://", "").split(":")[0].split(".");
-	if (origin.length >= 3) {
-		let reqo = ctx.request.get("origin").replace(origin[0] + ".", "").replace("http://", "");
-		if (app.routers[origin[0]] !== undefined && reqo === server.hostname) {
-			let port = ctx.request.host.split(":")[1];
-			port = port ? ":" + port : "";
-			ctx.response.set('Access-Control-Allow-Origin', "http://" + origin.join(".") + port); //+(parseInt(server.port,10)===80?"":":"+server.port));
-			ctx.response.set('Access-Control-Allow-Headers', "Origin, X-Requested-With, Content-Type, Accept");
-		}
-	}
-	await routers(ctx.subdomain).secured.call(ctx, next);
-	await routers(ctx.subdomain).public.call(ctx, next);
-	await next();
-};
-init_router(app)
-// app.use();
-
-app.start = function(port) {
-	fs.access("koaton_modules", fs.RF_OK | fs.W_OK, (err) => {
-		if (!err) {
-			fs.readdirSync("koaton_modules").forEach((Module) => {
-				requireSafe(ProyPath("koaton_modules", Module, "app.js"), () => {})(app);
-			});
-		}
-		app.listen(port, () => {
-			if (process.env.NODE_ENV === "development") {
-				line1(true);
-				console.log();
-				line2();
-				console.log(`   Server running in ${process.cwd()}\n` +
-					`   To see your app, visit http://${scfg.hostname}:${port}\n` +
-					`   To shut down Koaton, press <CTRL> + C at any time.`);
-				line2();
-				console.log();
-				line1(true);
-				console.log(`  Enviroment:\t\t${process.env.NODE_ENV.green}`);
-				console.log(`  Port:\t\t\t${port.toString().green}`);
-				line1();
-			} else if (!(process.env.welcome === 'false')) {
-				console.log("+Running on port " + port)
-			}
-		});
-	});
-
-};
-
-Object.defineProperty(app,'routers',{
-
 });
 
+Object.defineProperty(app, 'views', {
+	enumerable: true,
+	get() {
+		return views;
+	}
+});
+Object.defineProperty(app, 'oAuth2Server', {
+	enumerable: true,
+	get() {
+		return oAuth2Server;
+	}
+});
+Object.defineProperty(app, 'detectsubdomain', {
+	enumerable: true,
+	get() {
+		return async function(ctx, next) {
+			await next();
+		};
+	}
+});
+Object.defineProperty(app, 'subdomainrouter', {
+	enumerable: true,
+	get() {
+		return koaton.subdomain;
+	}
+});
 
-export default app;
+Object.defineProperty(app, 'conditional', {
+	enumerable: true,
+	get() {
+		return koaton.cached;
+	}
+});
+
+Object.defineProperty(app, 'passport', {
+	enumerable: true,
+	get() {
+		return passport;
+	}
+});
+
+app.stack = function(...args) {
+	for (const middleware in args) {
+		app.use(middleware);
+	}
+}
+app.start = function(port) {
+	// try {
+	// 	fs.readdirSync('koaton_modules').forEach((Module) => {
+	// 		requireSafe(ProyPath('koaton_modules', Module, 'app.js'), () => {})(app);
+	// 	});
+	// } catch (e) {
+	// 	//do nothing;
+	// }
+	return app.listen(port, () => {
+		if (process.env.NODE_ENV === 'development') {
+			line1(true);
+			console.log();
+			line2();
+			console.log(`   Server running in ${process.cwd()}\n` +
+				`   To see your app, visit http://${configuration.host}:${port}\n` +
+				`   To shut down Koaton, press <CTRL> + C at any time.`);
+			line2();
+			console.log();
+			line1(true);
+			console.log(`  Enviroment:\t\t${process.env.NODE_ENV.green}`);
+			console.log(`  Port:\t\t\t${port.toString().green}`);
+			line1();
+		} else if (!(process.env.welcome === 'false')) {
+			console.log('+Running on port ' + port)
+		}
+	});
+};
+module.exports = app;

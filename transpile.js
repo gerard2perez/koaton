@@ -7,7 +7,8 @@ const babel = require("babel-core");
 fs.emptyDirSync('lib');
 
 const transpilepaths = [
-		"src/**/*.js"
+		"src/**/*.js",
+		"src/**/.include.js"
 	],
 	transform = Promise.promisify(babel.transformFile, {
 		context: babel
