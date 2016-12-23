@@ -194,7 +194,6 @@ function makeRestModel (options, route, modelname) {
 	});
 	pOrp(routers, options.post).post('/', async function REST_POST (ctx, next) {
 		let res = {};
-		console.log(1, ctx.request.body);
 		res[inflector.singularize(modelname)] = await ctx.model.create(ctx.request.body[inflector.singularize(modelname)]);
 		ctx.body = res;
 		await next();

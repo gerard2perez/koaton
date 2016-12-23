@@ -8,6 +8,11 @@ parserOptions:
 globals:
  configuration: true
  ProyPath: true
+ makeObjIterable: true
+ describe: true
+ it: true
+ beforeEach: true
+ after: true
 
 rules:
  one-var: [0, never]

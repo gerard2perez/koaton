@@ -1,107 +1,93 @@
 import 'colors';
 import * as passport from 'koa-passport';
-import {
-	line1,
-	line2
-} from './support/consoleLines';
+import { line1, line2 } from './support/consoleLines';
 import './support/globals';
 import include from './support/.include';
-import inflector from './support/inflector';
 
-//TODO: This setup is for legacy compability
+// TODO: This setup is for legacy compability
 
-let app = require(ProyPath('node_modules', 'koa'));
-app = new app();
+let App = require(ProyPath('node_modules', 'koa'));
+App = new App();
 
+/* istanbul ignore else  */
 if (process.env.NODE_ENV === 'development') {
 	const logger = require('koa-logger');
-	app.use(logger());
+	App.use(logger());
 }
-console.log(1);
 let koaton = include(__dirname);
-console.log(2);
 const views = koaton.views();
 
-app.use(koaton.orm.initialize(false));
+const oAuth2Server = koaton.oauth2server();
+App.use(koaton.orm.initialize(false));
+koaton.oauth2server.setAuthModel();
+koaton.oauth2server = oAuth2Server;
+
 koaton.auth.initialize();
 
-app.use(koaton.router.initialize());
-const oAuth2Server = koaton.oauth2server = koaton.oauth2server();
+App.use(koaton.router.initialize());
 
 delete koaton.auth.initialize;
 delete koaton.router.initialize;
 delete koaton.orm.initialize;
 delete koaton.server_models;
 
-Object.defineProperty(app, 'inflector', {
+Object.defineProperty(App, 'views', {
 	enumerable: true,
-	get() {
-		return inflector;
-	}
-});
-
-Object.defineProperty(app, 'views', {
-	enumerable: true,
-	get() {
+	get () {
 		return views;
 	}
 });
-Object.defineProperty(app, 'oAuth2Server', {
+Object.defineProperty(App, 'oAuth2Server', {
 	enumerable: true,
-	get() {
+	get () {
 		return oAuth2Server;
 	}
 });
-Object.defineProperty(app, 'detectsubdomain', {
+Object.defineProperty(App, 'detectsubdomain', {
 	enumerable: true,
-	get() {
-		return async function(ctx, next) {
+	get () {
+		return async function (ctx, next) {
 			await next();
 		};
 	}
 });
-Object.defineProperty(app, 'subdomainrouter', {
+Object.defineProperty(App, 'subdomainrouter', {
 	enumerable: true,
-	get() {
+	get () {
 		return koaton.subdomain;
 	}
 });
 
-Object.defineProperty(app, 'conditional', {
+Object.defineProperty(App, 'conditional', {
 	enumerable: true,
-	get() {
+	get () {
 		return koaton.cached;
 	}
 });
 
-Object.defineProperty(app, 'passport', {
+Object.defineProperty(App, 'passport', {
 	enumerable: true,
-	get() {
+	get () {
 		return passport;
 	}
 });
 
-app.stack = function(...args) {
+/* istanbul ignore next */
+App.stack = function (...args) {
 	for (const middleware in args) {
-		app.use(middleware);
+		App.use(middleware);
 	}
-}
-app.start = function(port) {
-	// try {
-	// 	fs.readdirSync('koaton_modules').forEach((Module) => {
-	// 		requireSafe(ProyPath('koaton_modules', Module, 'app.js'), () => {})(app);
-	// 	});
-	// } catch (e) {
-	// 	//do nothing;
-	// }
-	return app.listen(port, () => {
+};
+App.start = function (port) {
+	return App.listen(port, () => {
+		/* istanbul ignore else  */
 		if (process.env.NODE_ENV === 'development') {
 			line1(true);
 			console.log();
 			line2();
 			console.log(`   Server running in ${process.cwd()}\n` +
-				`   To see your app, visit http://${configuration.host}:${port}\n` +
-				`   To shut down Koaton, press <CTRL> + C at any time.`);
+				`   To see your App, visit http://${configuration.host}:${port}\n` +
+				'   To shut down Koaton, press <CTRL> + C at any time.');
 			line2();
 			console.log();
 			line1(true);
@@ -109,8 +95,8 @@ app.start = function(port) {
 			console.log(`  Port:\t\t\t${port.toString().green}`);
 			line1();
 		} else if (!(process.env.welcome === 'false')) {
-			console.log('+Running on port ' + port)
+			console.log('+Running on port ' + port);
 		}
 	});
 };
-module.exports = app;
+module.exports = App;

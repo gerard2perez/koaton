@@ -7,13 +7,13 @@ const bundletemplates = {
 	'.js': (file) => {
 		return `<script src='${file}'></script>`;
 	}
-}
+};
 
 export default class BundleItem {
-	valueOf() {
+	valueOf () {
 		return this.file;
 	}
-	constructor(target, source) {
+	constructor (target, source) {
 		Object.defineProperty(this, 'kind', {
 			enumerable: false,
 			value: target.replace(path.trimExt(target), '')
@@ -25,42 +25,41 @@ export default class BundleItem {
 		Object.defineProperty(this, 'content', {
 			writable: true,
 			enumerable: false,
-			value: source instanceof Array ? source : ( source ? [source]:[] )
+			value: source instanceof Array ? source : (source ? [source] : [])
 		});
 	}
-	add(item) {
+	add (item) {
 		if (this.content.indexOf(item) === -1) {
 			this.content.push(item);
 		}
 		return this;
 	}
-	clear() {
+	clear () {
 		while (this.content.length > 0) {
 			this.content.pop();
 		}
 		return this;
 	}
-	equals(target) {
+	equals (target) {
 		return this.file === target.file;
 	}
-	toJSON() {
+	toJSON () {
 		return this.content;
 	}
-	toString() {
-			let res = '';
-			for (const idx in this.content) {
-				res += bundletemplates[this.kind](this.content[idx]);
-			}
-			return res;
+	toString () {
+		let res = '';
+		for (const idx in this.content) {
+			res += bundletemplates[this.kind](this.content[idx]);
 		}
-		[Symbol.iterator]() {
-			let index = -1;
-			return {
-				next: () => ({
-					value: this.content[++index],
-					done: !(index < this.content.length)
-				})
-			};
-		}
-
+		return res;
+	}
+	[ Symbol.iterator] () {
+		let index = -1;
+		return {
+			next: () => ({
+				value: this.content[++index],
+				done: !(index < this.content.length)
+			})
+		};
+	}
 }

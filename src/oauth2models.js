@@ -1,5 +1,5 @@
 export default {
-	oauth2accesstoken(schema) {
+	oauth2accesstoken (schema) {
 		return {
 			'model': {
 				'UserId': {
@@ -22,12 +22,12 @@ export default {
 				}
 			},
 			'extra': {
-				TimeStamps:false
+				TimeStamps: false
 			},
-			relations:{}
+			relations: {}
 		};
 	},
-	oauth2application(schema) {
+	oauth2application (schema) {
 		return {
 			'model': {
 				'ClientId': {
@@ -40,7 +40,7 @@ export default {
 					type: schema.String
 				},
 				'AuthorizationGrantType': {
-					type: schema.String
+					type: schema.Number
 				},
 				'ClientSecret': {
 					type: schema.String
@@ -48,12 +48,12 @@ export default {
 				'Name': {
 					type: schema.String
 				},
-				'Skip':{
-					type:schema.Boolean
+				'Skip': {
+					type: schema.Boolean
 				}
 			},
 			'extra': {},
-			relations:{}
+			relations: {}
 		};
 	}
 };
