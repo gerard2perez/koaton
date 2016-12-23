@@ -104,7 +104,35 @@ function makeit (filterset) {
 	}
 	return query.join(' ');
 }
-
+async function REST_POST_SINGLE (Model, model) {
+	let entity = await Model.create(model);
+	let modelRelations = {};
+	for (const relation of Object.keys(Model.relations)) {
+		const relations = model[relation];
+		if (relations) {
+			let child = Model.relations[relation].modelTo;
+			let foreignKey = Model.relations[relation].keyTo;
+			let foreignValue = entity[Model.relations[relation].keyFrom];
+			switch (Model.relations[relation].type) {
+				case 'hasMany':
+					modelRelations[relation] = [];
+					for (const related of relations) {
+						related[foreignKey] = foreignValue;
+						if (typeof related === 'object') {
+							modelRelations[relation].push((await child.create(related)).id);
+						} else {
+							let childmodel = await child.findById(related);
+							childmodel[foreignKey] = foreignValue;
+							childmodel.save();
+							modelRelations[relation].push(related);
+						}
+					}
+					break;
+			}
+		}
+	}
+	return Object.assign({}, entity.toJSON(), modelRelations);
+}
 function makeRestModel (options, route, modelname) {
 	let routers = {
 		public: new Router(),
@@ -185,41 +213,24 @@ function makeRestModel (options, route, modelname) {
 	pOrp(routers, options.post).post('/', async function REST_POST (ctx, next) {
 		let res = {};
 		let model = ctx.request.body[inflector.singularize(modelname)];
-		let entity = await ctx.model.create(model);
-		let modelRelations = {};
-		for (const relation of Object.keys(ctx.model.relations)) {
-			const relations = model[relation];
-			if (relations) {
-				let child = ctx.model.relations[relation].modelTo;
-				let foreignKey = ctx.model.relations[relation].keyTo;
-				let foreignValue = entity[ctx.model.relations[relation].keyFrom];
-				switch (ctx.model.relations[relation].type) {
-					case 'hasMany':
-						modelRelations[relation] = [];
-						for (const related of relations) {
-							related[foreignKey] = foreignValue;
-							if (typeof related === 'object') {
-								modelRelations[relation].push((await child.create(related)).id);
-							} else {
-								let childmodel = await child.findById(related);
-								childmodel[foreignKey] = foreignValue;
-								childmodel.save();
-								modelRelations[relation].push(related);
-							}
-						}
-						break;
-				}
-			}
+		model = model ? [model] : ctx.request.body[modelname];
+		let entities = [];
+		for (const entity of model) {
+			let created = await REST_POST_SINGLE(ctx.model, entity);
+			entities.push(created);
 		}
-		entity = Object.assign({}, entity.toJSON(), modelRelations);
-		res[inflector.singularize(modelname)] = entity;
+		if (entities.length === 1) {
+			res[inflector.singularize(modelname)] = entities[0];
+		} else {
+			res[modelname] = entities;
+		}
 		ctx.body = res;
 		await next();
 	});
 	pOrp(routers, options.post).post('/:id/:child', async function REST_POST_ID (ctx, next) {
 		let parent = await ctx.model.findById(ctx.params.id);
 		if (typeof parent[ctx.params.child] !== 'function') {
-			ctx.body.status = 402;
+			ctx.status = 402;
 		} else {
 			let child = ctx.model.relations[ctx.params.child];
 			switch (child.type) {

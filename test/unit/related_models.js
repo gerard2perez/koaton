@@ -1,5 +1,9 @@
 import * as server from '../support/request';
 import * as assert from 'assert';
+function random (min, max) {
+	return Math.random() * (max - min) + min;
+}
+const rdn = random.bind(null, 1, 500);
 
 describe('CRUD REST API Related Models', function () {
 	let bookId;
@@ -21,25 +25,93 @@ describe('CRUD REST API Related Models', function () {
 			assert.equal(body.book.author, 'some dude');
 			assert.equal(body.book.page_count, 1000);
 			assert.equal(body.book.pages.length, 1);
+			done(null, body);
+		}, done).catch(done);
+	});
+	it('Creates a book with no pages', function (done) {
+		server.headers(global.headers).post('books', {
+			book: {
+				title: 'three eggs 2',
+				author: 'same dude',
+				page_count: 0
+			}
+		}).then(body => {
+			assert.equal(body.book.title, 'three eggs 2');
+			assert.equal(body.book.author, 'same dude');
+			assert.equal(body.book.page_count, 0);
+			assert.equal(body.book.pages, undefined);
 			bookId = body.book.id;
 			done(null, body);
 		}, done).catch(done);
 	});
+	it('Get content with relation mode set to objects', function (done) {
+		Object.defineProperty(configuration, 'relationsMode', {value: 'objects'});
+		server.headers(global.headers).get('books').then(body => {
+			assert.equal(typeof body.books[0].pages[0], 'object');
+			done(null, body);
+		}, done).catch(done);
+	});
 	it('Creates a page append to a book', function (done) {
+		Object.defineProperty(configuration, 'relationsMode', {value: 'ids'});
 		server.headers(global.headers).post('books', bookId, 'pages', {
 			number: 2,
 			content: 'just got inspired'
 		}).then(body => {
-			assert.equal(body.book.title, 'three eggs');
-			assert.equal(body.book.author, 'some dude');
-			assert.equal(body.book.page_count, 1000);
-			assert.equal(body.book.pages.length, 2);
+			assert.equal(body.book.title, 'three eggs 2');
+			assert.equal(body.book.author, 'same dude');
+			assert.equal(body.book.page_count, 0);
+			assert.equal(body.book.pages.length, 1);
 			done(null, body);
 		}, done).catch(done);
+	});
+	it('Fails to append a page a book', function (done) {
+		server.expect(402);
+		server.headers(global.headers).post('books', bookId, 'page', {
+			number: 2,
+			content: 'just got inspired'
+		}).then(done.bind(null, null), done).catch(done);
 	});
 	it('Reads the books info', function (done) {
 		server.headers(global.headers).get('books').then(body => {
 			assert.ok(body.books.length);
+			done(null, body);
+		}, done).catch(done);
+	});
+	it('Populates the databases with a 100 pages', function (done) {
+		let pages = [];
+		for (let i = 1; i <= 100; i++) {
+			pages.push({ number: rdn(), content: 'content' + rdn() });
+		}
+		server.headers(global.headers).post('pages', {
+			pages: pages
+		}).then(body => {
+			assert.ok(body.pages.length);
+			assert.ok(body.pages[99].number);
+			console.log(body.pages.length);
+			done(null, body);
+		}, done).catch(done);
+	});
+	it('Populates the databases with a 100 books', function (done) {
+		let books = [];
+		for (let i = 1; i <= 100; i++) {
+			books.push({
+				title: 'title' + rdn(),
+				author: 'author' + rdn(),
+				page_count: rdn(),
+				pages: [
+					{ number: rdn(), content: 'content' + rdn() },
+					{ number: rdn(), content: 'content' + rdn() }
+				]
+			});
+		}
+		server.headers(global.headers).post('books', {
+			books: books
+		}).then(body => {
+			// assert.equal(body.book.title, 'three eggs');
+			// assert.equal(body.book.author, 'some dude');
+			// assert.equal(body.book.page_count, 1000);
+			// assert.equal(body.book.pages.length, 2);
+			console.log(body.books.length);
 			done(null, body);
 		}, done).catch(done);
 	});

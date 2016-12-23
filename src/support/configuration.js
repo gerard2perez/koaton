@@ -10,6 +10,7 @@ export default class Configuration {
 			for (const configfile of configuration) {
 				for (const configvalue in configfile) {
 					Object.defineProperty(this, configvalue, {
+						configurable: process.env.NODE_ENV === 'development',
 						enumerable: true,
 						get () {
 							if (configfile[configvalue].dev && configfile[configvalue].prod) {
