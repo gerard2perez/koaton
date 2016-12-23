@@ -33,7 +33,7 @@ describe('REST APP Authentication', function () {
 	});
 	it('Can get a private model', function (done) {
 		server.get('pages').then(body => {
-			assert.equal(0, body.pages.length);
+			assert.ok(body.pages);
 			done(null, body);
 		}, done).catch(done);
 	});

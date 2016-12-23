@@ -8,7 +8,13 @@ describe('CRUD REST API Related Models', function () {
 			book: {
 				title: 'three eggs',
 				author: 'some dude',
-				page_count: 1000
+				page_count: 1000,
+				pages: [
+					{
+						number: 1,
+						content: 'casa'
+					}
+				]
 			}
 		}).then(body => {
 			console.log(body);

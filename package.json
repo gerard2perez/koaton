@@ -16,7 +16,7 @@
     "tandlint": "npm-run-all --parallel export:live eslint:live",
     "cover:live": "npm-run-all --parallel cover:watch cover:reload",
     "codeclimate": "codeclimate analyze -f html -e duplication > duplication.html",
-    "commit": "git-cz",
+    "commit": "git add -A && git-cz",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
   "directories": {

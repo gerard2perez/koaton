@@ -17,7 +17,7 @@ async function restify (modelinstance, modelname) {
 		}
 	}).relations;
 	let model = modelinstance.toJSON ? modelinstance.toJSON() : modelinstance;
-	for (const key in relation) {
+	for (const key in Object.keys(modelinstance.relations || {})) {
 		if (typeof modelinstance[key] === 'function') {
 			let find = Promise.promisify(modelinstance[key].find, {
 				context: modelinstance
@@ -194,7 +194,35 @@ function makeRestModel (options, route, modelname) {
 	});
 	pOrp(routers, options.post).post('/', async function REST_POST (ctx, next) {
 		let res = {};
-		res[inflector.singularize(modelname)] = await ctx.model.create(ctx.request.body[inflector.singularize(modelname)]);
+		let model = ctx.request.body[inflector.singularize(modelname)];
+		let entity = await ctx.model.create(model);
+		let modelRelations = {};
+		for (const relation of Object.keys(ctx.model.relations)) {
+			const relations = model[relation];
+			if (relations) {
+				let child = ctx.model.relations[relation].modelTo;
+				let foreignKey = ctx.model.relations[relation].keyTo;
+				let foreignValue = entity[ctx.model.relations[relation].keyFrom];
+				switch (ctx.model.relations[relation].type) {
+					case 'hasMany':
+						modelRelations[relation] = [];
+						for (const related of relations) {
+							related[foreignKey] = foreignValue;
+							if (typeof related === 'object') {
+								modelRelations[relation].push((await child.create(related)).id);
+							} else {
+								let childmodel = await child.findById(related);
+								childmodel[foreignKey] = foreignValue;
+								childmodel.save();
+								modelRelations[relation].push(related);
+							}
+						}
+						break;
+				}
+			}
+		}
+		entity = Object.assign({}, entity.toJSON(), modelRelations);
+		res[inflector.singularize(modelname)] = entity;
 		ctx.body = res;
 		await next();
 	});

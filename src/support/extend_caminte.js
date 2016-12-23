@@ -1,10 +1,10 @@
 import * as Promise from 'bluebird';
 
-const promesifythem = ['exists', 'create', 'findOrCreate', 'findOne', 'findById', 'find', 'all', 'run', 'updateOrCreate', 'upsert', 'update', 'remove', 'destroyById', 'destroy', 'count'
-	//, 'destroyAll'
+const promesifythem = ['save', 'exists', 'create', 'findOrCreate', 'findOne', 'findById', 'find', 'all', 'run', 'updateOrCreate', 'upsert', 'update', 'remove', 'destroyById', 'destroy', 'count'
+// , 'destroyAll'
 ];
 
-export default function(model) {
+export default function (model) {
 	for (const fn of promesifythem) {
 		if (model[fn]) {
 			model.rawAPI[fn] = model[fn].bind(model);
@@ -14,17 +14,15 @@ export default function(model) {
 			const magic = model[fn].bind(model);
 			switch (fn) {
 				case 'create':
-					{
-						model[fn] = function(data) {
-							data.created = Date.now();
-							data.updated = data.created;
-							return magic(data);
-						};
-						break;
-					}
+					model[fn] = function (data) {
+						data.created = Date.now();
+						data.updated = data.created;
+						return magic(data);
+					};
+					break;
 				case 'count':
-					model[fn] = function(query) {
-						return new Promise(function(resolve, reject) {
+					model[fn] = function (query) {
+						return new Promise(function (resolve, reject) {
 							model.rawAPI[fn]((err, count) => {
 								if (err) {
 									reject(err);
@@ -32,27 +30,22 @@ export default function(model) {
 									resolve(count);
 								}
 							}, query);
-						})
-
+						});
 					};
 					break;
 				case 'update':
-					{
-						model[fn] = function(query, data) {
-							data.updated = Date.now();
-							return magic(query, data);
-						}
-						break;
-					}
+					model[fn] = function (query, data) {
+						data.updated = Date.now();
+						return magic(query, data);
+					};
+					break;
 				default:
-					{
-						break;
-					}
+					break;
 			}
 		}
-		model.rawWhere = function rawWhere(stringquery, opts) {
+		model.rawWhere = function rawWhere (stringquery, opts) {
 			let that = this;
-			return new Promise(function(resolve, reject) {
+			return new Promise(function (resolve, reject) {
 				let where = that.$where(stringquery);
 				for (let prop in opts) {
 					if (where[prop]) {
@@ -67,7 +60,7 @@ export default function(model) {
 							let rr = {};
 							for (let p in r.toObject()) {
 								if (p === '_id') {
-									rr.id = r._id
+									rr.id = r._id;
 								} else if (p !== '__v') {
 									rr[p] = r[p];
 								}
@@ -78,7 +71,7 @@ export default function(model) {
 				});
 			});
 		}.bind(model.adapter);
-		model.rawCount = function rawCount(stringquery) {
+		model.rawCount = function rawCount (stringquery) {
 			return new Promise((resolve, reject) => {
 				this.$where(stringquery).count((err, result) => {
 					if (err) {
@@ -89,7 +82,7 @@ export default function(model) {
 				});
 			});
 		}.bind(model.adapter);
-		model.findcre = Promise.promisify(function(...args) {
+		model.findcre = Promise.promisify(function (...args) {
 			let [query, data, cb] = args;
 			if (cb === undefined) {
 				cb = data;
@@ -97,12 +90,12 @@ export default function(model) {
 			}
 			let that = this;
 			data = data || {};
-			Object.keys(query).forEach(function(field) {
+			Object.keys(query).forEach(function (field) {
 				data[field] = query[field];
 			});
 			that.rawAPI.findOne({
 				where: query
-			}, function(err, model) {
+			}, function (err, model) {
 				if (model === null) {
 					data.created = Date.now();
 					data.updated = data.created;
@@ -114,7 +107,7 @@ export default function(model) {
 		}, {
 			context: model
 		});
-		model.mongooseFilter = Promise.promisify(function(filter, cb) {
+		model.mongooseFilter = Promise.promisify(function (filter, cb) {
 			this.rawAPI.find(filter, cb);
 		}, {
 			context: model

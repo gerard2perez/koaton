@@ -66,6 +66,7 @@ export function addModel (...args) {
 	};
 	let model = schema.define(modelName, definition.model, definition.extra || {});
 	model.rawAPI = {};
+	// model.relations = definition.relations;
 	exp.databases[modelName] = exendModel(model);
 }
 export function initialize (seed) {
