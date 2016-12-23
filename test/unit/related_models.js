@@ -7,6 +7,8 @@ const rdn = random.bind(null, 1, 500);
 
 describe('CRUD REST API Related Models', function () {
 	let bookId;
+	let distributor;
+	let pages;
 	it('Creates a parent book', function (done) {
 		server.headers(global.headers).post('books', {
 			book: {
@@ -18,13 +20,36 @@ describe('CRUD REST API Related Models', function () {
 						number: 1,
 						content: 'casa'
 					}
-				]
+				],
+				distributor: {
+					name: 'Big Cheif'
+				}
 			}
 		}).then(body => {
 			assert.equal(body.book.title, 'three eggs');
 			assert.equal(body.book.author, 'some dude');
 			assert.equal(body.book.page_count, 1000);
 			assert.equal(body.book.pages.length, 1);
+			assert.equal(typeof body.book.distributor, 'string');
+			distributor = body.book.distributor;
+			pages = body.book.pages;
+			done(null, body);
+		}, done).catch(done);
+	});
+	it('Creates a book with id pages', function (done) {
+		server.headers(global.headers).post('books', {
+			book: {
+				title: 'three eggs',
+				author: 'some dude',
+				page_count: 1000,
+				pages: pages
+			}
+		}).then(body => {
+			assert.equal(body.book.title, 'three eggs');
+			assert.equal(body.book.author, 'some dude');
+			assert.equal(body.book.page_count, 1000);
+			assert.equal(body.book.pages.length, 1);
+			assert.equal(body.book.distributor, undefined);
 			done(null, body);
 		}, done).catch(done);
 	});
@@ -33,13 +58,15 @@ describe('CRUD REST API Related Models', function () {
 			book: {
 				title: 'three eggs 2',
 				author: 'same dude',
-				page_count: 0
+				page_count: 0,
+				distributor: distributor
 			}
 		}).then(body => {
 			assert.equal(body.book.title, 'three eggs 2');
 			assert.equal(body.book.author, 'same dude');
 			assert.equal(body.book.page_count, 0);
 			assert.equal(body.book.pages, undefined);
+			assert.equal(typeof body.book.distributor, 'string');
 			bookId = body.book.id;
 			done(null, body);
 		}, done).catch(done);
@@ -48,6 +75,7 @@ describe('CRUD REST API Related Models', function () {
 		Object.defineProperty(configuration, 'relationsMode', {value: 'objects'});
 		server.headers(global.headers).get('books').then(body => {
 			assert.equal(typeof body.books[0].pages[0], 'object');
+			assert.equal(typeof body.books[0].distributor, 'object');
 			done(null, body);
 		}, done).catch(done);
 	});
@@ -101,7 +129,8 @@ describe('CRUD REST API Related Models', function () {
 				pages: [
 					{ number: rdn(), content: 'content' + rdn() },
 					{ number: rdn(), content: 'content' + rdn() }
-				]
+				],
+				distributor: distributor
 			});
 		}
 		server.headers(global.headers).post('books', {

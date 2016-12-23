@@ -13,24 +13,29 @@ async function restify (modelinstance, relations = {}) {
 		const child = relations[key].modelTo;
 		let query = {where: {}};
 		query.where[relations[key].keyTo] = modelinstance[relations[key].keyFrom];
-		let relationContent;
+		let relationContent = [];
 		switch (relations[key].type) {
 			case 'hasMany':
 				relationContent = await child.find(query);
 				break;
 			case 'belongsTo':
-				relationContent = await child.findOne(query);
+				relationContent.push(await child.findOne(query));
 				break;
+		}
+		relationContent = relationContent.filter(record => record !== null);
+		relationContent = configuration.relationsMode === 'ids' ? relationContent.map(record => record.id) : relationContent.map(record => {
+			record = record.toJSON();
+			delete record[relations[key].keyTo];
+			return record;
+		});
+		if (relations[key].type === 'belongsTo') {
+			relationContent = relationContent[0];
 		}
 		Object.defineProperty(model, key, {
 			enumerable: true,
 			configurable: true,
 			writable: true,
-			value: configuration.relationsMode === 'ids' ? relationContent.map(record => record.id) : relationContent.map(record => {
-				record = record.toJSON();
-				delete record[relations[key].keyTo];
-				return record;
-			})
+			value: relationContent
 		});
 	}
 	return model;
@@ -111,14 +116,16 @@ async function REST_POST_SINGLE (Model, model) {
 		const relations = model[relation];
 		if (relations) {
 			let child = Model.relations[relation].modelTo;
-			let foreignKey = Model.relations[relation].keyTo;
-			let foreignValue = entity[Model.relations[relation].keyFrom];
+			let foreignKey;
+			let foreignValue;
 			switch (Model.relations[relation].type) {
 				case 'hasMany':
+					foreignKey = Model.relations[relation].keyTo;
+					foreignValue = entity[Model.relations[relation].keyFrom];
 					modelRelations[relation] = [];
 					for (const related of relations) {
-						related[foreignKey] = foreignValue;
 						if (typeof related === 'object') {
+							related[foreignKey] = foreignValue;
 							modelRelations[relation].push((await child.create(related)).id);
 						} else {
 							let childmodel = await child.findById(related);
@@ -127,6 +134,20 @@ async function REST_POST_SINGLE (Model, model) {
 							modelRelations[relation].push(related);
 						}
 					}
+					break;
+				case 'belongsTo':
+					foreignKey = Model.relations[relation].keyFrom;
+					let related;
+					if (typeof relations === 'object') {
+						related = await child.create(relations);
+					} else {
+						related = await child.findById(relations);
+					}
+					foreignValue = related[Model.relations[relation].keyTo];
+					let entityModel = await Model.findById(entity.id);
+					entityModel[foreignKey] = foreignValue;
+					modelRelations[relation] = related.id;
+					entityModel.save();
 					break;
 			}
 		}
@@ -224,6 +245,7 @@ function makeRestModel (options, route, modelname) {
 		} else {
 			res[modelname] = entities;
 		}
+		// console.log(res);
 		ctx.body = res;
 		await next();
 	});

@@ -31,7 +31,6 @@ const oauth2server = function oauth2server () {
 				}
 			}, (err, accesstoken) => {
 				if (accesstoken !== null) {
-					console.log(accesstoken.Expires < Date.now());
 					if (accesstoken.Expires < Date.now()) {
 						return done(null, false);
 					}
