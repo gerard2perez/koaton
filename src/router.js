@@ -7,42 +7,31 @@ import inflector from './support/inflector';
 
 let subdomainRouters;
 
-async function restify (modelinstance, modelname) {
-	const relation = require(ProyPath('models', inflector.singularize(modelname)))({}, {
-		hasMany (field) {
-			return field.split('.')[1];
-		},
-		belongsTo (field) {
-			return field.split('.')[1];
-		}
-	}).relations;
+async function restify (modelinstance, relations = {}) {
 	let model = modelinstance.toJSON ? modelinstance.toJSON() : modelinstance;
-	for (const key in Object.keys(modelinstance.relations || {})) {
-		if (typeof modelinstance[key] === 'function') {
-			let find = Promise.promisify(modelinstance[key].find, {
-				context: modelinstance
-			});
-			let relations = await find({});
-			if (configuration.relations_mode) {
-				Object.defineProperty(model, key, {
-					enumerable: true,
-					configurable: true,
-					writable: true,
-					value: relations.map(record => record.id)
-				});
-			} else {
-				Object.defineProperty(model, key, {
-					enumerable: true,
-					configurable: true,
-					writable: true,
-					value: relations.map((record) => {
-						let property = record.toObject();
-						property[relation[key]] = modelinstance.id;
-						return property;
-					})
-				});
-			}
+	for (const key of Object.keys(relations)) {
+		const child = relations[key].modelTo;
+		let query = {where: {}};
+		query.where[relations[key].keyTo] = modelinstance[relations[key].keyFrom];
+		let relationContent;
+		switch (relations[key].type) {
+			case 'hasMany':
+				relationContent = await child.find(query);
+				break;
+			case 'belongsTo':
+				relationContent = await child.findOne(query);
+				break;
 		}
+		Object.defineProperty(model, key, {
+			enumerable: true,
+			configurable: true,
+			writable: true,
+			value: configuration.relationsMode === 'ids' ? relationContent.map(record => record.id) : relationContent.map(record => {
+				record = record.toJSON();
+				delete record[relations[key].keyTo];
+				return record;
+			})
+		});
 	}
 	return model;
 }
@@ -61,6 +50,7 @@ async function protect (ctx, next) {
 		await passport.authenticate('bearer', {
 			session: false
 		}, async function (err, user) {
+			/* istanbul ignore if */
 			if (err) {
 				throw err;
 			}
@@ -180,7 +170,7 @@ function makeRestModel (options, route, modelname) {
 		}
 		let rawmodels = (await ctx.model.rawWhere(filterset, filteroptions));
 		for (const idx in rawmodels) {
-			rawmodels[idx] = await restify(rawmodels[idx], modelname);
+			rawmodels[idx] = await restify(rawmodels[idx], ctx.model.relations);
 		}
 		res[modelname] = rawmodels;
 		ctx.body = res;
@@ -188,7 +178,7 @@ function makeRestModel (options, route, modelname) {
 	});
 	pOrp(routers, options.get).get('/:id', async function REST_GET_ID (ctx, next) {
 		let res = {};
-		res[inflector.singularize(modelname)] = await restify(await ctx.model.findById(ctx.params.id), inflector.singularize(modelname));
+		res[inflector.singularize(modelname)] = await restify(await ctx.model.findById(ctx.params.id), ctx.model.relations);
 		ctx.body = res;
 		await next();
 	});
@@ -223,6 +213,26 @@ function makeRestModel (options, route, modelname) {
 		}
 		entity = Object.assign({}, entity.toJSON(), modelRelations);
 		res[inflector.singularize(modelname)] = entity;
+		ctx.body = res;
+		await next();
+	});
+	pOrp(routers, options.post).post('/:id/:child', async function REST_POST_ID (ctx, next) {
+		let parent = await ctx.model.findById(ctx.params.id);
+		if (typeof parent[ctx.params.child] !== 'function') {
+			ctx.body.status = 402;
+		} else {
+			let child = ctx.model.relations[ctx.params.child];
+			switch (child.type) {
+				case 'hasMany':
+					ctx.request.body[child.keyTo] = parent[[child.keyFrom]];
+					await child.modelTo.create(ctx.request.body);
+					break;
+				case 'belongsTo':
+					break;
+			}
+		}
+		let res = {};
+		res[inflector.singularize(modelname)] = await restify(parent, ctx.model.relations);
 		ctx.body = res;
 		await next();
 	});
