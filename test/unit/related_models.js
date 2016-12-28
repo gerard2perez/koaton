@@ -33,26 +33,44 @@ describe('CRUD REST API Related Models', function () {
 			assert.equal(typeof body.book.distributor, 'string');
 			distributor = body.book.distributor;
 			pages = body.book.pages;
-			done(null, body);
+			done(null, true);
 		}, done).catch(done);
 	});
 	it('Creates a book with id pages', function (done) {
 		server.headers(global.headers).post('books', {
 			book: {
 				title: 'three eggs',
-				author: 'some dude',
+				author: 'some dude2',
 				page_count: 1000,
 				pages: pages
 			}
 		}).then(body => {
 			assert.equal(body.book.title, 'three eggs');
-			assert.equal(body.book.author, 'some dude');
+			assert.equal(body.book.author, 'some dude2');
 			assert.equal(body.book.page_count, 1000);
 			assert.equal(body.book.pages.length, 1);
 			assert.equal(body.book.distributor, undefined);
-			done(null, body);
+			bookId = body.book.id;
+			done(null, true);
 		}, done).catch(done);
 	});
+	it('Append a distributor to a book', function (done) {
+		server.headers(global.headers).post('books', bookId, 'distributor', {
+			distributor: distributor
+		}).then(body => {
+			assert.equal(body.book.title, 'three eggs');
+			assert.equal(body.book.author, 'some dude2');
+			assert.equal(body.book.page_count, 1000);
+			assert.equal(body.book.pages.length, 1);
+			assert.equal(body.book.distributor, distributor);
+			done(null, true);
+		}, done).catch(done);
+	});
+	// it('temporal', function (done) {
+	// 	server.headers(global.headers).get('books?size=1&page=2').then(body => {
+	// 		console.log(JSON.stringify(body.books, 4, 4));
+	// 	}, done).catch(done);
+	// });
 	it('Creates a book with no pages', function (done) {
 		server.headers(global.headers).post('books', {
 			book: {
@@ -68,15 +86,15 @@ describe('CRUD REST API Related Models', function () {
 			assert.equal(body.book.pages, undefined);
 			assert.equal(typeof body.book.distributor, 'string');
 			bookId = body.book.id;
-			done(null, body);
+			done(null, true);
 		}, done).catch(done);
 	});
 	it('Get content with relation mode set to objects', function (done) {
 		Object.defineProperty(configuration, 'relationsMode', {value: 'objects'});
 		server.headers(global.headers).get('books').then(body => {
-			assert.equal(typeof body.books[0].pages[0], 'object');
-			assert.equal(typeof body.books[0].distributor, 'object');
-			done(null, body);
+			assert.equal(typeof body.books[1].pages[0], 'object');
+			assert.equal(typeof body.books[1].distributor, 'object');
+			done(null, true);
 		}, done).catch(done);
 	});
 	it('Creates a page append to a book', function (done) {
@@ -89,7 +107,7 @@ describe('CRUD REST API Related Models', function () {
 			assert.equal(body.book.author, 'same dude');
 			assert.equal(body.book.page_count, 0);
 			assert.equal(body.book.pages.length, 1);
-			done(null, body);
+			done(null, true);
 		}, done).catch(done);
 	});
 	it('Fails to append a page a book', function (done) {
@@ -102,7 +120,7 @@ describe('CRUD REST API Related Models', function () {
 	it('Reads the books info', function (done) {
 		server.headers(global.headers).get('books').then(body => {
 			assert.ok(body.books.length);
-			done(null, body);
+			done(null, true);
 		}, done).catch(done);
 	});
 	it('Populates the databases with a 100 pages', function (done) {
@@ -116,10 +134,10 @@ describe('CRUD REST API Related Models', function () {
 			assert.ok(body.pages.length);
 			assert.ok(body.pages[99].number);
 			console.log(body.pages.length);
-			done(null, body);
+			done(null, true);
 		}, done).catch(done);
 	});
-	it('Populates the databases with a 100 books', function (done) {
+	it('Populates the databases with 100 books', function (done) {
 		let books = [];
 		for (let i = 1; i <= 100; i++) {
 			books.push({
@@ -136,15 +154,8 @@ describe('CRUD REST API Related Models', function () {
 		server.headers(global.headers).post('books', {
 			books: books
 		}).then(body => {
-			// assert.equal(body.book.title, 'three eggs');
-			// assert.equal(body.book.author, 'some dude');
-			// assert.equal(body.book.page_count, 1000);
-			// assert.equal(body.book.pages.length, 2);
-			console.log(body.books.length);
-			done(null, body);
+			assert.ok(body.books);
+			done(null, true);
 		}, done).catch(done);
-	});
-	it('Deletes the secured user', function (done) {
-		server.delete('users', global.id).then(done.bind(null, null), done).catch(done);
 	});
 });

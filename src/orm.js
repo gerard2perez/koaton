@@ -64,7 +64,7 @@ export function addModel (...args) {
 	definition.model.updated = {
 		type: schema.Date
 	};
-	let model = schema.define(modelName, definition.model, definition.extra || {});
+	let model = schema.define(modelName, definition.model, Object.assign({}, definition.extra));
 	model.rawAPI = {};
 	// model.relations = definition.relations;
 	exp.databases[modelName] = exendModel(model);
@@ -92,10 +92,12 @@ export function initialize (seed) {
 
 		let target = exp.databases[inflector.pluralize(relation.Children)];
 		exp.databases[model][relation.Rel](target, options);
+		console.log(`${model}.${relation.Rel}(${target}, ${JSON.stringify(options, 0, 0)});`);
 	};
 	for (let model in relations) {
 		relations[model].forEach(makerelation.bind(null, model));
 	}
+	/* istanbul ignore else */
 	if (process.env.NODE_ENV === 'development') {
 		res = co(function * () {
 			let files = fs.readdirSync(ProyPath('seeds'));
@@ -116,8 +118,9 @@ export function initialize (seed) {
 				console.log('Nothing to seed');
 			}
 			line2(true);
-		}).catch(e => console.log(e));
+		}).catch(console.log);
 	}
+	/* istanbul ignore if */
 	if (seed) {
 		return res;
 	} else {

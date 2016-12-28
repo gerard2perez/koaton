@@ -7,11 +7,12 @@ process.env.NODE_ENV = 'development';
 let koaton = require('../../src');
 
 buildHosts();
-
+console.log(koaton.jsurl);
 koaton.use(koaton.detectsubdomain);
 koaton.use(koaton.conditional);
 koaton.use(require('koa-helmet')());
 koaton.use(require('koa-bodyparser')({}));
+koaton.use(koaton.jsurl);
 koaton.keys = configuration.keys;
 koaton.use(require('koa-session')(koaton));
 koaton.use(koaton.passport.initialize());
@@ -36,4 +37,6 @@ describe('Koaton Unit Testing', function () {
 	require('./simple_models');
 	require('./authentication');
 	require('./related_models');
+	require('./filterset');
+	require('./cleanup');
 });

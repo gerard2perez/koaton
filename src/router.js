@@ -1,13 +1,14 @@
 import { sync as glob } from 'glob';
 import * as path from 'upath';
-import * as Promise from 'bluebird';
 import * as passport from 'koa-passport';
 import * as Router from 'koa-router';
 import inflector from './support/inflector';
+import toMongooseStringQuery from './support/toMongooseStringQuery';
+import * as Promise from 'bluebird';
 
 let subdomainRouters;
 
-async function restify (modelinstance, relations = {}) {
+async function restify (modelinstance, /* istanbul ignore next */ relations = {}) {
 	let model = modelinstance.toJSON ? modelinstance.toJSON() : modelinstance;
 	for (const key of Object.keys(relations)) {
 		const child = relations[key].modelTo;
@@ -16,10 +17,13 @@ async function restify (modelinstance, relations = {}) {
 		let relationContent = [];
 		switch (relations[key].type) {
 			case 'hasMany':
-				relationContent = await child.find(query);
+				relationContent = await child.all(query);
 				break;
 			case 'belongsTo':
-				relationContent.push(await child.findOne(query));
+				let obj = await child.findOne(query);
+				if (obj) {
+					relationContent.push(await child.findOne(query));
+				}
 				break;
 		}
 		relationContent = relationContent.filter(record => record !== null);
@@ -72,43 +76,6 @@ const pOrp = function (routers, spec) {
 	let router = spec || 'private';
 	return routers[router];
 };
-
-function getQuery (filtergroup) {
-	let group = [];
-	for (let index in filtergroup) {
-		let filter = filtergroup[index];
-		if (index > 0) {
-			group.push(filtergroup[index - 1].link === 'or' ? '||' : '&&');
-		}
-		switch (filter.condition) {
-			case 'like':
-				group.push(`(this.${filter.key}.search(/${filter.value}/ig)>-1) `);
-				break;
-			case 'in':
-				group.push(`(['${filter.value.join('', '')}'].indexOf(this.${filter.key})>-1)`);
-				break;
-			case '==':
-				group.push(`this.${filter.key}.search(${filter.value})>-1`);
-				break;
-			default:
-				group.push(`(this.${filter.key} ${filter.condition} '${filter.value}') `);
-				break;
-		}
-	}
-	return group.join(' ');
-}
-
-function makeit (filterset) {
-	let query = [];
-	for (let index in filterset) {
-		let filtergroup = filterset[index];
-		if (index > 0) {
-			query.push(filterset[index - 1].link === 'or' ? '||' : '&&');
-		}
-		query.push('(' + getQuery(filtergroup.filters) + ')');
-	}
-	return query.join(' ');
-}
 async function REST_POST_SINGLE (Model, model) {
 	let entity = await Model.create(model);
 	let modelRelations = {};
@@ -128,10 +95,15 @@ async function REST_POST_SINGLE (Model, model) {
 							related[foreignKey] = foreignValue;
 							modelRelations[relation].push((await child.create(related)).id);
 						} else {
-							let childmodel = await child.findById(related);
-							childmodel[foreignKey] = foreignValue;
-							childmodel.save();
-							modelRelations[relation].push(related);
+							let data = {};
+							data[foreignKey] = foreignValue;
+							let res = await child.update({
+								_id: related
+							}, data);
+							/* istanbul ignore else */
+							if (res.nModified) {
+								modelRelations[relation].push(related);
+							}
 						}
 					}
 					break;
@@ -144,16 +116,20 @@ async function REST_POST_SINGLE (Model, model) {
 						related = await child.findById(relations);
 					}
 					foreignValue = related[Model.relations[relation].keyTo];
-					let entityModel = await Model.findById(entity.id);
-					entityModel[foreignKey] = foreignValue;
-					modelRelations[relation] = related.id;
-					entityModel.save();
+					let res = await Model.update({
+						_id: entity.id
+					}, {[foreignKey]: foreignValue});
+					/* istanbul ignore else */
+					if (res.nModified) {
+						modelRelations[relation] = related.id;
+					}
 					break;
 			}
 		}
 	}
 	return Object.assign({}, entity.toJSON(), modelRelations);
 }
+
 function makeRestModel (options, route, modelname) {
 	let routers = {
 		public: new Router(),
@@ -161,15 +137,12 @@ function makeRestModel (options, route, modelname) {
 	};
 
 	let mountRoute = route.replace(/\/$/, '');
-
-	// pOrp(routers, 'public').options(mountRoute, allowmethods).options(path.join(mountRoute, '*'), allowmethods);
 	pOrp(routers, options.get).get('/', async function REST_GET (ctx, next) {
 		let res = {},
 			filteroptions = {
 				skip: 0
-			},
-			filterset = ctx.query.filterset || [];
-		filteroptions.limit = isNaN(this.query.size) ? (isNaN(configuration.pagination.limit) ? 50 : configuration.pagination.limit) : parseInt(this.query.size, 50);
+			};
+		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.pagination.limit) : parseInt(this.query.size, 10);
 		if (ctx.query.size) {
 			delete ctx.query.size;
 		}
@@ -177,46 +150,13 @@ function makeRestModel (options, route, modelname) {
 			filteroptions.skip = ((ctx.query.page * 1) - 1) * filteroptions.limit;
 			delete ctx.query.page;
 		}
-		if (ctx.query.filterset) {
-			delete ctx.query.filterset;
-		}
-		if (ctx.query) {
-			let searchgroup = {
-				filters: [],
-				link: null
-			};
-			for (let item in ctx.query) {
-				if (item.indexOf('.') > -1) {
-					let terms = item.split('.');
-					let prequery = {};
-					prequery[terms[1]] = new RegExp(`.*${ctx.query[item]}.*`, 'i');
-					let finds = await ctx.db[inflector.pluralize(terms[0])].find({
-						where: prequery
-					});
-					searchgroup.filters.push({
-						key: terms[0],
-						condition: 'in',
-						value: finds.map(m => m._id)
-					});
-				} else {
-					searchgroup.filters.push({
-						key: item,
-						condition: '==',
-						value: new RegExp(`.*${this.query[item]}.*`, 'i')
-					});
-				}
-				if (filterset.length > 0) {
-					filterset[filterset.length - 1].link = 'and';
-				}
-				filterset.push(searchgroup);
-			}
-		}
-		filterset = makeit(filterset) || 'return true;';
-		if (filteroptions.skip >= 0) {
-			res.meta = {
-				total: await ctx.model.rawCount(filterset)
-			};
-		}
+		let filterset = await toMongooseStringQuery(ctx.query, ctx.model, ctx.db);
+		console.log(`db.books.find(function(){${filterset}}).pretty()`);
+		res.meta = {
+			page: Math.floor((filteroptions.skip / filteroptions.limit)) + 1,
+			page_size: filteroptions.limit,
+			total: await ctx.model.rawCount(filterset)
+		};
 		let rawmodels = (await ctx.model.rawWhere(filterset, filteroptions));
 		for (const idx in rawmodels) {
 			rawmodels[idx] = await restify(rawmodels[idx], ctx.model.relations);
@@ -245,7 +185,6 @@ function makeRestModel (options, route, modelname) {
 		} else {
 			res[modelname] = entities;
 		}
-		// console.log(res);
 		ctx.body = res;
 		await next();
 	});
@@ -293,15 +232,6 @@ function makeRestModel (options, route, modelname) {
 	subdomainRouters.www.secured.use(path.join('/', mountRoute), routers.private.routes());
 }
 
-// async function allowmethods(ctx, next) {
-// 	await next();
-// 	ctx.response.set('Access-Control-Allow-Methods', 'OPTIONS,' + ctx.request.get('Access-Control-Request-Method'));
-// 	ctx.status = 200;
-// 	ctx.response.remove('ETag');
-// 	ctx.response.remove('Content-Type');
-// 	ctx.response.remove('Date');
-// }
-
 function initialize () {
 	subdomainRouters = {};
 	for (const subdomain of configuration.subdomains) {
@@ -328,6 +258,7 @@ function initialize () {
 			Pluralize: true
 		}, controller);
 		if (controller.REST) {
+			/* istanbul ignore else */
 			if (controller.Pluralize) {
 				controller.Name = inflector.pluralize(controller.Name);
 			}
@@ -344,7 +275,7 @@ function initialize () {
 
 	// Load all routes
 	for (const routepath of routes) {
-		let route = routepath.replace('.js', ''),
+		let route = path.basename(routepath).replace('.js', ''),
 			domainrouter = subdomainRouters.www;
 		if (route.indexOf('.') > -1) {
 			let subdomain = route.split('.')[0];
@@ -396,6 +327,7 @@ function initialize () {
 function routers (domain) {
 	return subdomainRouters[domain];
 }
+
 export {
 	initialize,
 	restify,

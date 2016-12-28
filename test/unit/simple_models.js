@@ -52,7 +52,7 @@ describe('CRUD REST API Simple Models', function () {
 			assert.equal(json.user.name, 'Code');
 			assert.equal(json.user.email, 'code@breaker.com');
 			server.expect(304);
-			server.get('users', json.user.id).then(done.bind(null, null), done).catch(done);
+			return server.get('users', json.user.id).then(done.bind(null, null), done).catch(done);
 		}, done).catch(done);
 	});
 

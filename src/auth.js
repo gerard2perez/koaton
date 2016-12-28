@@ -3,7 +3,7 @@ import { compare } from 'bcrypt';
 import * as passport from 'koa-passport';
 import { models } from './orm';
 import inflector from './support/inflector';
-// import * as Promise from 'bluebird';
+import * as Promise from 'bluebird';
 
 let AuthModel;
 
@@ -15,10 +15,10 @@ function getuser (username, password, done) {
 	}).then((user) => {
 		if (user !== null) {
 			compare(password, user[configuration.password], (err, res) => {
+				/* istanbul ignore if */
 				if (err) {
 					console.error(err);
 				}
-				console.log(res);
 				done(null, res ? user : null);
 			});
 		} else {
@@ -29,6 +29,7 @@ function getuser (username, password, done) {
 function _getuser (username, password) {
 	return getuser.bind(getuser, username, password);
 }
+const findUser = Promise.promisify(getuser);
 function * createUser (username, password, body) {
 	const user = yield _getuser(username, password);
 	body[configuration.username] = username;
@@ -53,17 +54,14 @@ function initialize () {
 		done(null, user._id);
 	});
 	passport.deserializeUser(function (id, done) {
-		Model.findById(id).then((user) => {
-			done(null, user);
-		}, (err) => {
-			done(err, null);
-		});
+		Model.findById(id).then(done.bind(null, null), done);
 	});
 	Object.keys(configuration.strategies).forEach((strategy) => {
 		const STR = configuration.strategies[strategy];
 		try {
 			let component = STR.package || /* istanbul ignore next: I have to change the proyect structure*/`passport-${strategy}`;
 			let Strategy = require(ProyPath('node_modules', component))[STR.strategy || 'Strategy'];
+			/* istanbul ignore else */
 			if (STR.options) {
 				passport.use(STR.identifier, new Strategy(STR.options, STR.secret || getuser));
 			} else {
@@ -78,4 +76,4 @@ function initialize () {
 	});
 }
 
-export { getuser, initialize, createUser };
+export { getuser, initialize, createUser, findUser };

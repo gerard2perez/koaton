@@ -25,8 +25,25 @@ describe('REST APP Authentication', function () {
 			}, done).catch(done);
 		});
 	});
+	it('Can\'t create a duplicated user', function (done) {
+		server.expect(500);
+		server.post('singup', {
+			name: 'agent007',
+			username: 'agent',
+			password: '007'
+		}).then(body => {
+			assert.equal(body.error, 'User Already Extis');
+			done(null, true);
+		}, done).catch(done);
+	});
+	it('Fails to Login', function (done) {
+		server.expect(401);
+		server.post('singin/?username=agent&password=003').then(response => {
+			done(null, response);
+		});
+	});
 	it('Session Login', function (done) {
-		server.fullResponse();
+		server.expect(200);
 		server.post('singin/?username=agent&password=007').then(response => {
 			done(null, response);
 		});
@@ -40,15 +57,37 @@ describe('REST APP Authentication', function () {
 
 	it('Can\'t get an access token (uncomplete args)', function (done) {
 		server.expect(406);
-		server.post('token/?username=agent&password=007&response_type=code', {
+		server.post('token/?response_type=code', {
 			grant_type: 'password'
 		}).then(done.bind(null, null), done).catch(done);
 	});
-
+	it('Can\'t get an access token (bad password)', function (done) {
+		server.expect(403);
+		server.post('token/?response_type=password&client_id=123456', {
+			username: 'agent',
+			password: '003',
+			grant_type: 'password'
+		}).then(body => {
+			bearerToken = `${body.token_type} ${body.access_token}`;
+			assert.ok(bearerToken);
+			done(null, null);
+		}, done).catch(done);
+	});
+	it('Get an access token', function (done) {
+		server.post('token/?username=agent&password=007&response_type=password&client_id=123456', {
+			username: 'agent',
+			password: '007',
+			grant_type: 'password'
+		}).then(body => {
+			bearerToken = `${body.token_type} ${body.access_token}`;
+			assert.ok(bearerToken);
+			done(null, null);
+		}, done).catch(done);
+	});
 	it('Get an access token', function (done) {
 		server.post('token/?username=agent&password=007&response_type=code&client_id=123456', {
 			username: 'agent',
-			passowrd: '007',
+			password: '007',
 			grant_type: 'password'
 		}).then(body => {
 			bearerToken = `${body.token_type} ${body.access_token}`;
@@ -59,7 +98,7 @@ describe('REST APP Authentication', function () {
 	it('logout', function (done) {
 		server.post('singout').then(res => {
 			server.expect(401);
-			server.get('pages').then(done.bind(null, null), done).catch(done);
+			return server.get('pages').then(done.bind(null, null), done).catch(done);
 		}, done).catch(done);
 	});
 	it('Makes a request with the access token', function (done) {

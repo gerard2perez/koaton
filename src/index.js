@@ -71,6 +71,12 @@ Object.defineProperty(App, 'passport', {
 		return passport;
 	}
 });
+Object.defineProperty(App, 'jsurl', {
+	enumerable: true,
+	get () {
+		return koaton.jsurl;
+	}
+});
 
 /* istanbul ignore next */
 App.stack = function (...args) {
