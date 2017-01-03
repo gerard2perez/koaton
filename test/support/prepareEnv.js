@@ -59,7 +59,6 @@ function getnginxpath () {
 	let res = spawn('nginx', ['-s', 'reopen']).stderr.toString();
 
 	while (res.indexOf('error') > -1) {
-		console.log('Async');
 		spawnAsync('nginx', []);
 		res = spawn('nginx', ['-s', 'reopen']).stderr.toString();
 	}

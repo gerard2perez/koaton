@@ -13,3 +13,4 @@
 .npmignore
 /testingapp/
 /lib/
+*.tgz

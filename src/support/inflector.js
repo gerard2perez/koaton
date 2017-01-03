@@ -1,6 +1,5 @@
 import * as inflector from 'inflection';
 
-
 const inflections = Object.assign({}, {
 	plural: [],
 	singular: []

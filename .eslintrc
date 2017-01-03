@@ -13,6 +13,8 @@ globals:
  it: true
  beforeEach: true
  after: true
+ Kmetadata: true
+ requireSafe: true
 
 rules:
  one-var: [0, never]

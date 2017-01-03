@@ -14,7 +14,7 @@ describe('CRUD REST API Related Models', function () {
 			book: {
 				title: 'three eggs',
 				author: 'some dude',
-				page_count: 1000,
+				page_count: 10,
 				pages: [
 					{
 						number: 1,
@@ -28,7 +28,7 @@ describe('CRUD REST API Related Models', function () {
 		}).then(body => {
 			assert.equal(body.book.title, 'three eggs');
 			assert.equal(body.book.author, 'some dude');
-			assert.equal(body.book.page_count, 1000);
+			assert.equal(body.book.page_count, 10);
 			assert.equal(body.book.pages.length, 1);
 			assert.equal(typeof body.book.distributor, 'string');
 			distributor = body.book.distributor;
@@ -41,13 +41,13 @@ describe('CRUD REST API Related Models', function () {
 			book: {
 				title: 'three eggs',
 				author: 'some dude2',
-				page_count: 1000,
+				page_count: 20,
 				pages: pages
 			}
 		}).then(body => {
 			assert.equal(body.book.title, 'three eggs');
 			assert.equal(body.book.author, 'some dude2');
-			assert.equal(body.book.page_count, 1000);
+			assert.equal(body.book.page_count, 20);
 			assert.equal(body.book.pages.length, 1);
 			assert.equal(body.book.distributor, undefined);
 			bookId = body.book.id;
@@ -60,17 +60,12 @@ describe('CRUD REST API Related Models', function () {
 		}).then(body => {
 			assert.equal(body.book.title, 'three eggs');
 			assert.equal(body.book.author, 'some dude2');
-			assert.equal(body.book.page_count, 1000);
+			assert.equal(body.book.page_count, 20);
 			assert.equal(body.book.pages.length, 1);
 			assert.equal(body.book.distributor, distributor);
 			done(null, true);
 		}, done).catch(done);
 	});
-	// it('temporal', function (done) {
-	// 	server.headers(global.headers).get('books?size=1&page=2').then(body => {
-	// 		console.log(JSON.stringify(body.books, 4, 4));
-	// 	}, done).catch(done);
-	// });
 	it('Creates a book with no pages', function (done) {
 		server.headers(global.headers).post('books', {
 			book: {
@@ -133,17 +128,41 @@ describe('CRUD REST API Related Models', function () {
 		}).then(body => {
 			assert.ok(body.pages.length);
 			assert.ok(body.pages[99].number);
-			console.log(body.pages.length);
 			done(null, true);
 		}, done).catch(done);
 	});
 	it('Populates the databases with 100 books', function (done) {
 		let books = [];
-		for (let i = 1; i <= 100; i++) {
+		let i;
+		for (i = 1; i <= 90; i++) {
 			books.push({
 				title: 'title' + rdn(),
 				author: 'author' + rdn(),
 				page_count: rdn(),
+				pages: [
+					{ number: rdn(), content: 'content' + rdn() },
+					{ number: rdn(), content: 'content' + rdn() }
+				],
+				distributor: distributor
+			});
+		}
+		for (i; i <= 95; i++) {
+			books.push({
+				title: 'title' + rdn(),
+				author: 'author' + rdn(),
+				page_count: random(600, 700),
+				pages: [
+					{ number: rdn(), content: 'content' + rdn() },
+					{ number: rdn(), content: 'content' + rdn() }
+				],
+				distributor: distributor
+			});
+		}
+		for (i; i <= 100; i++) {
+			books.push({
+				title: 'title' + rdn(),
+				author: 'author' + rdn(),
+				page_count: random(800, 900),
 				pages: [
 					{ number: rdn(), content: 'content' + rdn() },
 					{ number: rdn(), content: 'content' + rdn() }

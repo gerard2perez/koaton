@@ -11,13 +11,16 @@ Koaton is a CLI tool that provides a nice starting point for full stack JavaScri
 
 ## Documentation
 
+Documentation will be avaliable at: <http://www.koaton.io/docs/>
+and
+
+[README](README.md)
+
+or
 ```bash
 koaton --help
 ```
-Or
 
-Documentation will be avaliable at:
-<http://www.koaton.io/docs/>
 
 ## Installation
 
@@ -81,4 +84,4 @@ SourceMaps will be always be built in **development** environment, but **not** i
 
 
 ## Licensing
-Read [LICENCE.md](LICENCE.md)
+Read [LICENSE](LICENSE)

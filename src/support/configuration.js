@@ -14,7 +14,7 @@ export default class Configuration {
 						enumerable: true,
 						get () {
 							if (configfile[configvalue].dev && configfile[configvalue].prod) {
-								return process.env.NODE_ENV === 'development' ? configfile[configvalue].dev : configfile[configvalue].prod;
+								return process.env.NODE_ENV === 'development' ? configfile[configvalue].dev :/* istanbul ignore next */ configfile[configvalue].prod;
 							} else {
 								return configfile[configvalue];
 							}

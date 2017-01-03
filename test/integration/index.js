@@ -7,7 +7,6 @@ process.env.NODE_ENV = 'development';
 let koaton = require('../../src');
 
 buildHosts();
-console.log(koaton.jsurl);
 koaton.use(koaton.detectsubdomain);
 koaton.use(koaton.conditional);
 koaton.use(require('koa-helmet')());
@@ -22,8 +21,6 @@ koaton.use(koaton.views);
 koaton.use(koaton.subdomainrouter);
 
 koaton = koaton.start(process.env.port);
-
-// process.env.NODE_ENV = 'production';
 
 describe('Koaton Unit Testing', function () {
 	beforeEach(function () {

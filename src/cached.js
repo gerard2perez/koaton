@@ -7,14 +7,18 @@ const stat = Promise.promisify(fs.stat);
 const cached = async function cached (ctx, next) {
 	await next();
 	const body = ctx.body;
+	/* istanbul ignore if */
 	if (!body || this.response.get('ETag')) return;
 	const status = this.status / 100 | 0;
+	/* istanbul ignore if */
 	if (status !== 2) return;
 
 	let etag;
 	if (body instanceof Stream) {
+		/* istanbul ignore if */
 		if (!body.path) return;
 		let stats = await stat(body.path).catch(noop);
+		/* istanbul ignore if */
 		if (!stats) return;
 		etag = calculate(stats, configuration.etag);
 	} else if ((typeof body === 'string') || Buffer.isBuffer(body)) {

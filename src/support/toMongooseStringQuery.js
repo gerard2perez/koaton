@@ -12,12 +12,15 @@ function getQuery (filtergroup) {
 				group.push(`(this.${filter.key}.search(/${filter.value}/ig)>-1) `);
 				break;
 			case 'in':
-				group.push(`(['${filter.value.join('', '')}'].indexOf(this.${filter.key})>-1)`);
+				group.push(`(['${filter.value.join("', '", '')}'].indexOf(this.${filter.key})>-1)`);
 				break;
 			case 'some':
-				group.push(`(['${filter.value.join('', '')}'].some(function(r){return r == that.${filter.key}}))`);
+				group.push(`(['${filter.value.join("', '", '')}'].some(function(r){return r == that.${filter.key}}))`);
 				break;
 			case '==':
+				group.push(`this.${filter.key}.search('${filter.value}')>-1`);
+				break;
+			case '===':
 				group.push(`this.${filter.key}.search(${filter.value})>-1`);
 				break;
 			default:
@@ -50,8 +53,9 @@ async function buildFilterSet (query, model, database) {
 				case 'belongsTo':
 					term = model.relations[modelname].keyFrom;
 					break;
+				/* istanbul ignore next */
 				case 'hasMany':
-					term = model.relations[modelname].keyTo;
+					// TODO: camintejs does not allow me to do this;
 					break;
 			}
 			searchgroup.filters.push({
@@ -62,7 +66,7 @@ async function buildFilterSet (query, model, database) {
 		} else {
 			searchgroup.filters.push({
 				key: item,
-				condition: '==',
+				condition: '===',
 				value: new RegExp(`.*${query[item]}.*`, 'i')
 			});
 		}

@@ -92,7 +92,6 @@ export function initialize (seed) {
 
 		let target = exp.databases[inflector.pluralize(relation.Children)];
 		exp.databases[model][relation.Rel](target, options);
-		console.log(`${model}.${relation.Rel}(${target}, ${JSON.stringify(options, 0, 0)});`);
 	};
 	for (let model in relations) {
 		relations[model].forEach(makerelation.bind(null, model));
@@ -103,7 +102,6 @@ export function initialize (seed) {
 			let files = fs.readdirSync(ProyPath('seeds'));
 			for (let index in files) {
 				let file = files[index].replace('.js', '');
-
 				try {
 					console.log('Sedding ' + file);
 					let model = exp.databases[inflector.pluralize(file.toLowerCase())];

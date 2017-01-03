@@ -90,6 +90,7 @@ describe('REST APP Authentication', function () {
 			password: '007',
 			grant_type: 'password'
 		}).then(body => {
+			global.bearerTokenTime = process.hrtime();
 			bearerToken = `${body.token_type} ${body.access_token}`;
 			assert.ok(bearerToken);
 			done(null, null);

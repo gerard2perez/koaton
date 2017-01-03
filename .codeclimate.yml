@@ -8,7 +8,7 @@ engines:
                     mass_threshold: 59
 
     eslint:
-        enabled: true
+        enabled: false
         channel: eslint-3
     fixme:
         enabled: true

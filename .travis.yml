@@ -6,8 +6,8 @@ services:
   - mongodb
 language: node_js
 node_js:
-  - "6.9.1"
-sudo: false
+  - "6.9.2"
+sudo: true
 addons:
   apt:
     packages:
@@ -17,11 +17,13 @@ cache:
     - node_modules
 before_install:
   - npm config set spin false
-  - npm install -g glob
   - npm install -g ember-cli@2.9.1
   - npm install -g bower
   - npm install -g forever
 install:
   - npm i .
 script:
-  - npm test
+  - npm run eslint
+  - npm run cover
+  - npm run codeclimate_cov
+  - npm run semantic-release

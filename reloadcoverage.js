@@ -3,7 +3,7 @@ const livereload = require('gulp-livereload');
 const fs = require('fs-extra');
 const glob = require('glob');
 
-function test() {
+function test () {
 	let script = '<script src="http://localhost:62627/livereload.js?snipver=1"></script>\n</body>';
 	glob.sync('coverage/**/*.html').forEach((file) => {
 		let index = fs.readFileSync(file, 'utf-8').replace('</body>', script);

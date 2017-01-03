@@ -4,7 +4,6 @@ import * as passport from 'koa-passport';
 import * as Router from 'koa-router';
 import inflector from './support/inflector';
 import toMongooseStringQuery from './support/toMongooseStringQuery';
-import * as Promise from 'bluebird';
 
 let subdomainRouters;
 
@@ -151,7 +150,6 @@ function makeRestModel (options, route, modelname) {
 			delete ctx.query.page;
 		}
 		let filterset = await toMongooseStringQuery(ctx.query, ctx.model, ctx.db);
-		console.log(`db.books.find(function(){${filterset}}).pretty()`);
 		res.meta = {
 			page: Math.floor((filteroptions.skip / filteroptions.limit)) + 1,
 			page_size: filteroptions.limit,
@@ -305,7 +303,6 @@ function initialize () {
 			} else {
 				emberapp.directory = path.join('ember_apps', config[app].directory);
 			}
-
 			const sub = emberapp.subdomain || 'www',
 				approouter = new Router(),
 				serveemberapp = serveapp(emberapp.directory);

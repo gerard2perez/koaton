@@ -3,19 +3,20 @@ import * as passport from 'koa-passport';
 import { line1, line2 } from './support/consoleLines';
 import './support/globals';
 import include from './support/.include';
+import views from './views';
 
 // TODO: This setup is for legacy compability
 
 let App = require(ProyPath('node_modules', 'koa'));
 App = new App();
 
-/* istanbul ignore else  */
-if (process.env.NODE_ENV === 'development') {
-	const logger = require('koa-logger');
-	App.use(logger());
-}
+// /* istanbul ignore else  */
+// if (process.env.NODE_ENV === 'development') {
+// 	const logger = require('koa-logger');
+// 	App.use(logger());
+// }
 let koaton = include(__dirname);
-const views = koaton.views();
+const view = views(configuration.views);
 
 const oAuth2Server = koaton.oauth2server();
 App.use(koaton.orm.initialize(false));
@@ -34,7 +35,7 @@ delete koaton.server_models;
 Object.defineProperty(App, 'views', {
 	enumerable: true,
 	get () {
-		return views;
+		return view;
 	}
 });
 Object.defineProperty(App, 'oAuth2Server', {
