@@ -85,7 +85,7 @@ describe('CRUD REST API Related Models', function () {
 		}, done).catch(done);
 	});
 	it('Get content with relation mode set to objects', function (done) {
-		Object.defineProperty(configuration, 'relationsMode', {value: 'objects'});
+		Object.defineProperty(configuration.server.database, 'relationsMode', {value: 'objects'});
 		server.headers(global.headers).get('books').then(body => {
 			assert.equal(typeof body.books[1].pages[0], 'object');
 			assert.equal(typeof body.books[1].distributor, 'object');
@@ -93,7 +93,7 @@ describe('CRUD REST API Related Models', function () {
 		}, done).catch(done);
 	});
 	it('Creates a page append to a book', function (done) {
-		Object.defineProperty(configuration, 'relationsMode', {value: 'ids'});
+		Object.defineProperty(configuration.server.database, 'relationsMode', {value: 'ids'});
 		server.headers(global.headers).post('books', bookId, 'pages', {
 			number: 2,
 			content: 'just got inspired'

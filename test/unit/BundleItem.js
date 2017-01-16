@@ -2,32 +2,33 @@
 import * as assert from 'assert';
 import BundleItem from '../../src/support/BundleItem';
 
+/** @test {BundleItem} */
 describe('BundleItem', function () {
 	let Item = new BundleItem('target.css');
 	it('Initialize with 0 Items', function () {
 		assert.equal(0, Item.content.length);
 	});
 	it('Initialize with 1 Items', function () {
-		Item = new BundleItem('target.css', 'origin_a.css');
+		Item = new BundleItem('target.css', './assets/flatadmin/css/themes.css');
 		assert.equal(1, Item.content.length);
 	});
 	it('Initialize with two Items', function () {
-		Item = new BundleItem('target.css', ['origin_a.css', 'origin_b.css']);
+		Item = new BundleItem('target.css', ['./assets/flatadmin/css/themes.css', './assets/flatadmin/css/style.css']);
 		assert.equal(2, Item.content.length);
 	});
-
+	/** @test {BundleItem#add} */
 	it('Add an Item', function () {
-		assert.equal(Item, Item.add('origin_c.css'));
+		assert.equal(Item, Item.add('./assets/flatadmin/css/checkbox3.min.css'));
 		assert.equal(3, Item.content.length);
 	});
-
+	/** @test {BundleItem#add} */
 	it('Prevent adding duplicated Item', function () {
-		assert.equal(Item, Item.add('origin_c.css'));
+		assert.equal(Item, Item.add('./assets/flatadmin/css/checkbox3.min.css'));
 		assert.equal(3, Item.content.length);
 	});
 
 	it('Is equal to another item if name is the same', function () {
-		const Item2 = new BundleItem('target.css', ['origin_y.css', 'origin_z.css']);
+		const Item2 = new BundleItem('target.css', ['./assets/flatadmin/css/select2.min.css', './assets/flatadmin/css/animate.min.css']);
 		assert.equal(Item.equals(Item2), true);
 	});
 	it('JSON representation es the content property', function () {
@@ -42,9 +43,9 @@ describe('BundleItem', function () {
 		assert.equal(3, index);
 	});
 	it('Return html tags when converting to string', function () {
-		let JSItem = new BundleItem('target.js', 'origin_a.js');
-		assert.equal(Item.toString(), "<link rel='stylesheet' href='origin_a.css'><link rel='stylesheet' href='origin_b.css'><link rel='stylesheet' href='origin_c.css'>");
-		assert.equal(JSItem.toString(), "<script src='origin_a.js'></script>");
+		let JSItem = new BundleItem('target.js', './assets/flatadmin/js/app.js');
+		assert.equal(Item.toString(), "<link rel='stylesheet' href='./assets/flatadmin/css/themes.css'><link rel='stylesheet' href='./assets/flatadmin/css/style.css'><link rel='stylesheet' href='./assets/flatadmin/css/checkbox3.min.css'>");
+		assert.equal(JSItem.toString(), "<script src='./assets/flatadmin/js/app.js'></script>");
 	});
 	it('Clears Content', function () {
 		assert.equal(Item, Item.clear());

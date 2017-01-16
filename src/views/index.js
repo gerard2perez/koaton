@@ -51,8 +51,8 @@ function ex2engine (fullpath) {
 for (const engine of avaliableEngines) {
 	if (npmpackage.dependencies[engine] !== undefined && SetUpEngines[engine] !== undefined) {
 		render.requires[engine] = SetUpEngines[engine]();
-		if (configuration[engine] !== undefined) {
-			configuration[engine](render.requires[engine]);
+		if (configuration.views[engine] !== undefined) {
+			configuration.views[engine](render.requires[engine]);
 		}
 	}
 }
@@ -85,8 +85,7 @@ async function views (ctx, next) {
 	};
 	await next();
 }
-
-function initialize (options = {}) {
+function initialize (/* istanbul ignore next */ options = {}) {
 	extMapper = Object.assign({}, extMapper, options.extensions);
 	return views;
 }

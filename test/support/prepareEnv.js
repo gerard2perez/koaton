@@ -6,8 +6,7 @@ const path = require('upath');
 const buildHosts = function buildHosts () {
 	const os = require('os');
 
-	let subdomains = require(ProyPath('config', 'server'));
-	subdomains = subdomains.subdomains;
+	let subdomains = configuration.server.subdomains;
 
 	if (subdomains.indexOf('www') === -1) {
 		subdomains.push('www');
@@ -31,10 +30,11 @@ const buildHosts = function buildHosts () {
 	if (hostsdlocation !== '') {
 		let hostsd = fs.readFileSync(hostsdlocation, 'utf-8');
 		for (const subdomain of subdomains) {
-			let entry = `127.0.0.1\t${subdomain}.${configuration.host}`;
+			let entry = `127.0.0.1\t${subdomain}.${configuration.server.host}`;
 			if (hostsd.indexOf(entry) === -1) {
 				hostsd += '\n' + entry;
-				hostsd += `\n127.0.0.1\t${configuration.host}`;
+				hostsd += `\n127.0.0.1\t${configuration.server.host}`;
+				hostsd += `\n127.0.0.1\t${configuration.server.host}`.replace('test', 't3st');
 			}
 		}
 		fs.writeFileSync(hostsdlocation, hostsd.replace(/\n+/igm, '\n'));

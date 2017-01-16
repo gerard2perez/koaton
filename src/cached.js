@@ -20,11 +20,11 @@ const cached = async function cached (ctx, next) {
 		let stats = await stat(body.path).catch(noop);
 		/* istanbul ignore if */
 		if (!stats) return;
-		etag = calculate(stats, configuration.etag);
+		etag = calculate(stats, configuration.static.cache.etagWeak);
 	} else if ((typeof body === 'string') || Buffer.isBuffer(body)) {
-		etag = calculate(body, configuration.etag);
+		etag = calculate(body, configuration.static.cache.etagWeak);
 	} else {
-		etag = calculate(JSON.stringify(body), configuration.etag);
+		etag = calculate(JSON.stringify(body), configuration.static.cache.etagWeak);
 	}
 	/* istanbul ignore else */
 	if (etag) {

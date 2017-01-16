@@ -9,12 +9,12 @@ let AuthModel;
 
 function getuser (username, password, done) {
 	let query = {};
-	query[configuration.username] = username;
+	query[configuration.security.username] = username;
 	AuthModel.findOne({
 		where: query
 	}).then((user) => {
 		if (user !== null) {
-			compare(password, user[configuration.password], (err, res) => {
+			compare(password, user[configuration.security.password], (err, res) => {
 				/* istanbul ignore if */
 				if (err) {
 					console.error(err);
@@ -32,8 +32,8 @@ function _getuser (username, password) {
 const findUser = Promise.promisify(getuser);
 function * createUser (username, password, body) {
 	const user = yield _getuser(username, password);
-	body[configuration.username] = username;
-	body[configuration.password] = yield hash(password, 5);
+	body[configuration.security.username] = username;
+	body[configuration.security.password] = yield hash(password, 5);
 	if (user === null) {
 		return yield AuthModel.create(body);
 	} else {
@@ -44,8 +44,8 @@ function * createUser (username, password, body) {
 }
 
 function initialize () {
-	AuthModel = models[inflector.pluralize(configuration.model)];
-	const Model = models[inflector.pluralize(configuration.model)];
+	AuthModel = models[inflector.pluralize(configuration.security.model)];
+	const Model = models[inflector.pluralize(configuration.security.model)];
 	/* istanbul ignore if*/
 	if (!Model) {
 		return;
@@ -56,8 +56,8 @@ function initialize () {
 	passport.deserializeUser(function (id, done) {
 		Model.findById(id).then(done.bind(null, null), done);
 	});
-	Object.keys(configuration.strategies).forEach((strategy) => {
-		const STR = configuration.strategies[strategy];
+	for (const strategy of Object.keys(configuration.security.strategies)) {
+		const STR = configuration.security.strategies[strategy];
 		try {
 			let component = STR.package || /* istanbul ignore next: I have to change the proyect structure*/`passport-${strategy}`;
 			let Strategy = require(ProyPath('node_modules', component))[STR.strategy || 'Strategy'];
@@ -73,7 +73,7 @@ function initialize () {
 			console.log(`You might try koaton oauth2server install ${STR.package}`);
 		}
 		console.log();
-	});
+	}
 }
 
 export { getuser, initialize, createUser, findUser };

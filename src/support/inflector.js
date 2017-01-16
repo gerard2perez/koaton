@@ -3,7 +3,7 @@ import * as inflector from 'inflection';
 const inflections = Object.assign({}, {
 	plural: [],
 	singular: []
-}, requireSafe(ProyPath('config', 'inflections'), {}));
+}, configuration.inflections);
 
 for (const inflect in inflections.singular) {
 	inflector.singularize(...inflect);

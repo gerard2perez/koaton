@@ -15,10 +15,12 @@ globals:
  after: true
  Kmetadata: true
  requireSafe: true
+ requireNoCache: true
 
 rules:
  one-var: [0, never]
  no-new-wrappers: 0
+ no-useless-escape: 0
 
 extends:
  - happiness

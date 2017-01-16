@@ -1,3 +1,4 @@
+/** @module orm*/
 import * as fs from 'fs-extra';
 import * as co from 'co';
 import * as path from 'upath';
@@ -8,8 +9,7 @@ import inflector from './support/inflector';
 import exendModel from './support/extend_caminte';
 
 // TODO: Create your own ORM, caminte worked but is not enough, remember LORM?
-const connection = require(ProyPath('config', 'connections'))[require(ProyPath('config', 'models')).connection];
-
+const connection = configuration.connections[configuration.server.database.connection];
 let schema = new caminte.Schema(connection.driver, connection);
 
 schema.Integer = schema.Number;
@@ -80,7 +80,7 @@ export function initialize (seed) {
 		let file = path.basename(model).replace('.js', '');
 		addModel(
 			inflector.pluralize(file),
-			require(ProyPath(model))
+			require(ProyPath(model)).default
 		);
 	}
 
@@ -105,7 +105,7 @@ export function initialize (seed) {
 				try {
 					console.log('Sedding ' + file);
 					let model = exp.databases[inflector.pluralize(file.toLowerCase())];
-					yield require(ProyPath('seeds', file))(model.findcre);
+					yield require(ProyPath('seeds', file)).default(model.findcre);
 				} catch (err) /* istanbul ignore next*/{
 					console.log(err.message);
 					console.log(err.stack);

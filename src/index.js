@@ -2,23 +2,31 @@ import 'colors';
 import * as passport from 'koa-passport';
 import { line1, line2 } from './support/consoleLines';
 import './support/globals';
-import include from './support/.include';
+import include from './support/include';
 import views from './views';
+import * as KStatic from 'koa-static';
+import * as bodyParser from 'koa-bodyparser';
+import * as session from 'koa-session';
+import * as helmet from 'koa-helmet';
 
 // TODO: This setup is for legacy compability
-
 let App = require(ProyPath('node_modules', 'koa'));
 App = new App();
 
-// /* istanbul ignore else  */
-// if (process.env.NODE_ENV === 'development') {
-// 	const logger = require('koa-logger');
-// 	App.use(logger());
-// }
+/* istanbul ignore next */
+if (process.env.NODE_ENV === 'development') {
+	const logger = require('koa-logger');
+	App.use(logger());
+}
+
 let koaton = include(__dirname);
 const view = views(configuration.views);
-
+const ServeStatic = KStatic(configuration.static.directory || /* istanbul ignore next */ ProyPath('public'), configuration.static.configuration);
+const Localization = koaton.localization(App);
 const oAuth2Server = koaton.oauth2server();
+const BodyParser = bodyParser(configuration.server.bodyParser);
+const Helmet = helmet(configuration.server.helmet);
+
 App.use(koaton.orm.initialize(false));
 koaton.oauth2server.setAuthModel();
 koaton.oauth2server = oAuth2Server;
@@ -26,11 +34,33 @@ koaton.oauth2server = oAuth2Server;
 koaton.auth.initialize();
 
 App.use(koaton.router.initialize());
-
+App.keys = configuration.security.keys;
 delete koaton.auth.initialize;
 delete koaton.router.initialize;
 delete koaton.orm.initialize;
 delete koaton.server_models;
+
+Object.defineProperty(App, 'helmet', {
+	configurable: false,
+	enumerable: true,
+	get () {
+		return Helmet;
+	}
+});
+Object.defineProperty(App, 'session', {
+	configurable: false,
+	enumerable: true,
+	get () {
+		return session;
+	}
+});
+Object.defineProperty(App, 'bodyparser', {
+	configurable: false,
+	enumerable: true,
+	get () {
+		return BodyParser;
+	}
+});
 
 Object.defineProperty(App, 'views', {
 	enumerable: true,
@@ -78,7 +108,18 @@ Object.defineProperty(App, 'jsurl', {
 		return koaton.jsurl;
 	}
 });
-
+Object.defineProperty(App, 'static', {
+	enumerable: true,
+	get () {
+		return ServeStatic;
+	}
+});
+Object.defineProperty(App, 'localization', {
+	enumerable: true,
+	get () {
+		return Localization;
+	}
+});
 /* istanbul ignore next */
 App.stack = function (...args) {
 	for (const middleware in args) {
@@ -93,7 +134,7 @@ App.start = function (port) {
 			console.log();
 			line2();
 			console.log(`   Server running in ${process.cwd()}\n` +
-				`   To see your App, visit http://${configuration.host}:${port}\n` +
+				`   To see your App, visit http://${configuration.server.host}:${port}\n` +
 				'   To shut down Koaton, press <CTRL> + C at any time.');
 			line2();
 			console.log();

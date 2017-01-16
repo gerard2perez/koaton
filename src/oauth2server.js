@@ -7,8 +7,6 @@ import { models, addModel } from './orm';
 import { createUser, getuser, findUser } from './auth';
 import secret from './support/secret';
 import inflector from './support/inflector';
-
-const AuthConfig = require(ProyPath('config', 'security'));
 const server = oauth2orize.createServer();
 
 const BasicStrategy = require('passport-http').BasicStrategy,
@@ -74,7 +72,7 @@ const oauth2server = function oauth2server () {
 	}));
 	server.exchange(oauth2orize.exchange.authorizationCode({ userProperty: 'data' }, function (data, accesstoken) {
 		return secret(16).then((refreshtoken) => {
-			let date = new Date(Date.now() + (1 * configuration.tokenTimeout * 1000));
+			let date = new Date(Date.now() + (1 * configuration.security.tokenTimeout * 1000));
 			return models.oauth2accesstokens.create({
 				'UserId': data.user._id,
 				'RefreshToken': refreshtoken.toString('hex'),
@@ -195,7 +193,7 @@ const oauth2server = function oauth2server () {
 	return router.middleware();
 };
 oauth2server.setAuthModel = function (model) {
-	AuthModel = models[inflector.pluralize(AuthConfig.model)];
+	AuthModel = models[inflector.pluralize(configuration.security.model)];
 };
 
 export default oauth2server;

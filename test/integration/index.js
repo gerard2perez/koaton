@@ -7,13 +7,14 @@ process.env.NODE_ENV = 'development';
 let koaton = require('../../src');
 
 buildHosts();
+koaton.use(koaton.localization);
 koaton.use(koaton.detectsubdomain);
 koaton.use(koaton.conditional);
-koaton.use(require('koa-helmet')());
-koaton.use(require('koa-bodyparser')({}));
+koaton.use(koaton.helmet);
+koaton.use(koaton.bodyparser);
 koaton.use(koaton.jsurl);
-koaton.keys = configuration.keys;
-koaton.use(require('koa-session')(koaton));
+koaton.use(koaton.static);
+koaton.use(koaton.session(koaton));
 koaton.use(koaton.passport.initialize());
 koaton.use(koaton.passport.session());
 koaton.use(koaton.oAuth2Server);

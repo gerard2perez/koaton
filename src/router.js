@@ -26,7 +26,7 @@ async function restify (modelinstance, /* istanbul ignore next */ relations = {}
 				break;
 		}
 		relationContent = relationContent.filter(record => record !== null);
-		relationContent = configuration.relationsMode === 'ids' ? relationContent.map(record => record.id) : relationContent.map(record => {
+		relationContent = configuration.server.database.relationsMode === 'ids' ? relationContent.map(record => record.id) : relationContent.map(record => {
 			record = record.toJSON();
 			delete record[relations[key].keyTo];
 			return record;
@@ -141,7 +141,7 @@ function makeRestModel (options, route, modelname) {
 			filteroptions = {
 				skip: 0
 			};
-		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.pagination.limit) : parseInt(this.query.size, 10);
+		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.server.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.server.pagination.limit) : parseInt(this.query.size, 10);
 		if (ctx.query.size) {
 			delete ctx.query.size;
 		}
@@ -232,7 +232,7 @@ function makeRestModel (options, route, modelname) {
 
 function initialize () {
 	subdomainRouters = {};
-	for (const subdomain of configuration.subdomains) {
+	for (const subdomain of configuration.server.subdomains) {
 		subdomainRouters[subdomain] = {
 			public: new Router(),
 			secured: new Router()
@@ -248,7 +248,7 @@ function initialize () {
 
 	// Loads all the controllers
 	for (const controllerPath of controllers) {
-		let controller = require(ProyPath(controllerPath));
+		let controller = require(ProyPath(controllerPath)).default;
 		controller = Object.assign({
 			Name: path.basename(controllerPath).replace('.js', ''),
 			Namespace: '',
@@ -281,9 +281,8 @@ function initialize () {
 				domainrouter = subdomainRouters[subdomain];
 			}
 		}
-		require(ProyPath(routepath))(domainrouter, passport);
+		require(ProyPath(routepath)).default(domainrouter, passport);
 	}
-	const allow = subdomainRouters.www.public.allowedMethods();
 	const serveapp = function (directory) {
 		return async function serveEmberAPP (ctx, next) {
 			await next();
@@ -294,7 +293,7 @@ function initialize () {
 	};
 	// Load all ember apps
 	for (const ember of embers) {
-		const config = require(ProyPath(ember));
+		const config = require(ProyPath(ember)).default;
 		for (const app in config) {
 			let emberapp = config[app];
 
@@ -314,6 +313,7 @@ function initialize () {
 	}
 
 	// Prepares all routers
+	const allow = subdomainRouters.www.public.allowedMethods();
 	for (const idx in subdomainRouters) {
 		subdomainRouters[idx].public = subdomainRouters[idx].public.middleware();
 		subdomainRouters[idx].secured = subdomainRouters[idx].secured.middleware();
