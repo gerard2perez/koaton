@@ -9,7 +9,7 @@ node_js:
   - "6.9.2"
 sudo: true
 addons:
-    hosts:
+  hosts:
     - www.koaton.test
     - koaton.test
     - koaton.t3st
