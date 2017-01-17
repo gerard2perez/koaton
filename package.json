@@ -20,6 +20,7 @@
     "esdoc:watch": "npm run esdoc & chokidar src test -c \"cls & npm run esdoc\"",
     "codelive": "npm-run-all --parallel export:live eslint:live",
     "codeclimate": "codeclimate analyze -f html -e duplication > duplication.html",
+    "codeclimate:report": "codeclimate-test-reporter < coverage/lcov.info",
     "commit": "git add -A & git-cz",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
