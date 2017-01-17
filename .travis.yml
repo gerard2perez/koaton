@@ -14,9 +14,6 @@ addons:
     - koaton.test
     - koaton.t3st
     - origin.koaton.test
-  apt:
-    packages:
-    - nginx
 cache:
   directories:
     - node_modules
