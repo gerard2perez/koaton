@@ -1,4 +1,4 @@
-![Koaton](/templates/public/img/koaton2.png)
+![Koaton](/koaton.png)
 -----------
 [![Build Status](https://img.shields.io/travis/gerard2p/koaton/master.svg?style=flat-square)](https://travis-ci.org/gerard2p/koaton)[![Dependency Status](https://david-dm.org/gerard2p/koaton.svg?style=flat-square)](https://david-dm.org/gerard2p/koaton)![PRs Welcome](https://img.shields.io/badge/PRs%20🔀-Welcome-brightgreen.svg?style=flat-square)
 

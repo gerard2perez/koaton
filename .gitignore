@@ -12,5 +12,6 @@
 /cli/
 .npmignore
 /testingapp/
+testingapp
 /lib/
 *.tgz
