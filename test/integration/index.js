@@ -5,8 +5,9 @@ process.env.port = 62650;
 process.env.NODE_ENV = 'development';
 
 let koaton = require('../../src');
-
-buildHosts();
+if (!process.env.TRAVIS) {
+	buildHosts();
+}
 koaton.use(koaton.localization);
 koaton.use(koaton.detectsubdomain);
 koaton.use(koaton.conditional);

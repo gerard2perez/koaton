@@ -9,6 +9,11 @@ node_js:
   - "6.9.2"
 sudo: true
 addons:
+    hosts:
+    - www.koaton.test
+    - koaton.test
+    - koaton.t3st
+    - origin.koaton.test
   apt:
     packages:
     - nginx
@@ -18,9 +23,11 @@ cache:
 before_install:
   - npm config set spin false
   - npm install -g ember-cli@2.9.1
-  - npm install -g bower
-  - npm install -g forever
 install:
+  - git clone https://github.com/gerard2p/koaton-demoapp.git testingapp
+  - cd testingapp
+  - npm i --only=prod
+  - cd ..
   - npm i .
 script:
   - npm run eslint
