@@ -7,8 +7,17 @@ services:
 language: node_js
 node_js:
   - "6.9.2"
-sudo: true
+sudo: required
+env:
+  - CXX=g++-4.8
 addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-4.8
+    - g++-4.8
+    - nginx
   hosts:
     - www.koaton.test
     - koaton.test
