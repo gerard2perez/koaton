@@ -8,10 +8,9 @@ import * as KStatic from 'koa-static';
 import * as bodyParser from 'koa-bodyparser';
 import * as session from 'koa-session';
 import * as helmet from 'koa-helmet';
-
+import * as Koa from 'koa';
 // TODO: This setup is for legacy compability
-let App = require(ProyPath('node_modules', 'koa'));
-App = new App();
+let App = new Koa();
 
 /* istanbul ignore next */
 if (process.env.NODE_ENV === 'development') {

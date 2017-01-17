@@ -62,6 +62,7 @@
     "glob": "^7.1.1",
     "inflection": "^1.10.0",
     "jsurl": "^0.1.5",
+    "koa": "^1.2.4",
     "koa-bodyparser": "^2.3.0",
     "koa-helmet": "^1.0.0",
     "koa-i18n": "^1.2.0",

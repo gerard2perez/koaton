@@ -28,13 +28,13 @@ cache:
     - node_modules
 before_install:
   - npm config set spin false
-  - npm install -g ember-cli@2.9.1
 install:
+  - npm i .
   - git clone https://github.com/gerard2p/koaton-demoapp.git testingapp
   - cd testingapp
   - npm i --only=prod
   - cd ..
-  - npm i .
+  - ln -s . testingapp/node_modules/koaton
 script:
   - npm run eslint
   - npm run cover
