@@ -28,6 +28,7 @@
     "lib": "lib"
   },
   "files": [
+	"scripts",
     "lib",
     "README.md",
     "LICENSE"
