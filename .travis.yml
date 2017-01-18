@@ -39,5 +39,6 @@ install:
 script:
   - npm run eslint
   - npm run cover
+  - npm run export
   - npm run codeclimate:report
   - npm run semantic-release
