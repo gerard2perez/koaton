@@ -24,35 +24,24 @@ async function exposeORM (ctx, next) {
 	await next();
 }
 
-function belongsTo (dest) {
+function relation (mode, dest) {
 	let [parent, key] = dest.split('.');
 	relations[this].push({
 		Children: parent,
 		key: key,
-		Rel: 'belongsTo',
+		Rel: mode,
 		As: ''
 	});
 	return relations[this].length - 1;
 }
 
-function hasMany (dest) {
-	let [children, key] = dest.split('.');
-	relations[this].push({
-		// parent:this,
-		Children: children,
-		key: key,
-		Rel: 'hasMany',
-		As: ''
-	});
-	return relations[this].length - 1;
-}
 export let models = exp.databases;
 export function addModel (...args) {
 	let [modelName, definition] = args;
 	relations[modelName] = [];
 	const rel = {
-		belongsTo: belongsTo.bind(modelName),
-		hasMany: hasMany.bind(modelName)
+		belongsTo: relation.bind(modelName, 'belongsTo'),
+		hasMany: relation.bind(modelName, 'hasMany')
 	};
 	definition = definition(schema, rel);
 	for (let prop in definition.relations) {
