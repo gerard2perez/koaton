@@ -5,7 +5,7 @@
   "main": "./lib/index.js",
   "scripts": {
     "esdoc": "jsdoc -R README.md src -r & esdoc",
-    "export": "koaton-exporter src/**/*.js lib",
+    "export": "koaton-exporter src/*.js src/**/*.js lib -r src",
     "eslint": "eslint src --ignore-path .gitignore",
     "test": "node dropdatabase.js & mocha test/unit/BundleItem.js test/integration/index.js --compilers js:babel-register",
     "cover": "nyc npm t",

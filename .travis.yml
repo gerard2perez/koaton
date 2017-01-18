@@ -17,4 +17,3 @@ install:
 script:
   - npm run export
   - ls lib -a
-  - ls lib/src -a
