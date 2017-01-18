@@ -43,7 +43,6 @@ global.requireSafe = function requireSafe (lib, defaults = {}) {
 	try {
 		return require(lib);
 	} catch (e) {
-		console.log(e);
 		return defaults;
 	}
 };

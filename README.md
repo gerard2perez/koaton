@@ -50,10 +50,14 @@ Koaton actually has a [CLI tool](https://github.com/gerard2p/koaton-cli) to plea
 1. Add Full Support for localization.
 1. Build my own ORM to extend database support. Currently only MongoDB support all the features of Koaton, but you could use any of the CaminteJS database support for the most basic operations. (FilterSets only supported by MongoDB).
 1. Koaton Editor based on [Atom.io](https://atom.io/)
+
 ### Some other things
 1. I have written all the repo in ES6, ESNEXT but it is transpiled to ES5 so i can be run with [Node 6+](https://nodejs.org/).
 1. I'm doing all the posible so the project can be run without the need of Koaton-CLI (so you don't have to install it in your server), but koaton-cli is the official way to developt a Koaton project.
 
+### Comming Soon
+ 1. DOCs from code. This is something I'm really excited about. but I need to fix the CLI tool first.
+ 1. Write your project in ES6/ESNEXT. (So you can directly code with Koa2).
 
 
 ## Contributors

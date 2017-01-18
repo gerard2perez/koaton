@@ -75,6 +75,7 @@ const pOrp = function (routers, spec) {
 	let router = spec || 'private';
 	return routers[router];
 };
+
 async function REST_POST_SINGLE (Model, model) {
 	let entity = await Model.create(model);
 	let modelRelations = {};
@@ -229,28 +230,69 @@ function makeRestModel (options, route, modelname) {
 	subdomainRouters.www.public.use(path.join('/', mountRoute), routers.public.routes());
 	subdomainRouters.www.secured.use(path.join('/', mountRoute), routers.private.routes());
 }
-
-function initialize () {
-	subdomainRouters = {};
-	for (const subdomain of configuration.server.subdomains) {
-		subdomainRouters[subdomain] = {
-			public: new Router(),
-			secured: new Router()
-		};
-		subdomainRouters[subdomain].secured.use(protect);
-		subdomainRouters[subdomain].public.use(findmodel);
-		subdomainRouters[subdomain].secured.use(findmodel);
+const DeepGet = function (object, args) {
+	let [action, ...rest] = args;
+	if (action) {
+		return DeepGet(object[action], rest);
+	} else {
+		return object;
 	}
-
-	let routes = glob('koaton_modules/**/routes/*.js').concat(glob('routes/**/*.js'));
-	let controllers = glob('koaton_modules/**/controllers/*.js').concat(glob('controllers/**/*.js'));
-	let embers = glob('koaton_modules/**/config/ember.js').concat('config/ember.js');
-
-	// Loads all the controllers
-	for (const controllerPath of controllers) {
-		let controller = require(ProyPath(controllerPath)).default;
+};
+const DefaultView = function (view) {
+	return async function DefaultView (ctx, next) {
+		await this.render(`${view}.html`);
+	};
+};
+class KoatonRouter {
+	constructor (domain) {
+		this.loc = '.';
+		this.domain = domain;
+		this.public = new Router();
+		this.secured = new Router();
+		this.secured.use(protect);
+		this.public.use(findmodel);
+		this.secured.use(findmodel);
+	}
+	location (location) {
+		this.loc = location;
+	}
+	static findAction (router, binding) {
+		let [controller, ...actions] = binding.split('.');
+		let action = DeepGet(requireSafe(ProyPath(router.loc, 'controllers', controller), {}).default, actions) || DefaultView(controller);
+		return action;
+	}
+	request (method, url, binding = 'index', secured = false) {
+		if (typeof binding === 'boolean') {
+			secured = binding;
+			binding = 'index';
+		} else if (typeof binding === 'function') {
+			(secured ? this.secured : this.public)[method](url, binding);
+			return this;
+		}
+		let Action = KoatonRouter.findAction(this, binding);
+		(secured ? this.secured : this.public)[method](url, Action);
+		return this;
+	}
+	get (...args) {
+		return this.request.bind(this, 'get')(...args);
+	}
+	post (...args) {
+		return this.request.bind(this, 'post')(...args);
+	}
+	delete (...args) {
+		return this.request.bind(this, 'delete')(...args);
+	}
+	put (...args) {
+		return this.request.bind(this, 'put')(...args);
+	}
+	rest (url, model) {
+		if (model === undefined) {
+			model = url;
+			url = undefined;
+		}
+		let controller = requireSafe(ProyPath('controllers', model), {}).default;
 		controller = Object.assign({
-			Name: path.basename(controllerPath).replace('.js', ''),
+			Name: model,
 			Namespace: '',
 			REST: false,
 			Pluralize: true
@@ -260,7 +302,7 @@ function initialize () {
 			if (controller.Pluralize) {
 				controller.Name = inflector.pluralize(controller.Name);
 			}
-			let mountRoute = path.join('/', controller.Namespace, controller.Name, '/');
+			let mountRoute = path.join('/', controller.Namespace, url || controller.Name, '/');
 			let options = controller.REST === 'public' ? {
 				get: 'public',
 				post: 'public',
@@ -268,21 +310,32 @@ function initialize () {
 				delete: 'public'
 			} : {};
 			makeRestModel(options, mountRoute, controller.Name);
+		// let Action = KoatonRouter.findAction(this, binding);
+		// (secured ? this.secured : this.public).put(url, Action);
 		}
+		return this;
 	}
-
-	// Load all routes
-	for (const routepath of routes) {
-		let route = path.basename(routepath).replace('.js', ''),
-			domainrouter = subdomainRouters.www;
-		if (route.indexOf('.') > -1) {
-			let subdomain = route.split('.')[0];
-			if (subdomainRouters[subdomain] !== undefined) {
-				domainrouter = subdomainRouters[subdomain];
+}
+function initialize () {
+	subdomainRouters = {};
+	// for (const subdomain of configuration.server.subdomains) {
+	// 	subdomainRouters[subdomain] = new KoatonRouter(subdomain, '.');
+	// }
+	let routers = glob('koaton_modules/**/routes.js').concat(glob('routes.js'));
+	for (const router of routers) {
+		let location = path.dirname(router);
+		let PackageSubdomains = requireSafe(ProyPath(location, 'config', 'server.js'), {default: { subdomains: [] }}).default.subdomains;
+		for (const subdomain of PackageSubdomains) {
+			if (!subdomainRouters[subdomain]) {
+				subdomainRouters[subdomain] = new KoatonRouter(subdomain);
 			}
+			subdomainRouters[subdomain].location(location);
 		}
-		require(ProyPath(routepath)).default(domainrouter, passport);
+		require(ProyPath(router)).default(subdomainRouters, passport);
 	}
+	const allow = subdomainRouters.www.public.allowedMethods();
+
+	let embers = glob('koaton_modules/**/config/ember.js').concat('config/ember.js');
 	const serveapp = function (directory) {
 		return async function serveEmberAPP (ctx, next) {
 			await next();
@@ -311,9 +364,6 @@ function initialize () {
 			.use(path.join('/', emberapp.mount), approouter.routes());
 		}
 	}
-
-	// Prepares all routers
-	const allow = subdomainRouters.www.public.allowedMethods();
 	for (const idx in subdomainRouters) {
 		subdomainRouters[idx].public = subdomainRouters[idx].public.middleware();
 		subdomainRouters[idx].secured = subdomainRouters[idx].secured.middleware();
