@@ -29,7 +29,7 @@
   },
   "files": [
 	"scripts",
-    "lib",
+    "lib/**/*.js",
     "README.md",
     "LICENSE"
   ],
