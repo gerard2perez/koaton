@@ -18,20 +18,26 @@ function done () {
 function fail () {
 	failed++;
 }
-
-for (const bundle of configuration.bundles) {
-	for (let globpattern of bundle) {
-		glob(globpattern).map(file => {
-			promises.push(copy(file, ProyPath('public', file), {preserveTimestamps: true, dereference: true}).then(done, fail));
-		});
+if (glob('./.koaton').length === 0) {
+	for (const bundle of configuration.bundles) {
+		for (let globpattern of bundle) {
+			glob(globpattern).map(file => {
+				promises.push(copy(file, ProyPath('public', file), {preserveTimestamps: true, dereference: true}).then(done, fail));
+			});
+		}
 	}
 }
 
 for (const bundle of configuration.static.copy) {
 	if (typeof bundle === 'object') {
-		for (const file of glob(bundle.src)) {
-			let filename = path.basename(file);
-			promises.push(copy(file, ProyPath('public', bundle.dest, filename))).then(done, fail);
+		for (const pattern of bundle.src) {
+			for (const file of glob(pattern)) {
+				let filename = file;
+				if (bundle.flatten) {
+					filename = path.basename(file);
+				}
+				promises.push(copy(file, ProyPath('public', bundle.dest, filename)).then(done, fail));
+			}
 		}
 	} else {
 		for (const file of glob(bundle)) {

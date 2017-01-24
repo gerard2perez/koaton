@@ -3,6 +3,7 @@ import * as path from 'upath';
 import Configuration from './configuration';
 import { sync as glob } from 'glob';
 import BundleItem from './BundleItem';
+import * as fs from 'fs-extra';
 
 /**
  * Makes and Object iterable.
@@ -57,7 +58,7 @@ global.requireSafe = function requireSafe (lib, defaults = {}) {
 global.requireNoCache = function requireNoCache (lib, defaults) {
 	let library = rawpath.normalize(rawpath.resolve(lib));
 	if (library.indexOf('.json') === -1) {
-		library = library.replace('.js', '');// + '.js';
+		library = library.replace('.js', ''); // + '.js';
 	}
 	delete require.cache[library];
 	return requireSafe(library, defaults);
@@ -94,18 +95,20 @@ global.configuration = new Configuration();
 global.Kmetadata = {
 	bundles: {}
 };
-try {
-	let raw = requireNoCache(ProyPath('config', 'bundles')).default;
-	let bundles = {};
-	for (const bundle in raw) {
-		bundles[bundle] = [];
-		for (const idx in raw[bundle]) {
-			bundles[bundle] = bundles[bundle].concat(glob(raw[bundle][idx]));
+if (glob('./.koaton').length === 1) {
+	let koaton = fs.readJsonSync(ProyPath('.koaton'));
+	for (const bundle of Object.keys(koaton.bundles)) {
+		Kmetadata.bundles[bundle] = new BundleItem(bundle, koaton.bundles[bundle]);
+	}
+} else {
+	for (const bundle of configuration.bundles) {
+		let AllFiles = [];
+		for (const pattern of bundle) {
+			AllFiles = AllFiles.concat(glob(pattern));
 		}
+		AllFiles = AllFiles.map((f) => {
+			return f.replace(ProyPath(), '');
+		});
+		Kmetadata.bundles[bundle.file] = new BundleItem(bundle.file, AllFiles);
 	}
-	for (const bundle in bundles) {
-		Kmetadata.bundles[bundle] = new BundleItem(bundle, bundles[bundle]);
-	}
-} catch (e) {
-	// do nothing
 }
