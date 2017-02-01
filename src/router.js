@@ -44,7 +44,7 @@ function initialize () {
 			let emberapp = config[app];
 
 			if (ember.indexOf('koaton_modules') > -1) {
-				emberapp.directory = path.join('..', '..', 'koaton_modules', app, 'views', 'ember_apps', config[app].directory);
+				emberapp.directory = path.join('..', 'koaton_modules', app, 'views', 'ember_apps', config[app].directory);
 			} else {
 				emberapp.directory = path.join('ember_apps', config[app].directory);
 			}

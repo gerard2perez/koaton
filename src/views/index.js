@@ -1,5 +1,5 @@
 import * as render from 'consolidate';
-import { extname, resolve } from 'upath';
+import { extname, resolve, basename } from 'upath';
 import * as fs from 'fs-extra';
 import * as Promise from 'bluebird';
 import SetUpEngines from './setup';
@@ -75,6 +75,10 @@ const template = function (file, locals = {}) {
 	}
 };
 async function views (ctx, next) {
+	ctx.send = async (file) => {
+		ctx.type = extname(basename(file));
+		ctx.body = fs.createReadStream(file);
+	};
 	ctx.render = async function (file, locals) {
 		try {
 			this.body = await template(file, locals);
