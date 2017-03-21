@@ -7,11 +7,24 @@ const SetUp = {
 		const Handlebars = require(ProyPath('node_modules', 'handlebars'));
 		const layouts = require(ProyPath('node_modules', 'handlebars-layouts'));
 		Handlebars.registerHelper(layouts(Handlebars));
+		// Bundles
 		Handlebars.registerHelper('bundle', function (bundle) {
 			if (Kmetadata.bundles[bundle] === undefined) {
 				return '';
 			}
 			return Kmetadata.bundles[bundle].toString();
+		});
+		// Localition
+		Handlebars.registerHelper('i18n', function (key, locale, helper) {
+			if (helper) {
+				let loc = i18n.getLocale();
+				i18n.setLocale(locale);
+				let res = i18n.__(key);
+				i18n.setLocale(loc);
+				return res;
+			} else {
+				return i18n.__(key);
+			}
 		});
 		const layoutFiles = glob(ProyPath('views', 'layouts', '*.handlebars')).concat(glob(ProyPath('koaton_modules', '**', 'views', 'layouts', '*.handlebars')));
 		for (const file of layoutFiles) {

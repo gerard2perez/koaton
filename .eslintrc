@@ -16,6 +16,7 @@ globals:
  Kmetadata: true
  requireSafe: true
  requireNoCache: true
+ i18n: true
 
 rules:
  one-var: [0, never]

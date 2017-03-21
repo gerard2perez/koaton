@@ -15,6 +15,8 @@ let schema = new caminte.Schema(connection.driver, connection);
 schema.Integer = schema.Number;
 schema.Email = schema.Text;
 schema.Password = schema.Text;
+// schema.point = schema.Point = function Point () { };
+// schema.mixed = schema.Mixed = function Mixed () { };
 const exp = {
 	databases: {}
 };

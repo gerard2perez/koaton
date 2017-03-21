@@ -116,7 +116,13 @@ Object.defineProperty(App, 'static', {
 Object.defineProperty(App, 'localization', {
 	enumerable: true,
 	get () {
-		return Localization;
+		return Localization[0];
+	}
+});
+Object.defineProperty(App, 'i18nHelper', {
+	enumerable: true,
+	get () {
+		return Localization[1];
 	}
 });
 /* istanbul ignore next */

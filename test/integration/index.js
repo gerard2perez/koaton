@@ -19,6 +19,7 @@ koaton.use(koaton.session(koaton));
 koaton.use(koaton.passport.initialize());
 koaton.use(koaton.passport.session());
 koaton.use(koaton.oAuth2Server);
+koaton.use(koaton.i18nHelper);
 koaton.use(koaton.views);
 koaton.use(koaton.subdomainrouter);
 
