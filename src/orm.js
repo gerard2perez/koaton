@@ -47,7 +47,6 @@ export function addModel (...args) {
 		manyToMany (configuration) {
 			let targetModel = inflector.pluralize(configuration.targetModel);
 			let intermediateTable = `${modelName}_${targetModel}`;
-			console.log(intermediateTable);
 			let key1 = `${modelName}ID`;
 			let key2 = `${targetModel}ID`;
 			let Model = {
