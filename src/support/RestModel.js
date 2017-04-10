@@ -3,7 +3,7 @@ import toMongooseStringQuery from './toMongooseStringQuery';
 import * as Router from 'koa-router';
 import * as path from 'upath';
 
-async function restify (modelinstance, /* istanbul ignore next */ relations = {}) {
+async function restify (modelinstance, /* istanbul ignore next */ relations = {}, MODEL = {}) {
 	let model = modelinstance.toJSON ? modelinstance.toJSON() : modelinstance;
 	for (const key of Object.keys(relations)) {
 		const child = relations[key].modelTo;
@@ -37,6 +37,19 @@ async function restify (modelinstance, /* istanbul ignore next */ relations = {}
 			value: relationContent
 		});
 	}
+	let manyfields = [];
+	if (MODEL.prototype && MODEL.prototype.many2many) {
+		manyfields = Object.keys(MODEL.prototype.many2many);
+	}
+	for (const related of manyfields) {
+		let records = await MODEL.prototype.many2many[related](modelinstance.id);
+		Object.defineProperty(model, related, {
+			enumerable: true,
+			configurable: true,
+			writable: true,
+			value: configuration.server.database.relationsMode === 'ids' ? records.map(record => record.id) : records
+		});
+	}
 	return model;
 }
 
@@ -66,11 +79,11 @@ async function REST_POST_SINGLE (Model, model) {
 						} else {
 							let data = {};
 							data[foreignKey] = foreignValue;
-							let res = await child.update({
+							let { affected: { nModified } } = await child.update({
 								_id: related
 							}, data);
 							/* istanbul ignore else */
-							if (res.nModified) {
+							if (nModified) {
 								modelRelations[relation].push(related);
 							}
 						}
@@ -85,14 +98,30 @@ async function REST_POST_SINGLE (Model, model) {
 						related = await child.findById(relations);
 					}
 					foreignValue = related[Model.relations[relation].keyTo];
-					let res = await Model.update({
+					let { affected: { nModified } } = await Model.update({
 						_id: entity.id
 					}, {[foreignKey]: foreignValue});
 					/* istanbul ignore else */
-					if (res.nModified) {
+					if (nModified) {
 						modelRelations[relation] = related.id;
 					}
 					break;
+			}
+		}
+	}
+	/* istanbul ignore else */
+	if (entity.many2many) {
+		for (const related of Object.keys(entity.many2many)) {
+			modelRelations[related] = modelRelations[related] || [];
+			/* istanbul ignore else */
+			if (model[related]) {
+				for (const id of model[related]) {
+					let res = await entity.many2many[related](entity.id, id);
+					/* istanbul ignore else */
+					if (res.id) {
+						modelRelations[related].push(id);
+					}
+				}
 			}
 		}
 	}
@@ -126,7 +155,7 @@ function RestModel (options, route, modelname) {
 		};
 		let rawmodels = (await ctx.model.rawWhere(filterset, filteroptions));
 		for (const idx in rawmodels) {
-			rawmodels[idx] = await restify(rawmodels[idx], ctx.model.relations);
+			rawmodels[idx] = await restify(rawmodels[idx], ctx.model.relations, ctx.model);
 		}
 		res[modelname] = rawmodels;
 		ctx.body = res;
@@ -134,7 +163,7 @@ function RestModel (options, route, modelname) {
 	});
 	pOrp(routers, options.get).get('/:id', async function REST_GET_ID (ctx, next) {
 		let res = {};
-		res[inflector.singularize(modelname)] = await restify(await ctx.model.findById(ctx.params.id), ctx.model.relations);
+		res[inflector.singularize(modelname)] = await restify(await ctx.model.findById(ctx.params.id), ctx.model.relations, ctx.model);
 		ctx.body = res;
 		await next();
 	});
@@ -171,7 +200,7 @@ function RestModel (options, route, modelname) {
 			}
 		}
 		let res = {};
-		res[inflector.singularize(modelname)] = await restify(parent, ctx.model.relations);
+		res[inflector.singularize(modelname)] = await restify(parent, ctx.model.relations, ctx.model);
 		ctx.body = res;
 		await next();
 	});

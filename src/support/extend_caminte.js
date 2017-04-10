@@ -7,11 +7,19 @@ const promesifythem = ['exists', 'create', 'findOrCreate', 'findOne', 'findById'
 export default function (model) {
 	for (const fn of promesifythem) {
 		if (model[fn]) {
-			model.rawAPI[fn] = model[fn].bind(model);
-			model[fn] = Promise.promisify(model[fn], {
-				context: model
-			});
 			const magic = model[fn].bind(model);
+			model.rawAPI[fn] = magic;
+			model[fn] = function (...args) {
+				return new Promise(function (resolve, reject) {
+					magic(...args, function (err, res) {
+						if (err) {
+							reject(err);
+						} else {
+							resolve(res);
+						}
+					});
+				});
+			};
 			switch (fn) {
 				case 'create':
 					model[fn] = function (data) {
@@ -20,19 +28,6 @@ export default function (model) {
 						return magic(data);
 					};
 					break;
-				// case 'count':
-				// 	model[fn] = function (query) {
-				// 		return new Promise(function (resolve, reject) {
-				// 			model.rawAPI[fn]((err, count) => {
-				// 				if (err) {
-				// 					reject(err);
-				// 				} else {
-				// 					resolve(count);
-				// 				}
-				// 			}, query);
-				// 		});
-				// 	};
-				// 	break;
 				case 'update':
 					model[fn] = function (query, data) {
 						data.updated = Date.now();
@@ -85,33 +80,22 @@ export default function (model) {
 				});
 			});
 		}.bind(model.adapter);
-		model.findcre = Promise.promisify(function (...args) {
+		model.findcre = function (...args) {
 			let [query, data, cb] = args;
 			/* istanbul ignore else */
 			if (cb === undefined) {
 				cb = data;
 				data = {};
 			}
-			let that = this;
+			let that = model;
 			data = Object.assign({}, data);
 			Object.keys(query).forEach(function (field) {
 				data[field] = query[field];
 			});
-			that.rawAPI.findOne({
-				where: query
-			}, function (err, model) {
-				/* istanbul ignore else */
-				if (model === null) {
-					data.created = Date.now();
-					data.updated = data.created;
-					that.rawAPI.create(data, cb);
-				} else {
-					cb(err, model);
-				}
+			return that.findOne({where: query}).then((res) => {
+				return that.create(data);
 			});
-		}, {
-			context: model
-		});
+		};
 	}
 	return model;
 }

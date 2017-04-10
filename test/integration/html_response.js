@@ -4,6 +4,7 @@ import * as assert from 'assert';
 describe('Simple Router Responses', function () {
 	it('get a stream response', function (done) {
 		server.url('origin.koaton.test').get('/').on('response', function (response) {
+			// assert.ok(false, '');
 			assert.equal(response.statusCode, 200);
 			assert.equal(response.headers['content-type'], 'application/octet-stream');
 			done(null, null);

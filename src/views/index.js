@@ -8,6 +8,10 @@ let avaliableEngines = Object.keys(render);
 avaliableEngines.splice(avaliableEngines.indexOf('requires'), 1);
 const testedEngines = [ 'handlebars', 'nunjucks' ];
 const npmpackage = require(ProyPath('package.json'));
+if (Object.keys(npmpackage.dependencies).indexOf('mongoose') > -1) {
+	console.log('============================================================+++++++++++');
+	require('mongoose').Promise = require('bluebird');
+}
 const exists = function (target) {
 	try {
 		fs.accessSync(target, fs.constants.R_OK);

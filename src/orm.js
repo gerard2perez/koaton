@@ -43,7 +43,40 @@ export function addModel (...args) {
 	relations[modelName] = [];
 	const rel = {
 		belongsTo: relation.bind(modelName, 'belongsTo'),
-		hasMany: relation.bind(modelName, 'hasMany')
+		hasMany: relation.bind(modelName, 'hasMany'),
+		manyToMany (configuration) {
+			let targetModel = inflector.pluralize(configuration.targetModel);
+			let intermediateTable = `${modelName}_${targetModel}`;
+			console.log(intermediateTable);
+			let key1 = `${modelName}ID`;
+			let key2 = `${targetModel}ID`;
+			let Model = {
+				[key1]: {type: schema.String},
+				[key2]: {type: schema.String}
+			};
+			let Extra = {
+				indexes: {
+					idx_1: {
+						columns: `${key1}, ${key2}`
+					}
+				}
+			};
+			let MODEL = schema.define(intermediateTable, Model, Extra);
+			MODEL.rawAPI = {};
+			exp.databases[intermediateTable] = exendModel(MODEL);
+			relations[modelName].push({
+				Children: intermediateTable,
+				Rel: 'manyToMany',
+				Parent: targetModel
+			});
+			relations[targetModel] = relations[targetModel] || [];
+			relations[targetModel].push({
+				Parent: modelName,
+				Rel: 'manyToMany',
+				Children: intermediateTable
+			});
+			return relations[modelName].length - 1;
+		}
 	};
 	definition = definition(schema, rel);
 	for (let prop in definition.relations) {
@@ -76,13 +109,35 @@ export function initialize (seed) {
 	}
 
 	const makerelation = function (model, relation) {
+		// console.log(model, relation);
 		let options = {
 			as: relation.As,
 			foreignKey: relation.key
 		};
 
 		let target = exp.databases[inflector.pluralize(relation.Children)];
-		exp.databases[model][relation.Rel](target, options);
+		if (relation.Rel !== 'manyToMany') {
+			exp.databases[model][relation.Rel](target, options);
+		} else {
+			exp.databases[model].prototype.many2many = exp.databases[model].prototype.many2many || {};
+			exp.databases[model].prototype.many2many[relation.Parent] = function (id, id2) {
+				if (id && id2) {
+					return exp.databases[relation.Children].findcre({
+						[`${model}ID`]: id,
+						[`${relation.Parent}ID`]: id2
+					});
+				}
+				return exp.databases[relation.Children].find({where: {
+					[`${model}ID`]: id
+				}}).then(records => {
+					let all = [];
+					for (const record of records) {
+						all.push(exp.databases[relation.Parent].findById(record[`${relation.Parent}ID`]));
+					}
+					return Promise.all(all);
+				});
+			};
+		}
 	};
 	for (let model in relations) {
 		relations[model].forEach(makerelation.bind(null, model));

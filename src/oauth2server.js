@@ -21,33 +21,31 @@ const oauth2server = function oauth2server () {
 	const router = new Router();
 	passport.use(new BasicStrategy(getuser));
 	passport.use(new ClientStrategy(getuser));
-	passport.use(new BearerStrategy(
-		function (token, done) {
-			models.oauth2accesstokens.rawAPI.findOne({
-				where: {
-					Token: token
+	passport.use(new BearerStrategy(function (token, done) {
+		return models.oauth2accesstokens.rawAPI.findOne({
+			where: {
+				Token: token
+			}
+		}).then(accesstoken => {
+			/* istanbul ignore else */
+			if (accesstoken !== null) {
+				if (accesstoken.Expires < Date.now()) {
+					return done(null, false);
 				}
-			}, (err, accesstoken) => {
-				/* istanbul ignore else */
-				if (accesstoken !== null) {
-					if (accesstoken.Expires < Date.now()) {
-						return done(null, false);
+				return AuthModel.rawAPI.findById(accesstoken.UserId).then((user) => {
+					if (user === null) {
+						done(null, false);
+					} else {
+						done(null, user, accesstoken.Scope);
 					}
-					AuthModel.rawAPI.findById(accesstoken.UserId, (err, user) => {
-						/* istanbul ignore next */
-						if (err) {
-							return done(err);
-						}/* istanbul ignore next */ else if (user === null) {
-							return done(null, false);
-						} else {
-							return done(null, user, accesstoken.Scope);
-						}
-					});
-				} else {
-					return done(err, false);
-				}
-			});
-		}
+				}, done);
+			} else {
+				done(null, false);
+			}
+		}, err => {
+			done(err, false);
+		});
+	}
 	));
 	/* istanbul ignore next */
 	server.serializeClient(function (client, done) {

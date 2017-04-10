@@ -26,6 +26,7 @@ describe('CRUD REST API Related Models', function () {
 				}
 			}
 		}).then(body => {
+			assert.equal(body.book.sucursals.length, 0);
 			assert.equal(body.book.title, 'three eggs');
 			assert.equal(body.book.author, 'some dude');
 			assert.equal(body.book.page_count, 10);
@@ -66,6 +67,18 @@ describe('CRUD REST API Related Models', function () {
 			done(null, true);
 		}, done).catch(done);
 	});
+	it('Creates a sucursals append a book', function (done) {
+		server.headers(global.headers).post('sucursals', {
+			sucursal: {
+				name: 'Sucursal 1',
+				books: [bookId]
+			}
+		}).then(body => {
+			assert.equal(body.sucursal.books.length, 1);
+			assert.equal(body.sucursal.name, 'Sucursal 1');
+			done(null, true);
+		}, done).catch(done);
+	});
 	it('Creates a book with no pages', function (done) {
 		server.headers(global.headers).post('books', {
 			book: {
@@ -88,6 +101,8 @@ describe('CRUD REST API Related Models', function () {
 		Object.defineProperty(configuration.server.database, 'relationsMode', {value: 'objects'});
 		server.headers(global.headers).get('books').then(body => {
 			assert.equal(typeof body.books[1].pages[0], 'object');
+			assert.equal(body.books[1].sucursals.length, 1);
+			assert.equal(body.books[0].sucursals.length, 0);
 			assert.equal(typeof body.books[1].distributor, 'object');
 			done(null, true);
 		}, done).catch(done);
@@ -102,6 +117,7 @@ describe('CRUD REST API Related Models', function () {
 			assert.equal(body.book.author, 'same dude');
 			assert.equal(body.book.page_count, 0);
 			assert.equal(body.book.pages.length, 1);
+			assert.equal(body.book.sucursals.length, 0);
 			done(null, true);
 		}, done).catch(done);
 	});
