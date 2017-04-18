@@ -93,7 +93,11 @@ export default function (model) {
 				data[field] = query[field];
 			});
 			return that.findOne({where: query}).then((res) => {
-				return that.create(data);
+				if (res === null) {
+					return that.create(data);
+				} else {
+					return res;
+				}
 			});
 		};
 	}

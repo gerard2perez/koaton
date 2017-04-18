@@ -45,9 +45,15 @@ async function buildFilterSet (query, model, database) {
 			let [modelname, property] = item.split('.');
 			let prequery = {};
 			prequery[property] = new RegExp(`.*${query[item]}.*`, 'i');
-			let finds = await database[inflector.pluralize(modelname)].find({
-				where: prequery
-			});
+			let finds = [];
+			if (property === 'id') {
+				finds = [await database[inflector.pluralize(modelname)].findById(query[item])];
+			} else {
+				finds = await database[inflector.pluralize(modelname)].find({
+					where: prequery
+				});
+			}
+			console.log(finds);
 			let term = modelname;
 			switch (model.relations[modelname].type) {
 				case 'belongsTo':
@@ -55,6 +61,7 @@ async function buildFilterSet (query, model, database) {
 					break;
 				/* istanbul ignore next */
 				case 'hasMany':
+					console.log('hasMany');
 					// TODO: camintejs does not allow me to do this;
 					break;
 			}
@@ -63,6 +70,7 @@ async function buildFilterSet (query, model, database) {
 				condition: 'some',
 				value: finds.map(m => m._id)
 			});
+			console.log(123, searchgroup.filters);
 		} else {
 			searchgroup.filters.push({
 				key: item,
@@ -79,7 +87,9 @@ async function buildFilterSet (query, model, database) {
 }
 
 export default async function toMongooseStringQuery (queryBody, model, database) {
+	console.log(queryBody);
 	let filterset = await buildFilterSet(queryBody, model, database);
+	console.log(JSON.stringify(filterset, 4, 4));
 	let query = [];
 	for (let index in filterset) {
 		let filtergroup = filterset[index];
