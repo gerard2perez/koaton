@@ -27,7 +27,7 @@
     "lib": "lib"
   },
   "files": [
-	"scripts",
+    "scripts",
     "lib/**/*.js",
     "README.md",
     "LICENSE"
@@ -61,7 +61,10 @@
     "etag": "^1.7.0",
     "fs-extra": "^2.0.0",
     "glob": "^7.1.1",
-    "inflection": "^1.10.0",
+    "i": "^0.3.5",
+    "inflected": "^2.0.1",
+    "inflector": "0.0.1",
+    "inflector-js": "^1.0.1",
     "jsurl": "^0.1.5",
     "koa": "^1.2.4",
     "koa-bodyparser": "^2.3.0",

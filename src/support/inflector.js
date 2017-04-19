@@ -1,15 +1,22 @@
-import * as inflector from 'inflection';
+const inflector = require('i')();
 
 const inflections = Object.assign({}, {
 	plural: [],
-	singular: []
+	singular: [],
+	irregular: [],
+	uncountable: []
 }, configuration.inflections);
 
-for (const inflect in inflections.singular) {
-	inflector.singularize(...inflect);
+for (const inflect of inflections.singular) {
+	inflector.inflections.singular(...inflect);
 }
-
-for (const inflect in inflections.plural) {
-	inflector.pluralize(...inflect);
+for (const inflect of inflections.irregular) {
+	inflector.inflections.irregular(...inflect);
+}
+for (const inflect of inflections.plural) {
+	inflector.inflections.plural(...inflect);
+}
+for (const inflect of inflections.plural) {
+	inflector.inflections.uncountable(...inflect);
 }
 export default inflector;

@@ -101,6 +101,7 @@ export function initialize (seed) {
 	const models = glob('koaton_modules/**/models/*.js').concat(glob('models/*.js'));
 	for (const model of models) {
 		let file = path.basename(model).replace('.js', '');
+		console.log(file, inflector.pluralize(file));
 		addModel(
 			inflector.pluralize(file),
 			require(ProyPath(model)).default
