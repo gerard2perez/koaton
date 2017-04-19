@@ -16,7 +16,7 @@ for (const inflect of inflections.irregular) {
 for (const inflect of inflections.plural) {
 	inflector.inflections.plural(...inflect);
 }
-for (const inflect of inflections.plural) {
+for (const inflect of inflections.uncountable) {
 	inflector.inflections.uncountable(...inflect);
 }
 export default inflector;
