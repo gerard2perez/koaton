@@ -59,6 +59,7 @@ describe('CRUD REST API Related Models', function () {
 		server.headers(global.headers).post('books', bookId, 'distributor', {
 			distributor: distributor
 		}).then(body => {
+			console.log(body);
 			assert.equal(body.book.title, 'three eggs');
 			assert.equal(body.book.author, 'some dude2');
 			assert.equal(body.book.page_count, 20);

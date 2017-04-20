@@ -24,6 +24,9 @@ async function restify (modelinstance, /* istanbul ignore next */ relations = {}
 		}
 		relationContent = relationContent.filter(record => record !== null);
 		relationContent = configuration.server.database.relationsMode === 'ids' ? relationContent.map(record => record.id) : relationContent.map(record => {
+			if (record.id === null) {
+				return null;
+			}
 			record = record.toJSON();
 			delete record[relations[key].keyTo];
 			return record;
@@ -199,6 +202,12 @@ function RestModel (options, route, modelname) {
 					await child.modelTo.create(ctx.request.body);
 					break;
 				case 'belongsTo':
+					let data = ctx.request.body[ctx.params.child];
+					if (typeof data === 'object') {
+						data = (await child.modelTo.create(data))._id;
+					}
+					parent[ctx.params.child](data);
+					parent.save();
 					break;
 			}
 		}
