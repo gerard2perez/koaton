@@ -1,9 +1,42 @@
 import inflector from './inflector';
-
-function getQuery (filtergroup) {
+async function prepareQuery (database, model, query, item) {
+	let [modelname, property] = item.split('.');
+	let prequery = {};
+	let value = query instanceof Array ? query[item] : query.value;
+	value = query.condition === '===' ? value : new RegExp(`.*${value}.*`);
+	prequery[property] = value;
+	let finds = [];
+	if (property === 'id') {
+		finds = [await database[inflector.pluralize(modelname)].findById(value)];
+	} else {
+		finds = await database[inflector.pluralize(modelname)].find({
+			where: prequery
+		});
+	}
+	let term = modelname;
+	switch (model.relations[modelname].type) {
+		case 'belongsTo':
+			term = model.relations[modelname].keyFrom;
+			break;
+		/* istanbul ignore next */
+		case 'hasMany':
+			console.log('hasMany');
+			// TODO: camintejs does not allow me to do this;
+			break;
+	}
+	return {
+		key: term,
+		condition: 'some',
+		value: finds.map(m => m._id)
+	};
+}
+async function getQuery (database, model, filtergroup) {
 	let group = [];
 	for (let index in filtergroup) {
 		let filter = filtergroup[index];
+		if (filter.key.indexOf('.') > -1) {
+			filter = await prepareQuery(database, model, filter, filter.key);
+		}
 		if (index > 0) {
 			group.push(filtergroup[index - 1].link === 'or' ? '||' : '&&');
 		}
@@ -21,7 +54,7 @@ function getQuery (filtergroup) {
 				group.push(`this.${filter.key}.search('${filter.value}')>-1`);
 				break;
 			case '===':
-				group.push(`this.${filter.key}.search(${filter.value})>-1`);
+				group.push(`this.${filter.key} === '${filter.value}'`);
 				break;
 			default:
 				group.push(`(this.${filter.key} ${filter.condition} '${filter.value}') `);
@@ -42,35 +75,7 @@ async function buildFilterSet (query, model, database) {
 	};
 	for (let item in query) {
 		if (item.indexOf('.') > -1) {
-			let [modelname, property] = item.split('.');
-			let prequery = {};
-			prequery[property] = new RegExp(`.*${query[item]}.*`, 'i');
-			let finds = [];
-			if (property === 'id') {
-				finds = [await database[inflector.pluralize(modelname)].findById(query[item])];
-			} else {
-				finds = await database[inflector.pluralize(modelname)].find({
-					where: prequery
-				});
-			}
-			console.log(finds);
-			let term = modelname;
-			switch (model.relations[modelname].type) {
-				case 'belongsTo':
-					term = model.relations[modelname].keyFrom;
-					break;
-				/* istanbul ignore next */
-				case 'hasMany':
-					console.log('hasMany');
-					// TODO: camintejs does not allow me to do this;
-					break;
-			}
-			searchgroup.filters.push({
-				key: term,
-				condition: 'some',
-				value: finds.map(m => m._id)
-			});
-			console.log(123, searchgroup.filters);
+			searchgroup.filters.push(await prepareQuery(database, model, query, item));
 		} else {
 			searchgroup.filters.push({
 				key: item,
@@ -87,16 +92,14 @@ async function buildFilterSet (query, model, database) {
 }
 
 export default async function toMongooseStringQuery (queryBody, model, database) {
-	console.log(queryBody);
 	let filterset = await buildFilterSet(queryBody, model, database);
-	console.log(JSON.stringify(filterset, 4, 4));
 	let query = [];
 	for (let index in filterset) {
 		let filtergroup = filterset[index];
 		if (index > 0) {
 			query.push(filterset[index - 1].link === 'or' ? '||' : '&&');
 		}
-		query.push('(' + getQuery(filtergroup.filters) + ')');
+		query.push(`(${await getQuery(database, model, filtergroup.filters)})`);
 	}
 	if (query.length > 0) {
 		query.splice(0, 0, 'var that=this;return ');

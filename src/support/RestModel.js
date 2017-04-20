@@ -232,4 +232,4 @@ function RestModel (options, route, modelname) {
 	return routers;
 }
 
-export {RestModel, restify};
+export {RestModel, restify, REST_POST_SINGLE};

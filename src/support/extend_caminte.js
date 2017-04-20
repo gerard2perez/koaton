@@ -81,14 +81,9 @@ export default function (model) {
 			});
 		}.bind(model.adapter);
 		model.findcre = function (...args) {
-			let [query, data, cb] = args;
-			/* istanbul ignore else */
-			if (cb === undefined) {
-				cb = data;
-				data = {};
-			}
+			let [query, data, mode = 'none'] = args;
 			let that = model;
-			data = Object.assign({}, data);
+			data = Object.assign({}, query, data);
 			Object.keys(query).forEach(function (field) {
 				data[field] = query[field];
 			});
@@ -96,6 +91,14 @@ export default function (model) {
 				if (res === null) {
 					return that.create(data);
 				} else {
+					if (mode === 'patch') {
+						for (let prop of Object.keys(res.toJSON())) {
+							if (!res[prop]) {
+								res[prop] = data[prop];
+							}
+						}
+						return res.save();
+					}
 					return res;
 				}
 			});
