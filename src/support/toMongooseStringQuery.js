@@ -2,7 +2,7 @@ import inflector from './inflector';
 async function prepareQuery (database, model, query, item) {
 	let [modelname, property] = item.split('.');
 	let prequery = {};
-	let value = query instanceof Array ? query[item] : query.value;
+	let value = (query.value ? query.value : query[item]);
 	value = query.condition === '===' ? value : new RegExp(`.*${value}.*`);
 	prequery[property] = value;
 	let finds = [];
