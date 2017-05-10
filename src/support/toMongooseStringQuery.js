@@ -79,8 +79,8 @@ async function buildFilterSet (query, model, database) {
 		} else {
 			searchgroup.filters.push({
 				key: item,
-				condition: '===',
-				value: new RegExp(`.*${query[item]}.*`, 'i')
+				condition: 'like',
+				value: query[item]
 			});
 		}
 		if (filterset.length > 0) {
