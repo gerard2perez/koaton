@@ -9,6 +9,7 @@ import * as bodyParser from 'koa-bodyparser';
 import * as session from 'koa-session';
 import * as helmet from 'koa-helmet';
 import * as Koa from 'koa';
+import * as fs from 'fs';
 // TODO: This setup is for legacy compability
 let App = new Koa();
 
@@ -132,8 +133,8 @@ App.stack = function (...args) {
 	}
 };
 App.start = function (port) {
-	return App.listen(port, () => {
-		/* istanbul ignore else  */
+	/* istanbul ignore else  */
+	let callback = () => {
 		if (process.env.NODE_ENV === 'development') {
 			line1(true);
 			console.log();
@@ -150,6 +151,15 @@ App.start = function (port) {
 		} else if (!(process.env.welcome === 'false')) {
 			console.log('+Running on port ' + port);
 		}
-	});
+	};
+	const https = configuration.server.https;
+	if (https && https.key && https.cert) {
+		return require('https').createServer({
+			key: fs.readFileSync(https.key),
+			cert: fs.readFileSync(https.cert)
+		}, App.callback()).listen(port, callback);
+	} else {
+		return App.listen(port, callback);
+	}
 };
 module.exports = App;

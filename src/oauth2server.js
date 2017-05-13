@@ -121,8 +121,7 @@ const oauth2server = function oauth2server () {
 	router.post('/singin/', passport.authenticate('local'), async function singin (ctx, next) {
 		await next();
 		ctx.body = {
-			logged: ctx.isAuthenticated(),
-			cookie: ['koa:sess.sig', 'koa:sess']
+			logged: ctx.isAuthenticated()
 		};
 	});
 	const exchanges = {
@@ -186,7 +185,7 @@ const oauth2server = function oauth2server () {
 		ctx.logout();
 		await next();
 		ctx.status = 200;
-		// ctx.redirect('/');
+		ctx.redirect('/');
 	});
 	return router.middleware();
 };

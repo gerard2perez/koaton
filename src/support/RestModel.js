@@ -145,7 +145,7 @@ function RestModel (options, route, modelname) {
 			filteroptions = {
 				skip: 0
 			};
-		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.server.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.server.pagination.limit) : parseInt(this.query.size, 10);
+		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.server.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.server.pagination.limit) : parseInt(ctx.query.size, 10);
 		if (ctx.query.size) {
 			delete ctx.query.size;
 		}
