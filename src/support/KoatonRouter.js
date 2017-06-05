@@ -119,8 +119,8 @@ class KoatonRouter {
 				delete: 'public'
 			} : {};
 			let router = RestModel(options, mountRoute, controller.Name);
-			KoatonRouter.RestRouter.public.use(router.path, router.public.routes());
-			KoatonRouter.RestRouter.secured.use(router.path, router.private.routes());
+			this.public.use(router.path, router.public.routes());
+			this.secured.use(router.path, router.private.routes());
 		}
 		return this;
 	}
