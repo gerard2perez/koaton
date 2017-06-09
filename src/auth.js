@@ -30,12 +30,12 @@ function _getuser (username, password) {
 	return getuser.bind(getuser, username, password);
 }
 const findUser = Promise.promisify(getuser);
-function * createUser (username, password, body) {
-	const user = yield _getuser(username, password);
+async function createUser (username, password, body) {
+	const user = await _getuser(username, password);
 	body[configuration.security.username] = username;
-	body[configuration.security.password] = yield hash(password, 5);
+	body[configuration.security.password] = await hash(password, 5);
 	if (user === null) {
-		return yield AuthModel.create(body);
+		return await AuthModel.create(body);
 	} else {
 		return {
 			error: 'User Already Extis'
@@ -70,11 +70,12 @@ function initialize () {
 			if (STR.identifier) {
 				args.push(STR.identifier);
 			}
+			let secret = (STR.secret || getuser);
 			/* istanbul ignore else */
 			if (STR.options) {
-				args.push(new Strategy(STR.options, STR.secret || getuser));
+				args.push(new Strategy(STR.options, secret));
 			} else {
-				args.push(new Strategy(STR.secret || getuser));
+				args.push(new Strategy(secret));
 			}
 			passport.use(...args);
 		} catch (err) /* istanbul ignore next*/ {

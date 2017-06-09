@@ -185,7 +185,6 @@ const oauth2server = function oauth2server () {
 		ctx.logout();
 		await next();
 		ctx.status = 200;
-		ctx.redirect('/');
 	});
 	return router.middleware();
 };
