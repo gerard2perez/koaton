@@ -7,11 +7,11 @@ const promesifythem = ['exists', 'create', 'findOrCreate', 'findOne', 'findById'
 export default function (model) {
 	for (const fn of promesifythem) {
 		if (model[fn]) {
-			const magic = model[fn].bind(model);
-			model.rawAPI[fn] = magic;
+			const rawFN = model[fn].bind(model);
+			model.rawAPI[fn] = rawFN;
 			model[fn] = function (...args) {
 				return new Promise(function (resolve, reject) {
-					magic(...args, function (err, res) {
+					rawFN(...args, function (err, res) {
 						if (err) {
 							reject(err);
 						} else {
@@ -25,13 +25,13 @@ export default function (model) {
 					model[fn] = function (data) {
 						data.created = Date.now();
 						data.updated = data.created;
-						return magic(data);
+						return rawFN(data);
 					};
 					break;
 				case 'update':
 					model[fn] = function (query, data) {
 						data.updated = Date.now();
-						return magic(query, data);
+						return rawFN(query, data);
 					};
 					break;
 				default:

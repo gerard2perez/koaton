@@ -5,9 +5,9 @@
   "main": "./lib/index.js",
   "scripts": {
     "esdoc": "jsdoc -R README.md src -r & esdoc",
-    "export": "koaton-exporter src/*.js src/**/*.js lib -r src/",
+    "export": "koaton-exporter src/*.js src/**/*.js lib -r src/ -t v2",
     "eslint": "eslint src --ignore-path .gitignore",
-    "test": "node dropdatabase.js & mocha test/unit/BundleItem.js test/integration/index.js --compilers js:babel-register",
+    "test": "node utils/dropdatabase.js & mocha test/unit/BundleItem.js test/integration/index.js --compilers js:babel-register",
     "cover": "nyc npm t",
     "export:live": "npm run export & chokidar src -c \"cls && npm run export\"",
     "eslint:live": "npm run eslint & chokidar src -c \"cls && npm run eslint\"",
@@ -33,7 +33,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": "6.9.x"
+    "node": "7.9.x"
   },
   "repository": {
     "type": "git",
@@ -52,52 +52,42 @@
   "readmeFilename": "README.md",
   "homepage": "https://github.com/gerard2p/koaton.git",
   "dependencies": {
-    "bcrypt": "1.0.2",
-    "bluebird": "^3.4.6",
+    "bcrypt": "^1.0.2",
     "caminte": "git+https://github.com/gerard2p/caminte.git",
-    "co": "^4.6.0",
     "colors": "^1.1.2",
-    "consolidate": "^0.14.5",
-    "etag": "^1.7.0",
-    "fs-extra": "^2.0.0",
-    "glob": "^7.1.1",
+    "debug": "^2.6.8",
     "i": "^0.3.5",
-    "inflector-js": "^1.0.1",
     "jsurl": "^0.1.5",
-    "koa": "^1.2.4",
-    "koa-bodyparser": "^2.3.0",
-    "koa-helmet": "^1.0.0",
-    "koa-i18n": "^1.2.0",
-    "koa-locale": "^1.2.0",
-    "koa-logger": "^1.3.0",
-    "koa-passport": "^1.3.0",
-    "koa-router": "^5.4.0",
-    "koa-session": "^3.4.0",
-    "koa-static": "^2.0.0",
+    "koa": "^2.2.0",
+    "koa-bodyparser": "^4.2.0",
+    "koa-etag": "^3.0.0",
+    "koa-helmet": "^3.2.0",
+    "koa-i18n": "^2.1.0",
+    "koa-locale": "^1.3.0",
+    "koa-logger": "^3.0.0",
+    "koa-passport": "^3.0.0",
+    "koa-router": "^7.2.0",
+    "koa-session": "^5.1.0",
+    "koa-static": "^3.0.0",
+    "koa-views": "^6.0.2",
     "oauth2orize-koa": "^1.3.2",
     "passport-http": "^0.3.0",
     "passport-http-bearer": "^1.0.1",
     "passport-oauth2-client-password": "^0.1.2",
-    "upath": "^0.2.0"
+    "upath": "^1.0.0"
   },
   "devDependencies": {
-    "babel-plugin-istanbul": "^3.0.0",
-    "cheerio": "^0.22.0",
-    "chokidar": "^1.6.1",
-    "commitizen": "^2.8.6",
-    "cz-conventional-changelog": "^1.2.0",
-    "eslint": "^3.12.2",
+    "babel-plugin-istanbul": "^4.1.4",
+    "babel-preset-env": "^1.5.2",
+    "cheerio": "^1.0.0-rc.1",
+    "cross-spawn": "^5.1.0",
+    "eslint": "^4.0.0",
     "eslint-config-happiness": "^5.3.1",
-    "eslint-plugin-promise": "^3.4.0",
-    "eslint-plugin-standard": "^2.0.1",
-    "gulp-livereload": "^3.8.1",
-    "koaton-exporter": "^1.2.1",
-    "mocha": "^3.1.0",
-    "npm-run-all": "^4.0.0",
-    "nyc": "^10.0.0",
-    "request": "^2.79.0",
-    "request-promise": "^4.1.1",
-    "semantic-release": "^6.3.2"
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "koaton-exporter": "^1.3.0",
+    "mocha": "^3.4.2",
+    "nyc": "^11.0.2"
   },
   "config": {
     "commitizen": {
@@ -137,7 +127,6 @@
   "babel": {
     "plugins": [
       "babel-plugin-transform-koaton-es6-modules",
-      "babel-plugin-transform-koa2-async-to-generator",
       "istanbul"
     ],
     "ignore": [

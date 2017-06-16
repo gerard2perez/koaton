@@ -8,8 +8,8 @@ const cached = async function cached (ctx, next) {
 	await next();
 	const body = ctx.body;
 	/* istanbul ignore if */
-	if (!body || this.response.get('ETag')) return;
-	const status = this.status / 100 | 0;
+	if (!body || ctx.response.get('ETag') || ctx.state.nocache) return;
+	const status = ctx.status / 100 | 0;
 	/* istanbul ignore if */
 	if (status !== 2) return;
 

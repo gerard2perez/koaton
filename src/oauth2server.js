@@ -3,10 +3,11 @@ import * as oauth2orize from 'oauth2orize-koa';
 import * as passport from 'koa-passport';
 import oauth2models from './oauth2models';
 import { models, addModel } from './orm';
-
 import { createUser, getuser, findUser } from './auth';
 import secret from './support/secret';
 import inflector from './support/inflector';
+import debug from './support/debug';
+
 const server = oauth2orize.createServer();
 
 const BasicStrategy = require('passport-http').BasicStrategy,
@@ -45,8 +46,7 @@ const oauth2server = function oauth2server () {
 		}, err => {
 			done(err, false);
 		});
-	}
-	));
+	}));
 	/* istanbul ignore next */
 	server.serializeClient(function (client, done) {
 		return done(null, client._id);
@@ -62,13 +62,15 @@ const oauth2server = function oauth2server () {
 	});
 	/* istanbul ignore next*/
 	server.grant(oauth2orize.exchange.refreshToken(function (client, refreshToken, scope, done) {
-		console.log('grant refreshToken');
+		debug('grant refreshToken');
 	}));
 	/* istanbul ignore next*/
 	server.grant(oauth2orize.grant.code(function (client, redirectURI, user, ares) {
-		console.log(client, redirectURI, user, ares);
+		debug(client, redirectURI, user, ares);
 	}));
-	server.exchange(oauth2orize.exchange.authorizationCode({ userProperty: 'data' }, function (data, accesstoken) {
+	server.exchange(oauth2orize.exchange.authorizationCode({
+		userProperty: 'data'
+	}, function (data, accesstoken) {
 		return secret(16).then((refreshtoken) => {
 			let date = new Date(Date.now() + (1 * configuration.security.tokenTimeout * 1000));
 			return models.oauth2accesstokens.create({
@@ -89,7 +91,9 @@ const oauth2server = function oauth2server () {
 			});
 		});
 	}));
-	server.exchange(oauth2orize.exchange.password({userProperty: 'client'}, function (client, username, password) {
+	server.exchange(oauth2orize.exchange.password({
+		userProperty: 'client'
+	}, function (client, username, password) {
 		return findUser(username, password).then(user => {
 			if (client !== null && user !== null) {
 				return secret(16).then((token) => {
@@ -134,47 +138,49 @@ const oauth2server = function oauth2server () {
 		'password': [2],
 		'refresh_token': [3, 2]
 	};
-	router.post('/token/', /* passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], {
-		session: false
-	}),*/ async function token (ctx, next) {
-		await next();
-		ctx.state = {
-			data: {
-				client: await models.oauth2applications.findOne({
-					where: {
-						ClientId: ctx.query.client_id
-					}
-				}),
-				user: ctx.req.user
+	router.post('/token/',
+		/* passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], {
+session: false
+}),*/
+		async function token (ctx, next) {
+			await next();
+			ctx.state = {
+				data: {
+					client: await models.oauth2applications.findOne({
+						where: {
+							ClientId: ctx.query.client_id
+						}
+					}),
+					user: ctx.req.user
+				}
+			};
+			// ctx.request.body = ctx.request.body;
+			const type = grantType[ctx.request.body.grant_type];
+			switch (ctx.request.query.response_type) {
+				case 'code':
+					ctx.request.body.code = (await secret(16)).toString('hex');
+					break;
+				case 'password':
+					ctx.state.client = ctx.state.data.client;
+					break;
+					/* istanbul ignore next */
+				default:
+					ctx.response.status = 400;
+					return;
 			}
-		};
-		// ctx.request.body = ctx.request.body;
-		const type = grantType[ctx.request.body.grant_type];
-		switch (ctx.request.query.response_type) {
-			case 'code':
-				ctx.request.body.code = (await secret(16)).toString('hex');
-				break;
-			case 'password':
-				ctx.state.client = ctx.state.data.client;
-				break;
-			/* istanbul ignore next */
-			default:
-				ctx.response.status = 400;
-				return;
-		}
-		if (!ctx.state.data.user || !ctx.state.data.client) {
-			ctx.response.status = 406;
-		}/* istanbul ignore next */ else if (type.indexOf(ctx.state.data.client.AuthorizationGrantType) === -1) {
-			ctx.response.status = 500;
-		} else {
-			await server._exchange(exchanges[ctx.request.query.response_type], ctx, /* istanbul ignore next */ function (err) {
-				throw err;
-			});
-		}
-	});
+			if (!ctx.state.data.user || !ctx.state.data.client) {
+				ctx.response.status = 406;
+			} /* istanbul ignore next */ else if (type.indexOf(ctx.state.data.client.AuthorizationGrantType) === -1) {
+				ctx.response.status = 500;
+			} else {
+				await server._exchange(exchanges[ctx.request.query.response_type], ctx, /* istanbul ignore next */ function (err) {
+					throw err;
+				});
+			}
+		});
 	router.post('/singup/', async function singup (ctx, next) {
 		const user = await createUser(ctx.request.body.username, ctx.request.body.password, ctx.request.body);
-		if (user !== null && user.error === undefined) {
+		if (user !== null && user.id && user.error === undefined) {
 			ctx.response.status = 201;
 		} else {
 			ctx.response.status = 500;

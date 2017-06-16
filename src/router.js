@@ -26,7 +26,6 @@ function initialize () {
 		}
 		require(ProyPath(router)).default(subdomainRouters, passport);
 	}
-	const allow = subdomainRouters.www.public.allowedMethods();
 
 	let embers = glob('koaton_modules/**/config/ember.js').concat('config/ember.js');
 	const serveapp = function (directory) {
@@ -42,7 +41,6 @@ function initialize () {
 		const config = require(ProyPath(ember)).default;
 		for (const app in config) {
 			let emberapp = config[app];
-
 			if (ember.indexOf('koaton_modules') > -1) {
 				emberapp.directory = path.join('..', 'koaton_modules', app, 'views', 'ember_apps', config[app].directory);
 			} else {
@@ -53,15 +51,35 @@ function initialize () {
 				serveemberapp = serveapp(emberapp.directory);
 
 			approouter.get('/', serveemberapp).get('*', serveemberapp);
-			(emberapp.access === 'public' ? subdomainRouters[sub].public : subdomainRouters[sub].secured)
-			.use(path.join('/', emberapp.mount), approouter.routes());
+			(emberapp.access === 'public' ? subdomainRouters[sub].public : subdomainRouters[sub].secured).use(path.join('/', emberapp.mount), approouter.routes());
 		}
 	}
-	for (const idx in subdomainRouters) {
-		subdomainRouters[idx].public = subdomainRouters[idx].public.middleware();
-		subdomainRouters[idx].secured = subdomainRouters[idx].secured.middleware();
+	function EvalRoute (ctx, next) {
+		let router = this;
+		let matched = router.match(router.opts.routerPath || ctx.routerPath || ctx.path, ctx.method);
+		if (ctx.matched) {
+			ctx.matched.push.apply(ctx.matched, matched.path);
+		} else {
+			ctx.matched = matched.path;
+		}
+		if (matched.route) {
+			return this.middleware()(ctx, next);
+		} else {
+			return Promise.resolve('koaton-no-route');
+		}
 	}
-	return allow;
+	let allowed = [];
+	for (const idx in subdomainRouters) {
+		allowed.push(subdomainRouters[idx].public.allowedMethods({
+			throw: true
+		}));
+		allowed.push(subdomainRouters[idx].secured.allowedMethods({
+			throw: true
+		}));
+		subdomainRouters[idx].public = EvalRoute.bind(subdomainRouters[idx].public);
+		subdomainRouters[idx].secured = EvalRoute.bind(subdomainRouters[idx].secured);
+	}
+	return allowed;
 }
 
 function routers (domain) {

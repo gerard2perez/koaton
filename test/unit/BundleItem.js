@@ -26,7 +26,6 @@ describe('BundleItem', function () {
 		assert.equal(Item, Item.add('./assets/flatadmin/css/checkbox3.min.css'));
 		assert.equal(3, Item.content.length);
 	});
-
 	it('Is equal to another item if name is the same', function () {
 		const Item2 = new BundleItem('target.css', ['./assets/flatadmin/css/select2.min.css', './assets/flatadmin/css/animate.min.css']);
 		assert.equal(Item.equals(Item2), true);

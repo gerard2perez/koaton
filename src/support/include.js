@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import debug from './debug';
 
 export default function loadmodules (dir) {
 	let mods = {};
@@ -24,7 +25,7 @@ export default function loadmodules (dir) {
 			};
 		};
 	} catch (e) {
-		console.log(e);
+		debug(e);
 	// do nothing
 	}
 	Object.defineProperty(mods, 'default', {

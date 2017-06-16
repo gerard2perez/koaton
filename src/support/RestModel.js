@@ -145,7 +145,7 @@ function RestModel (options, route, modelname) {
 			filteroptions = {
 				skip: 0
 			};
-		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.server.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.server.pagination.limit) : parseInt(this.query.size, 10);
+		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.server.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.server.pagination.limit) : parseInt(ctx.query.size, 10);
 		if (ctx.query.size) {
 			delete ctx.query.size;
 		}
@@ -161,7 +161,7 @@ function RestModel (options, route, modelname) {
 		};
 		let rawmodels = (await ctx.model.rawWhere(filterset, filteroptions));
 		for (const idx in rawmodels) {
-			rawmodels[idx] = await restify(await this.model.findById(rawmodels[idx].id), ctx.model.relations, ctx.model);
+			rawmodels[idx] = await restify(await ctx.model.findById(rawmodels[idx].id), ctx.model.relations, ctx.model);
 		}
 		res[modelname] = rawmodels;
 		ctx.body = res;
@@ -187,6 +187,7 @@ function RestModel (options, route, modelname) {
 		} else {
 			res[modelname] = entities;
 		}
+		ctx.status = 201;
 		ctx.body = res;
 		await next();
 	});
@@ -225,13 +226,13 @@ function RestModel (options, route, modelname) {
 			}
 		}
 		record.save();
-		record = await REST_POST_SINGLE(this.model, body, record);
+		record = await REST_POST_SINGLE(ctx.model, body, record);
 		ctx.body = {};
 		ctx.body[inflector.singularize(modelname)] = record;
 		await next();
 	});
 	pOrp(routers, options.delete).del('/:id', async function REST_DELETE (ctx, next) {
-		await this.model.destroyById(ctx.params.id);
+		await ctx.model.destroyById(ctx.params.id);
 		ctx.body = {
 			id: ctx.params.id
 		};

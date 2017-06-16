@@ -4,6 +4,7 @@ import * as passport from 'koa-passport';
 import { models } from './orm';
 import inflector from './support/inflector';
 import * as Promise from 'bluebird';
+import * as debug from './support/debug';
 
 let AuthModel;
 
@@ -27,15 +28,20 @@ function getuser (username, password, done) {
 	}, done).catch(done);
 }
 function _getuser (username, password) {
-	return getuser.bind(getuser, username, password);
+	return new Promise(function (resolve) {
+		function done (_, data) {
+			resolve(data);
+		}
+		getuser(username, password, done);
+	});
 }
 const findUser = Promise.promisify(getuser);
-function * createUser (username, password, body) {
-	const user = yield _getuser(username, password);
+async function createUser (username, password, body) {
+	const user = await _getuser(username, password);
 	body[configuration.security.username] = username;
-	body[configuration.security.password] = yield hash(password, 5);
+	body[configuration.security.password] = await hash(password, 5);
 	if (user === null) {
-		return yield AuthModel.create(body);
+		return await AuthModel.create(body);
 	} else {
 		return {
 			error: 'User Already Extis'
@@ -68,11 +74,10 @@ function initialize () {
 				passport.use(STR.identifier, new Strategy(STR.secret || getuser));
 			}
 		} catch (err) /* istanbul ignore next*/ {
-			console.log(err.stack);
-			console.log(inflector.camelize(`${strategy}_strategy`) + ' not found');
-			console.log(`You might try koaton oauth2server install ${STR.package}`);
+			debug(err);
+			debug(inflector.camelize(`${strategy}_strategy`) + ' not found');
+			debug(`You might try npm install ${STR.package}`);
 		}
-		console.log();
 	}
 }
 

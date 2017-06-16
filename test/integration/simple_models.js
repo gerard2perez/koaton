@@ -20,6 +20,7 @@ describe('CRUD REST API Simple Models', function () {
 	});
 
 	it('Creates a User', function (done) {
+		server.expect(201);
 		server.post('users', {
 			user: {
 				name: 'Code',
@@ -51,7 +52,7 @@ describe('CRUD REST API Simple Models', function () {
 		}).then(json => {
 			assert.equal(json.user.name, 'Code');
 			assert.equal(json.user.email, 'code@breaker.com');
-			server.expect(304);
+			server.expect(200);
 			return server.get('users', json.user.id).then(done.bind(null, null), done).catch(done);
 		}, done).catch(done);
 	});

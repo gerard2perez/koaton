@@ -1,4 +1,6 @@
 import inflector from './inflector';
+import debug from './debug';
+
 async function prepareQuery (database, model, query, item) {
 	let [modelname, property] = item.split('.');
 	let prequery = {};
@@ -20,7 +22,7 @@ async function prepareQuery (database, model, query, item) {
 			break;
 		/* istanbul ignore next */
 		case 'hasMany':
-			console.log('hasMany');
+			debug('hasMany');
 			// TODO: camintejs does not allow me to do this;
 			break;
 	}

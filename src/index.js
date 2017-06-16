@@ -31,8 +31,8 @@ koaton.oauth2server.setAuthModel();
 koaton.oauth2server = oAuth2Server;
 
 koaton.auth.initialize();
+const allowed = koaton.router.initialize();
 
-App.use(koaton.router.initialize());
 App.keys = configuration.security.keys;
 delete koaton.auth.initialize;
 delete koaton.router.initialize;
@@ -73,22 +73,14 @@ Object.defineProperty(App, 'oAuth2Server', {
 		return oAuth2Server;
 	}
 });
-Object.defineProperty(App, 'detectsubdomain', {
-	enumerable: true,
-	get () {
-		return async function (ctx, next) {
-			await next();
-		};
-	}
-});
 Object.defineProperty(App, 'subdomainrouter', {
 	enumerable: true,
 	get () {
-		return koaton.subdomain;
+		return koaton.subdomainrouter;
 	}
 });
 
-Object.defineProperty(App, 'conditional', {
+Object.defineProperty(App, 'cached', {
 	enumerable: true,
 	get () {
 		return koaton.cached;
@@ -132,6 +124,9 @@ App.stack = function (...args) {
 	}
 };
 App.start = function (port) {
+	for (const route of allowed) {
+		App.use(route);
+	}
 	return App.listen(port, () => {
 		/* istanbul ignore else  */
 		if (process.env.NODE_ENV === 'development') {

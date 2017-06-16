@@ -3,13 +3,13 @@ import { extname, resolve, basename } from 'upath';
 import * as fs from 'fs-extra';
 import * as Promise from 'bluebird';
 import SetUpEngines from './setup';
+import debug from '../support/debug';
 
 let avaliableEngines = Object.keys(render);
 avaliableEngines.splice(avaliableEngines.indexOf('requires'), 1);
 const testedEngines = [ 'handlebars', 'nunjucks' ];
 const npmpackage = require(ProyPath('package.json'));
 if (Object.keys(npmpackage.dependencies).indexOf('mongoose') > -1) {
-	console.log('============================================================+++++++++++');
 	require('mongoose').Promise = require('bluebird');
 }
 const exists = function (target) {
@@ -82,13 +82,15 @@ async function views (ctx, next) {
 	ctx.send = async (file) => {
 		ctx.type = extname(basename(file));
 		ctx.body = fs.createReadStream(file);
+		ctx.state.nocache = false;
 	};
 	ctx.render = async function (file, locals) {
 		try {
-			this.body = await template(file, locals);
+			ctx.body = await template(file, locals);
+			ctx.state.nocache = false;
 		} catch (err) {
-			console.log(err);
-			this.status = 500;
+			debug(err);
+			ctx.status = 500;
 		}
 	};
 	await next();

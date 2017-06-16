@@ -11,8 +11,7 @@ async function findmodel (ctx, next) {
 }
 
 async function protect (ctx, next) {
-	const _ctx = ctx;
-	if (_ctx.isAuthenticated()) {
+	if (ctx.isAuthenticated()) {
 		await next();
 	} else {
 		await passport.authenticate('bearer', {
@@ -22,12 +21,13 @@ async function protect (ctx, next) {
 			if (err) {
 				throw err;
 			}
-			await next();
 			if (user === false) {
-				_ctx.body = null;
-				_ctx.status = 401;
+				ctx.body = null;
+				ctx.status = 401;
+			} else {
+				await next();
 			}
-		}).call(_ctx, next);
+		})(ctx, next);
 	}
 }
 
@@ -42,7 +42,7 @@ const DeepGet = function (object, args) {
 
 const DefaultView = function (view) {
 	return async function DefaultView (ctx, next) {
-		await this.render(`${view}.html`);
+		await ctx.render(`${view}.html`);
 	};
 };
 
@@ -113,8 +113,8 @@ class KoatonRouter {
 				delete: 'public'
 			} : {};
 			let router = RestModel(options, mountRoute, controller.Name);
-			KoatonRouter.RestRouter.public.use(router.path, router.public.routes());
-			KoatonRouter.RestRouter.secured.use(router.path, router.private.routes());
+			this.public.use(router.path, router.public.routes());
+			this.secured.use(router.path, router.private.routes());
 		}
 		return this;
 	}

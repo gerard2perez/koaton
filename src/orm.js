@@ -7,6 +7,7 @@ import * as caminte from 'caminte';
 import { line2 } from './support/consoleLines';
 import inflector from './support/inflector';
 import exendModel from './support/extend_caminte';
+import debug from './support/debug';
 
 // TODO: Create your own ORM, caminte worked but is not enough, remember LORM?
 const connection = configuration.connections[configuration.server.database.connection];
@@ -96,12 +97,11 @@ export function initialize (seed) {
 	let res = null;
 	/* istanbul ignore next */
 	schema.on('error', (err) => {
-		console.log(err.stack);
+		debug(err.stack);
 	});
 	const models = glob('koaton_modules/**/models/*.js').concat(glob('models/*.js'));
 	for (const model of models) {
 		let file = path.basename(model).replace('.js', '');
-		console.log(file, inflector.pluralize(file));
 		addModel(
 			inflector.pluralize(file),
 			require(ProyPath(model)).default
@@ -109,12 +109,7 @@ export function initialize (seed) {
 	}
 
 	const makerelation = function (model, relation) {
-		// console.log(model, relation);
-		let options = {
-			as: relation.As,
-			foreignKey: relation.key
-		};
-
+		let options = { as: relation.As, foreignKey: relation.key };
 		let target = exp.databases[inflector.pluralize(relation.Children)];
 		if (relation.Rel !== 'manyToMany') {
 			exp.databases[model][relation.Rel](target, options);
@@ -144,30 +139,25 @@ export function initialize (seed) {
 	}
 	/* istanbul ignore else */
 	if (process.env.NODE_ENV === 'development') {
-		res = co(function * () {
+		res = co(async function () {
 			let files = fs.readdirSync(ProyPath('seeds'));
 			for (let index in files) {
 				let file = files[index].replace('.js', '');
 				try {
-					console.log('Sedding ' + file);
+					debug(`Sedding ${file}`);
 					let model = exp.databases[inflector.pluralize(file.toLowerCase())];
-					yield require(ProyPath('seeds', file)).default(model.findcre);
+					await require(ProyPath('seeds', file)).default(model.findcre);
 				} catch (err) /* istanbul ignore next*/{
-					console.log(err.message);
-					console.log(err.stack);
+					debug(err);
 				}
 			}
 			/* istanbul ignore next*/
 			if (files.length === 0) {
-				console.log('Nothing to seed');
+				debug('Nothing to seed');
 			}
 			line2(true);
-		}).catch(console.log);
+		}).catch(debug);
 	}
 	/* istanbul ignore if */
-	if (seed) {
-		return res;
-	} else {
-		return exposeORM;
-	}
+	return seed ? res : exposeORM;
 }

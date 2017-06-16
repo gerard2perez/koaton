@@ -10,6 +10,7 @@ describe('CRUD REST API Related Models', function () {
 	let distributor;
 	let pages;
 	it('Creates a parent book', function (done) {
+		server.expect(201);
 		server.headers(global.headers).post('books', {
 			book: {
 				title: 'three eggs',
@@ -38,6 +39,7 @@ describe('CRUD REST API Related Models', function () {
 		}, done).catch(done);
 	});
 	it('Creates a book with id pages', function (done) {
+		server.expect(201);
 		server.headers(global.headers).post('books', {
 			book: {
 				title: 'three eggs',
@@ -68,6 +70,7 @@ describe('CRUD REST API Related Models', function () {
 		}, done).catch(done);
 	});
 	it('Creates a sucursals append a book', function (done) {
+		server.expect(201);
 		server.headers(global.headers).post('sucursals', {
 			sucursal: {
 				name: 'Sucursal 1',
@@ -80,6 +83,7 @@ describe('CRUD REST API Related Models', function () {
 		}, done).catch(done);
 	});
 	it('Creates a book with no pages', function (done) {
+		server.expect(201);
 		server.headers(global.headers).post('books', {
 			book: {
 				title: 'three eggs 2',
@@ -139,6 +143,7 @@ describe('CRUD REST API Related Models', function () {
 		for (let i = 1; i <= 100; i++) {
 			pages.push({ number: rdn(), content: 'content' + rdn() });
 		}
+		server.expect(201);
 		server.headers(global.headers).post('pages', {
 			pages: pages
 		}).then(body => {
@@ -186,6 +191,7 @@ describe('CRUD REST API Related Models', function () {
 				distributor: distributor
 			});
 		}
+		server.expect(201);
 		server.headers(global.headers).post('books', {
 			books: books
 		}).then(body => {

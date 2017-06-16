@@ -9,8 +9,7 @@ if (!process.env.TRAVIS) {
 	buildHosts();
 }
 koaton.use(koaton.localization);
-koaton.use(koaton.detectsubdomain);
-koaton.use(koaton.conditional);
+koaton.use(koaton.cached);
 koaton.use(koaton.helmet);
 koaton.use(koaton.bodyparser);
 koaton.use(koaton.jsurl);

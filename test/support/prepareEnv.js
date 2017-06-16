@@ -25,7 +25,6 @@ const buildHosts = function buildHosts () {
 		default:
 			console.log("your os is not detected, hosts files won't be updated".red);
 			break;
-
 	}
 	if (hostsdlocation !== '') {
 		let hostsd = fs.readFileSync(hostsdlocation, 'utf-8');

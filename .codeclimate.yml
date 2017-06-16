@@ -25,6 +25,7 @@ exclude_paths:
     - testcoverage/
     - testingapp/
     - templates/
+    - utils/
     - koaton
     - ".*"
     - "./**.json"
