@@ -147,4 +147,5 @@ App.start = function (port) {
 		}
 	});
 };
-module.exports = App;
+export let Koaton = App;
+// module.exports = App;

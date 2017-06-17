@@ -1,0 +1,35 @@
+{
+	"source": "src",
+	"destination": "doc",
+	"plugins": [{
+			"name": "esdoc-standard-plugin",
+			"option": {
+				"coverage": {"enable": true},
+				"test": {
+					"type": "mocha",
+					"source": "test",
+					"includes": ["\\.(js|es6)$"]
+				}
+			}
+		},
+		{
+			"name": "esdoc-importpath-plugin",
+			"option": {
+				"replaces": [{
+					"from": "src/",
+					"to": ""
+				}]
+			}
+		}
+	],
+	"experimentalProposal": {
+		"classProperties": true,
+		"objectRestSpread": true,
+		"decorators": true,
+		"doExpressions": true,
+		"functionBind": true,
+		"asyncGenerators": true,
+		"exportExtensions": true,
+		"dynamicImport": true
+	}
+}

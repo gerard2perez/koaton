@@ -8,6 +8,7 @@
 /running_test/
 /.nyc_output/
 /coverage/
+/doc/
 /core/
 /cli/
 .npmignore
