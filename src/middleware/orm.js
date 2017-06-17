@@ -4,10 +4,10 @@ import * as co from 'co';
 import * as path from 'upath';
 import { sync as glob } from 'glob';
 import * as caminte from 'caminte';
-import { line2 } from './support/consoleLines';
-import inflector from './support/inflector';
-import exendModel from './support/extend_caminte';
-import debug from './support/debug';
+import { line2 } from '../support/consoleLines';
+import inflector from '../support/inflector';
+import exendModel from '../support/extend_caminte';
+import debug from '../support/debug';
 
 // TODO: Create your own ORM, caminte worked but is not enough, remember LORM?
 const connection = configuration.connections[configuration.server.database.connection];

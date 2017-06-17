@@ -1,5 +1,7 @@
-const inflector = require('i')();
+import * as i from 'i';
+const inflector = i();
 
+/** @ignore */
 const inflections = Object.assign({}, {
 	plural: [],
 	singular: [],
@@ -19,4 +21,11 @@ for (const inflect of inflections.plural) {
 for (const inflect of inflections.uncountable) {
 	inflector.inflections.uncountable(...inflect);
 }
+/**
+ * Reads the information from config/inflections.js in order to populete the inflector with custom inflections.
+ * @type {inflector}
+ * @property {function(plural: String)} singularize - return the singular of the given word
+ * @property {function(singular: String)} pluralize - return the plural of the given word
+ * @property {function(word: String)} camelize - return the word in a camel case format
+ */
 export default inflector;

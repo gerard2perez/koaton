@@ -4,6 +4,9 @@
 	"plugins": [{
 			"name": "esdoc-standard-plugin",
 			"option": {
+				"accessor": {"access": ["public", "protected", "private"], "autoPrivate": true},
+        		"undocumentIdentifier": {"enable": true},
+				"unexportedIdentifier": {"enable": false},
 				"coverage": {"enable": true},
 				"test": {
 					"type": "mocha",

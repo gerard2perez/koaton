@@ -66,7 +66,7 @@ export default class BundleItem {
 		return this.file === target.file;
 	}
 	/**
-	 * Transform the BundleItem to a JSON representation.
+	 * Makes sure that calling JSON.stringify return an array with the source files.
 	 * @return {String[]} - Return the value of the source files.
 	 */
 	toJSON () {
@@ -92,10 +92,10 @@ export default class BundleItem {
 	}
 	/**
 	 * Return an iterator that can be use with for ... of
-	 * @alias BundleItem.iterator
+	 * @alias BundleItem#iterator
 	 * @return {Symbol.iterator}
 	*/
-	[ Symbol.iterator] () {
+	[Symbol.iterator] () {
 		let index = -1;
 		return {
 			next: () => ({

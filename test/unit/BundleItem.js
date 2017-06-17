@@ -38,10 +38,11 @@ describe('BundleItem', () => {
 		const Item2 = new BundleItem('target.css', ['./assets/flatadmin/css/select2.min.css', './assets/flatadmin/css/animate.min.css']);
 		assert.equal(Item.equals(Item2), true);
 	});
+	/** @test {BundleItem#toJSON} */
 	it('JSON representation es the content property', () => {
 		assert.equal(JSON.stringify(Item.content), JSON.stringify(Item));
 	});
-	/** @test {BundleItem#iterator} */
+	/** @test {BundleItem#Symbol.iterator} */
 	it('Can Iterate through items', () => {
 		let index = 0;
 		for (const source of Item) {
@@ -50,15 +51,18 @@ describe('BundleItem', () => {
 		}
 		assert.equal(3, index);
 	});
+	/** @test {BundleItem#toString} */
 	it('Return html tags when converting to string', () => {
 		let JSItem = new BundleItem('target.js', './assets/flatadmin/js/app.js');
 		assert.equal(Item.toString(), "<link rel='stylesheet' href='./assets/flatadmin/css/themes.css'><link rel='stylesheet' href='./assets/flatadmin/css/style.css'><link rel='stylesheet' href='./assets/flatadmin/css/checkbox3.min.css'>");
 		assert.equal(JSItem.toString(), "<script src='./assets/flatadmin/js/app.js'></script>");
 	});
+	/** @test {BundleItem#clear} */
 	it('Clears Content', () => {
 		assert.equal(Item, Item.clear());
 		assert.equal(0, Item.content.length);
 	});
+	/** @test {BundleItem#valueOf} */
 	it('Returns target name', () => {
 		assert.equal(Item.valueOf(), 'target.css');
 	});

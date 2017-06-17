@@ -3,10 +3,10 @@ import * as oauth2orize from 'oauth2orize-koa';
 import * as passport from 'koa-passport';
 import oauth2models from './oauth2models';
 import { models, addModel } from './orm';
-import { createUser, getuser, findUser } from './auth';
-import secret from './support/secret';
-import inflector from './support/inflector';
-import debug from './support/debug';
+import { createUser, getUser } from './auth';
+import secret from '../support/secret';
+import inflector from '../support/inflector';
+import debug from '../support/debug';
 
 const server = oauth2orize.createServer();
 
@@ -20,8 +20,8 @@ const oauth2server = function oauth2server () {
 		addModel(inflector.pluralize(model), oauth2models[model]);
 	}
 	const router = new Router();
-	passport.use(new BasicStrategy(getuser));
-	passport.use(new ClientStrategy(getuser));
+	passport.use(new BasicStrategy(getUser));
+	passport.use(new ClientStrategy(getUser));
 	passport.use(new BearerStrategy(function (token, done) {
 		return models.oauth2accesstokens.rawAPI.findOne({
 			where: {
@@ -94,7 +94,7 @@ const oauth2server = function oauth2server () {
 	server.exchange(oauth2orize.exchange.password({
 		userProperty: 'client'
 	}, function (client, username, password) {
-		return findUser(username, password).then(user => {
+		return getUser(username, password).then(user => {
 			if (client !== null && user !== null) {
 				return secret(16).then((token) => {
 					return secret(16).then((refreshtoken) => {

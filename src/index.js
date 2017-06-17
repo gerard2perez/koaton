@@ -9,6 +9,7 @@ import * as bodyParser from 'koa-bodyparser';
 import * as session from 'koa-session';
 import * as helmet from 'koa-helmet';
 import * as Koa from 'koa';
+import * as path from 'path';
 // TODO: This setup is for legacy compability
 let App = new Koa();
 
@@ -18,7 +19,7 @@ if (process.env.NODE_ENV === 'development') {
 	App.use(logger());
 }
 
-let koaton = include(__dirname);
+let koaton = include(path.join(__dirname, 'middleware'));
 const view = views(configuration.views);
 const ServeStatic = KStatic(configuration.static.directory || /* istanbul ignore next */ ProyPath('public'), configuration.static.configuration);
 const Localization = koaton.localization(App);
@@ -30,7 +31,7 @@ App.use(koaton.orm.initialize(false));
 koaton.oauth2server.setAuthModel();
 koaton.oauth2server = oAuth2Server;
 
-koaton.auth.initialize();
+koaton.auth.loadSecurityContext();
 const allowed = koaton.router.initialize();
 
 App.keys = configuration.security.keys;
@@ -147,5 +148,4 @@ App.start = function (port) {
 		}
 	});
 };
-export let Koaton = App;
-// module.exports = App;
+module.exports = App;

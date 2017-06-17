@@ -8,7 +8,7 @@
     "esdoc": "esdoc",
     "export": "koaton-exporter src/*.js src/**/*.js lib -r src/ -t v2",
     "eslint": "eslint src --ignore-path .gitignore",
-    "test": "node utils/dropdatabase.js & mocha test/unit/BundleItem.js test/integration/index.js --compilers js:babel-register",
+    "test": "node utils/dropdatabase.js & cross-env DEBUG=koaton mocha test/unit/BundleItem.js test/integration/index.js --compilers js:babel-register",
     "cover": "nyc npm t",
     "export:live": "npm run export & chokidar src -c \"cls && npm run export\"",
     "eslint:live": "npm run eslint & chokidar src -c \"cls && npm run eslint\"",

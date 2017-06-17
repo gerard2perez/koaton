@@ -1,7 +1,7 @@
 import { sync as glob } from 'glob';
 import * as path from 'upath';
 import * as passport from 'koa-passport';
-import KoatonRouter from './support/KoatonRouter';
+import KoatonRouter from '../support/KoatonRouter';
 import * as Router from 'koa-router';
 
 let subdomainRouters;
