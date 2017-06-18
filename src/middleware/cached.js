@@ -16,7 +16,12 @@ const stat = function stat (path) {
 		});
 	});
 };
-const cached = async function cached (ctx, next) {
+/**
+ * Middleware for eTag generation (cached content)
+ * @param {KoaContext} ctx
+ * @param {KoaNext} next
+ */
+export default async function cached (ctx, next) {
 	await next();
 	const body = ctx.body;
 	/* istanbul ignore if */
@@ -48,6 +53,4 @@ const cached = async function cached (ctx, next) {
 		ctx.body = null;
 		ctx.status = 304;
 	}
-};
-
-export default cached;
+}

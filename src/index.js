@@ -1,3 +1,12 @@
+/**
+* @external {KoaContext} https://github.com/koajs/koa/blob/master/docs/api/context.md
+*/
+/**
+* @external {KoaNext} https://github.com/koajs/koa/blob/master/docs/api/index.md#cascading
+*/
+/**
+ * @external {JSURL} https://github.com/Sage/jsurl
+ */
 import 'colors';
 import * as passport from 'koa-passport';
 import { line1, line2 } from './support/consoleLines';

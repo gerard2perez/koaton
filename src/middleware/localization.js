@@ -1,3 +1,8 @@
+/**
+ * Middleware for eTag generation (cached content)
+ * @param {KoaContext} ctx
+ * @param {KoaNext} next
+ */
 export default function localization (koaton) {
 	let config = Object.assign({}, {
 		queryKey: 'locale',
