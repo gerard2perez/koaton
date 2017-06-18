@@ -2,7 +2,7 @@ import * as render from 'consolidate';
 import { extname, resolve, basename } from 'upath';
 import * as fs from 'fs-extra';
 import * as Promise from 'bluebird';
-import SetUpEngines from './setup';
+import * as SetUpEngines from './setup';
 import debug from '../support/debug';
 
 let avaliableEngines = Object.keys(render);

@@ -7,6 +7,9 @@
 /**
  * @external {JSURL} https://github.com/Sage/jsurl
  */
+/**
+  * @external {KoaRouter} https://github.com/alexmingoia/koa-router
+  */
 import 'colors';
 import * as passport from 'koa-passport';
 import { line1, line2 } from './support/consoleLines';
@@ -31,8 +34,8 @@ if (process.env.NODE_ENV === 'development') {
 let koaton = include(path.join(__dirname, 'middleware'));
 const view = views(configuration.views);
 const ServeStatic = KStatic(configuration.static.directory || /* istanbul ignore next */ ProyPath('public'), configuration.static.configuration);
-const Localization = koaton.localization(App);
-const oAuth2Server = koaton.oauth2server();
+const {i18nHelper, i18nMiddleware} = koaton.localization(App);
+const oAuth2Server = koaton.oauth2server.oauth2server();
 const BodyParser = bodyParser(configuration.server.bodyParser);
 const Helmet = helmet(configuration.server.helmet);
 
@@ -118,13 +121,13 @@ Object.defineProperty(App, 'static', {
 Object.defineProperty(App, 'localization', {
 	enumerable: true,
 	get () {
-		return Localization[0];
+		return i18nMiddleware;
 	}
 });
 Object.defineProperty(App, 'i18nHelper', {
 	enumerable: true,
 	get () {
-		return Localization[1];
+		return i18nHelper;
 	}
 });
 /* istanbul ignore next */

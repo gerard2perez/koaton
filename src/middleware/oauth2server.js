@@ -8,14 +8,29 @@ import secret from '../support/secret';
 import inflector from '../support/inflector';
 import debug from '../support/debug';
 
-const server = oauth2orize.createServer();
-
+/**
+ * @ignore
+ */
 const BasicStrategy = require('passport-http').BasicStrategy,
 	ClientStrategy = require('passport-oauth2-client-password').Strategy,
-	BearerStrategy = require('passport-http-bearer').Strategy;
-let AuthModel = null;
+	BearerStrategy = require('passport-http-bearer').Strategy,
+	server = oauth2orize.createServer();
 
-const oauth2server = function oauth2server () {
+/**
+ * Indicate which model to use as Authorization Model, this can be configured in config/security.js#model
+ * @type {CaminteJSModel}
+ */
+export let AuthModel = models[inflector.pluralize(configuration.security.model)];
+/**
+ * Creates a autorize-koa server and set it up ussing passport<br/>
+ * Default implemented strategies are:
+ * <ol><li>BasicStrategy</li>
+ * <li>ClientStrategy</li>
+ * <li>BearerStrategy</li></ol>
+ * @return {KoaRouter} Aouth2ServerMiddleware - Default routes append are /singin /token/ /singup /singout
+ */
+export function oauth2server () {
+	AuthModel = models[inflector.pluralize(configuration.security.model)];
 	for (let model in oauth2models) {
 		addModel(inflector.pluralize(model), oauth2models[model]);
 	}
@@ -139,9 +154,7 @@ const oauth2server = function oauth2server () {
 		'refresh_token': [3, 2]
 	};
 	router.post('/token/',
-		/* passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], {
-session: false
-}),*/
+		/* passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], { session: false }),*/
 		async function token (ctx, next) {
 			await next();
 			ctx.state = {
@@ -195,9 +208,10 @@ session: false
 		// ctx.redirect('/');
 	});
 	return router.middleware();
-};
-oauth2server.setAuthModel = function (model) {
+}
+/**
+ * @param {String} model=configuration.security.model - default model is configured at  config/security.js#model
+ */
+export function setAuthModel (model) {
 	AuthModel = models[inflector.pluralize(configuration.security.model)];
-};
-
-export default oauth2server;
+}
