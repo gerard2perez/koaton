@@ -1,9 +1,21 @@
 import * as calculate from 'etag';
 import * as Stream from 'stream';
-import * as Promise from 'bluebird';
 import * as fs from 'fs-extra';
 
-const stat = Promise.promisify(fs.stat);
+/** @ignore */
+/* istanbul ignore next*/
+function noop () {}
+/** @ignore */
+const stat = function stat (path) {
+	return new Promise(function (resolve) {
+		fs.stat(path, function (err, stats) {
+			if (err) {
+				throw err;
+			}
+			resolve(stats);
+		});
+	});
+};
 const cached = async function cached (ctx, next) {
 	await next();
 	const body = ctx.body;
@@ -37,8 +49,5 @@ const cached = async function cached (ctx, next) {
 		ctx.status = 304;
 	}
 };
-
-/* istanbul ignore next*/
-function noop () {}
 
 export default cached;
