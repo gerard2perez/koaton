@@ -2,7 +2,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import debug from './debug';
 
-export default function loadmodules (dir) {
+/**
+ * Reads all the files from a given path
+ * @param {String} dir - Folder to read
+ * @return {Object} with all the default exports in the files
+ */
+export default function include (dir) {
 	let mods = {};
 	try {
 		fs.readdirSync(dir)

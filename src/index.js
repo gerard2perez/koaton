@@ -10,6 +10,9 @@
 /**
   * @external {KoaRouter} https://github.com/alexmingoia/koa-router
   */
+/**
+ * @external {Verb} http://www.restapitutorial.com/lessons/httpmethods.html
+ */
 import 'colors';
 import * as passport from 'koa-passport';
 import { line1, line2 } from './support/consoleLines';

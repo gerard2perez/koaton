@@ -1,9 +1,14 @@
 import * as Promise from 'bluebird';
 
+/** @ignore */
 const promesifythem = ['exists', 'create', 'findOrCreate', 'findOne', 'findById', 'find', 'all', 'run', 'updateOrCreate', 'upsert', 'update', 'remove', 'destroyById', 'destroy', 'count'
 // , 'destroyAll'
 ];
 
+/**
+ * Creates a Promise based version of the {CaminteJS} model
+ * and appends a couple of usefull functions
+ */
 export default function (model) {
 	for (const fn of promesifythem) {
 		if (model[fn]) {
