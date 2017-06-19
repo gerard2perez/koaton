@@ -1,8 +1,36 @@
-import * as Promise from 'bluebird';
-import { hash, compare } from 'bcrypt';
+import * as bcrypt from 'bcrypt';
+import debug from './debug';
+import * as crypto from 'crypto';
 
-const _hash = Promise.promisify(hash),
-	_compare = Promise.promisify(compare);
+export function hash (plainPassword, saltRounds) {
+	return new Promise(function (resolve) {
+		bcrypt.hash(plainPassword, saltRounds, function (err, hash) {
+			if (err) {
+				debug(err);
+			}
+			resolve(hash);
+		});
+	});
+}
 
-export { _hash as hash, _compare as compare };
-export default Promise.promisify(require('crypto').randomBytes);
+export function compare (plainPassword, hash) {
+	return new Promise(function (resolve) {
+		bcrypt.compare(plainPassword, hash, function (err, res) {
+			if (err) {
+				debug(err);
+			}
+			resolve(res);
+		});
+	});
+}
+
+export default function randomBytes (amount) {
+	return new Promise(function (resolve) {
+		crypto.randomBytes(amount, function (err, res) {
+			if (err) {
+				debug(err);
+			}
+			resolve(res);
+		});
+	});
+}

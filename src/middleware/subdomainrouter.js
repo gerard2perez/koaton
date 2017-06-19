@@ -1,6 +1,11 @@
 import { routers } from './router';
 
-const subdomainrouter = async function subdomainrouter (ctx, next) {
+/**
+ * This middleware handles the routes.js file based on the subdomain requested by the user
+ * @param {KoaContext} ctx
+ * @param {KoaNext} next
+ */
+export default async function subdomainrouter (ctx, next) {
 	let [subdomain = 'www'] = ctx.request.subdomains;
 	ctx.subdomain = subdomain;
 	let origin = ctx.headers.origin ? ctx.headers.origin : ctx.request.origin;
@@ -19,5 +24,4 @@ const subdomainrouter = async function subdomainrouter (ctx, next) {
 			ctx.state.nocache = true;
 		}
 	}
-};
-export default subdomainrouter;
+}
