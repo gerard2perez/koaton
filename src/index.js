@@ -25,6 +25,7 @@ import * as session from 'koa-session';
 import * as helmet from 'koa-helmet';
 import * as Koa from 'koa';
 import * as path from 'path';
+import * as fs from 'fs';
 // TODO: This setup is for legacy compability
 let App = new Koa();
 
@@ -48,7 +49,7 @@ koaton.oauth2server.setAuthModel();
 koaton.oauth2server = oAuth2Server;
 
 koaton.auth.loadSecurityContext();
-const allowed = koaton.router.initialize();
+koaton.router.initialize();
 
 App.keys = configuration.security.keys;
 delete koaton.auth.initialize;
@@ -144,7 +145,7 @@ App.start = function (port) {
 	for (const route of koaton.router.options()) {
 		App.use(route);
 	}
-	return App.listen(port, () => {
+	let callback = () => {
 		/* istanbul ignore else  */
 		if (process.env.NODE_ENV === 'development') {
 			line1(true);
@@ -162,6 +163,15 @@ App.start = function (port) {
 		} else if (!(process.env.welcome === 'false')) {
 			console.log('+Running on port ' + port);
 		}
-	});
+	};
+	const https = configuration.server.https;
+	if (https && https.key && https.cert) {
+		return require('https').createServer({
+			key: fs.readFileSync(https.key),
+			cert: fs.readFileSync(https.cert)
+		}, App.callback()).listen(port, callback);
+	} else {
+		return App.listen(port, callback);
+	}
 };
 module.exports = App;

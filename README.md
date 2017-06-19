@@ -9,6 +9,21 @@
 
 Koaton is a FullStack Javascript Web Framework. That Allows you to easily create your web application.
 
+```
+It's being a long time since I started this project, I'm working in a personal project and that's why I have not being active in this project, but In the next month I will be moving to version 2, with full support for Koa2, and also I will start to develop an Atom.io puglin to make and IDE for Koaton.
+
+I will also start making a ORM. I had a lot of ilusions with CaminteJS, but it is just not enough, so I migth use the knowledge I adquire making LORM and I will write (hopefullly a decent CrossDatabase ORM for javascript in ES6)
+
+In the next days a a v2 Branch will be created and Code-Documentation will appear. The next week I'l make a video explaning how to get started with Koaton and Koaton CLI.
+
+If you like this project please Watch It, Fork It and Star It.
+
+I wish to be able to make all my projects come true, and make my contribution to the software wold.
+
+See You Soon,
+Gerardo Pérez Pérez
+```
+
 Features
 ------------------
 1. World Class [Router](/src/router.js). Inspired by [ASP.NET](https://www.asp.net/), [Laravel](https://laravel.com/).

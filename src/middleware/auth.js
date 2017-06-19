@@ -90,13 +90,23 @@ function loadSecurityContext () {
 		const STR = configuration.security.strategies[strategy];
 		try {
 			let component = STR.package || /* istanbul ignore next: I have to change the proyect structure*/`passport-${strategy}`;
-			let Strategy = require(ProyPath('node_modules', component))[STR.strategy || 'Strategy'];
+			let Strategy = require(ProyPath('node_modules', component));
+			let args = [];
+			/* istanbul ignore else */
+			if (STR.strategy) {
+				Strategy = Strategy[STR.strategy];
+			}
+			/* istanbul ignore else */
+			if (STR.identifier) {
+				args.push(STR.identifier);
+			}
 			/* istanbul ignore else */
 			if (STR.options) {
-				passport.use(STR.identifier, new Strategy(STR.options, STR.secret || getUser));
+				args.push(new Strategy(STR.options, STR.secret || getuser));
 			} else {
-				passport.use(STR.identifier, new Strategy(STR.secret || getUser));
+				args.push(new Strategy(STR.secret || getuser));
 			}
+			passport.use(...args);
 		} catch (err) /* istanbul ignore next*/ {
 			debug(err);
 			debug(inflector.camelize(`${strategy}_strategy`) + ' not found');

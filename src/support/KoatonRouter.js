@@ -116,7 +116,13 @@ export default class KoatonRouter {
 	 */
 	static findAction (router, binding) {
 		let [controller, ...actions] = binding.split('.');
-		let action = DeepGet(requireSafe(ProyPath(router.loc, 'controllers', controller), {}).default, ...actions) || DefaultView(controller);
+		let content = requireSafe(ProyPath(router.loc, 'controllers', controller), null);
+		if (content && !content.default) {
+			console.warn(`${controller} controller does not export any default. This will not be supported`);
+		} else if (content && content.default) {
+			content = content.default;
+		}
+		let action = DeepGet(content, ...actions) || DefaultView(controller);
 		return action;
 	}
 	/**
