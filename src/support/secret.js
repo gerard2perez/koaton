@@ -2,6 +2,13 @@ import * as bcrypt from 'bcrypt';
 import debug from './debug';
 import * as crypto from 'crypto';
 
+/**
+ * Creates a hashed password
+ * @param {string} plainPassword
+ * @param {string} saltRounds
+ * @return {Promise<string>} hashed password
+ * @see https://github.com/kelektiv/node.bcrypt.js
+ */
 export function hash (plainPassword, saltRounds) {
 	return new Promise(function (resolve) {
 		bcrypt.hash(plainPassword, saltRounds, function (err, hash) {
@@ -12,7 +19,13 @@ export function hash (plainPassword, saltRounds) {
 		});
 	});
 }
-
+/**
+ * Campares a plain text password against a hashed password
+ * @param {string} plainPassword
+ * @param {string} hash
+ * @return {Promise<boolean>}
+ * @see https://github.com/kelektiv/node.bcrypt.js
+ */
 export function compare (plainPassword, hash) {
 	return new Promise(function (resolve) {
 		bcrypt.compare(plainPassword, hash, function (err, res) {
@@ -23,7 +36,12 @@ export function compare (plainPassword, hash) {
 		});
 	});
 }
-
+/**
+ * Generates random bytes
+ * @param {int} amount - Number of bytes to generate
+ * @return {Promise<string>} random bytes
+ * @see https://github.com/kelektiv/node.bcrypt.js
+ */
 export default function randomBytes (amount) {
 	return new Promise(function (resolve) {
 		crypto.randomBytes(amount, function (err, res) {

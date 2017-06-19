@@ -1,4 +1,3 @@
-/** @module orm*/
 import * as fs from 'fs-extra';
 import * as co from 'co';
 import * as path from 'upath';
@@ -10,23 +9,31 @@ import exendModel from '../support/extend_caminte';
 import debug from '../support/debug';
 
 // TODO: Create your own ORM, caminte worked but is not enough, remember LORM?
-const connection = configuration.connections[configuration.server.database.connection];
-let schema = new caminte.Schema(connection.driver, connection);
+/** @ignore */
+const connection = configuration.connections[configuration.server.database.connection],
+	exp = { databases: {} };
+/** @ignore */
+let schema = new caminte.Schema(connection.driver, connection),
+	relations = {};
 
 schema.Integer = schema.Number;
 schema.Email = schema.Text;
 schema.Password = schema.Text;
-// schema.point = schema.Point = function Point () { };
-// schema.mixed = schema.Mixed = function Mixed () { };
-const exp = {
-	databases: {}
-};
-let relations = {};
-async function exposeORM (ctx, next) {
+
+/**
+ * This middleware decodes the query param filterset which is expected in a jsurl format
+ * and appends jsurl to ctx.state
+ * @param {KoaContext} ctx
+ * @param {KoaNext} next
+ * @param {JSURL} ctx.state.db - reference attached.
+ * @param {JSURL} ctx.db - old reference attached this is now DEPRECATED.
+ */
+export async function ormMiddleware (ctx, next) {
 	ctx.db = exp.databases;
+	ctx.state.db = exp.databases;
 	await next();
 }
-
+/** @ignore */
 function relation (mode, dest) {
 	let [parent, key] = dest.split('.');
 	relations[this].push({
@@ -37,10 +44,53 @@ function relation (mode, dest) {
 	});
 	return relations[this].length - 1;
 }
-
+/**
+ * This function extends the CaminteJS relations, adding Many to Many support
+ */
+function makerelation (model, relation) {
+	let options = {
+		as: relation.As,
+		foreignKey: relation.key
+	};
+	let target = exp.databases[inflector.pluralize(relation.Children)];
+	if (relation.Rel !== 'manyToMany') {
+		exp.databases[model][relation.Rel](target, options);
+	} else {
+		exp.databases[model].prototype.many2many = exp.databases[model].prototype.many2many || {};
+		exp.databases[model].prototype.many2many[relation.Parent] = function (id, id2) {
+			if (id && id2) {
+				return exp.databases[relation.Children].findcre({
+					[`${model}ID`]: id,
+					[`${relation.Parent}ID`]: id2
+				});
+			}
+			return exp.databases[relation.Children].find({
+				where: {
+					[`${model}ID`]: id
+				}
+			}).then(records => {
+				let all = [];
+				for (const record of records) {
+					all.push(exp.databases[relation.Parent].findById(record[`${relation.Parent}ID`]));
+				}
+				return Promise.all(all);
+			});
+		};
+	}
+}
+/**
+* Make avaliable all the model definitions for various propurses
+* @private
+*/
 export let models = exp.databases;
-export function addModel (...args) {
-	let [modelName, definition] = args;
+/**
+ * This function allow to insert models to the database definition only during
+ * system setup should not be use while returning a requeset and only used during
+ * setup
+ * @param {string} modelName The name of the new model
+ * @param {KoatonModelv1} definition a version 1 model (based on CaminteJS)
+ */
+export function addModel (modelName, definition) {
 	relations[modelName] = [];
 	const rel = {
 		belongsTo: relation.bind(modelName, 'belongsTo'),
@@ -51,8 +101,12 @@ export function addModel (...args) {
 			let key1 = `${modelName}ID`;
 			let key2 = `${targetModel}ID`;
 			let Model = {
-				[key1]: {type: schema.String},
-				[key2]: {type: schema.String}
+				[key1]: {
+					type: schema.String
+				},
+				[key2]: {
+					type: schema.String
+				}
 			};
 			let Extra = {
 				indexes: {
@@ -90,10 +144,15 @@ export function addModel (...args) {
 	};
 	let model = schema.define(modelName, definition.model, Object.assign({}, definition.extra));
 	model.rawAPI = {};
-	// model.relations = definition.relations;
 	exp.databases[modelName] = exendModel(model);
 }
-export function initialize (seed) {
+/**
+ * Initialize the database registering all te model to the CaminteJS ORM
+ * and seeds all the models
+ * @param {boolean} [seed=false] if true reads the files in seed to populate database on start
+ * @return {boolean} Tells if the seed process was correctly executed
+ */
+export function initializeORM (seed) {
 	let res = null;
 	/* istanbul ignore next */
 	schema.on('error', (err) => {
@@ -107,33 +166,6 @@ export function initialize (seed) {
 			require(ProyPath(model)).default
 		);
 	}
-
-	const makerelation = function (model, relation) {
-		let options = { as: relation.As, foreignKey: relation.key };
-		let target = exp.databases[inflector.pluralize(relation.Children)];
-		if (relation.Rel !== 'manyToMany') {
-			exp.databases[model][relation.Rel](target, options);
-		} else {
-			exp.databases[model].prototype.many2many = exp.databases[model].prototype.many2many || {};
-			exp.databases[model].prototype.many2many[relation.Parent] = function (id, id2) {
-				if (id && id2) {
-					return exp.databases[relation.Children].findcre({
-						[`${model}ID`]: id,
-						[`${relation.Parent}ID`]: id2
-					});
-				}
-				return exp.databases[relation.Children].find({where: {
-					[`${model}ID`]: id
-				}}).then(records => {
-					let all = [];
-					for (const record of records) {
-						all.push(exp.databases[relation.Parent].findById(record[`${relation.Parent}ID`]));
-					}
-					return Promise.all(all);
-				});
-			};
-		}
-	};
 	for (let model in relations) {
 		relations[model].forEach(makerelation.bind(null, model));
 	}
@@ -147,7 +179,7 @@ export function initialize (seed) {
 					debug(`Sedding ${file}`);
 					let model = exp.databases[inflector.pluralize(file.toLowerCase())];
 					await require(ProyPath('seeds', file)).default(model.findcre);
-				} catch (err) /* istanbul ignore next*/{
+				} catch (err) /* istanbul ignore next*/ {
 					debug(err);
 				}
 			}
@@ -159,5 +191,5 @@ export function initialize (seed) {
 		}).catch(debug);
 	}
 	/* istanbul ignore if */
-	return seed ? res : exposeORM;
+	return res;
 }

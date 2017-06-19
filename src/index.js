@@ -39,7 +39,8 @@ const oAuth2Server = koaton.oauth2server.oauth2server();
 const BodyParser = bodyParser(configuration.server.bodyParser);
 const Helmet = helmet(configuration.server.helmet);
 
-App.use(koaton.orm.initialize(false));
+koaton.orm.initializeORM(false);
+App.use(koaton.orm.ormMiddleware);
 koaton.oauth2server.setAuthModel();
 koaton.oauth2server = oAuth2Server;
 
