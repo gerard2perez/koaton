@@ -138,7 +138,7 @@ App.stack = function (...args) {
 	}
 };
 App.start = function (port) {
-	for (const route of allowed) {
+	for (const route of koaton.router.options()) {
 		App.use(route);
 	}
 	return App.listen(port, () => {
