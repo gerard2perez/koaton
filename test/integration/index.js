@@ -4,7 +4,7 @@ process.chdir('testingapp');
 process.env.port = 62650;
 process.env.NODE_ENV = 'development';
 
-let koaton = require('../../src');
+let koaton = require('../../src').default;
 if (!process.env.TRAVIS) {
 	buildHosts();
 }

@@ -3,7 +3,25 @@ import toMongooseStringQuery from './toMongooseStringQuery';
 import * as Router from 'koa-router';
 import * as path from 'upath';
 
-async function restify (modelinstance, /* istanbul ignore next */ relations = {}, MODEL = {}) {
+/**
+ * Gets the private or public router
+ * @private
+ * @param {Object} routers
+ * @param {string} indetifier='private'
+ * @return {KoaRouter}
+ */
+function pOrp (routers, identifier = 'private') {
+	return routers[identifier];
+}
+/**
+ * Convert a CaminteJS Model Instance into a plain json Object
+ * I won't give a lot of detail in this function since it will be deprecated when I
+ * create my own ORM
+ * @param {CaminteJS} modelinstance
+ * @param {Object} retations={}
+ * @param {Object} MODEL={}
+ */
+export async function restify (modelinstance, /* istanbul ignore next */ relations = {}, MODEL = {}) {
 	let model = modelinstance.toJSON ? modelinstance.toJSON() : modelinstance;
 	for (const key of Object.keys(relations)) {
 		const keyTo = relations[key].keyTo === 'id' ? '_id' : relations[key].keyTo;
@@ -56,13 +74,16 @@ async function restify (modelinstance, /* istanbul ignore next */ relations = {}
 	}
 	return model;
 }
-
-const pOrp = function (routers, spec) {
-	let router = spec || 'private';
-	return routers[router];
-};
-
-async function REST_POST_SINGLE (Model, model, entity = null) {
+/**
+ * Handles the insertion of a single model
+ * I won't give a lot of detail in this function since it will be deprecated when I
+ * create my own ORM
+ * @param {CaminteJS} Instance
+ * @param {Object} model - the information to be stored
+ * @param {Object} entity=null
+ * @return {Object}
+ */
+export async function REST_POST_SINGLE (Model, model, entity = null) {
 	if (!entity) {
 		entity = await Model.create(model);
 	}
@@ -133,8 +154,16 @@ async function REST_POST_SINGLE (Model, model, entity = null) {
 	}
 	return Object.assign({}, entity.toJSON(), modelRelations);
 }
-
-function RestModel (options, route, modelname) {
+/**
+ * Creates the REST routes
+ * I won't give a lot of detail in this function since it will be deprecated when I
+ * create my own ORM
+ * @param {options} Instance
+ * @param {route} route - base route to mount everyting
+ * @param {String} modelname - Name of the model associated with the routes
+ * @param {KoaRouter[]} - return a plubic and a private router for the rest routes
+ */
+export function RestModel (options, route, modelname) {
 	let routers = {
 		public: new Router(),
 		private: new Router()
@@ -241,5 +270,3 @@ function RestModel (options, route, modelname) {
 	routers.path = path.join('/', mountRoute);
 	return routers;
 }
-
-export {RestModel, restify, REST_POST_SINGLE};

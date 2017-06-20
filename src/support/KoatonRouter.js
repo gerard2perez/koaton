@@ -110,9 +110,9 @@ export default class KoatonRouter {
 	}
 	/**
 	 * find what is the best mathching action for the given router and binding
-	 * @param {KoaRouter}
+	 * @param {KoaRouter} - The router
 	 * @param {String} binding - a dot separated action. example: 'school.get'
-	 * @return {async function(ctx: KoaContext, next: KoaNext)} handles the route
+	 * @return {function(ctx: KoaContext, next: KoaNext)} handles the route
 	 */
 	static findAction (router, binding) {
 		let [controller, ...actions] = binding.split('.');

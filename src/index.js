@@ -13,12 +13,15 @@
 /**
  * @external {Verb} http://www.restapitutorial.com/lessons/httpmethods.html
  */
+/**
+ * @external {CaminteJS} http://www.camintejs.com/en/guide
+ */
 import 'colors';
 import * as passport from 'koa-passport';
 import { line1, line2 } from './support/consoleLines';
 import './support/globals';
 import include from './support/include';
-import views from './views';
+import * as views from './views';
 import * as KStatic from 'koa-static';
 import * as bodyParser from 'koa-bodyparser';
 import * as session from 'koa-session';
@@ -27,22 +30,23 @@ import * as Koa from 'koa';
 import * as path from 'path';
 import * as fs from 'fs';
 // TODO: This setup is for legacy compability
-let App = new Koa();
+/** @ignore */
+let App = new Koa(),
+	koaton = include(path.join(__dirname, 'middleware'));
 
 /* istanbul ignore next */
 if (process.env.NODE_ENV === 'development') {
 	const logger = require('koa-logger');
 	App.use(logger());
 }
+/** @ignore */
 
-let koaton = include(path.join(__dirname, 'middleware'));
-const view = views(configuration.views);
-const ServeStatic = KStatic(configuration.static.directory || /* istanbul ignore next */ ProyPath('public'), configuration.static.configuration);
-const {i18nHelper, i18nMiddleware} = koaton.localization(App);
-const oAuth2Server = koaton.oauth2server.oauth2server();
-const BodyParser = bodyParser(configuration.server.bodyParser);
-const Helmet = helmet(configuration.server.helmet);
-
+const ServeStatic = KStatic(configuration.static.directory || /* istanbul ignore next */ ProyPath('public'), configuration.static.configuration),
+	{i18nHelper, i18nMiddleware} = koaton.localization(App),
+	oAuth2Server = koaton.oauth2server.oauth2server(),
+	BodyParser = bodyParser(configuration.server.bodyParser),
+	Helmet = helmet(configuration.server.helmet);
+views.initialize();
 koaton.orm.initializeORM(false);
 App.use(koaton.orm.ormMiddleware);
 koaton.oauth2server.setAuthModel();
@@ -59,88 +63,88 @@ delete koaton.server_models;
 
 Object.defineProperty(App, 'helmet', {
 	configurable: false,
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return Helmet;
 	}
 });
 Object.defineProperty(App, 'session', {
 	configurable: false,
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return session;
 	}
 });
 Object.defineProperty(App, 'bodyparser', {
 	configurable: false,
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return BodyParser;
 	}
 });
 
 Object.defineProperty(App, 'views', {
-	enumerable: true,
+	enumerable: false,
 	get () {
-		return view;
+		return views.viewsMiddleware;
 	}
 });
 Object.defineProperty(App, 'oAuth2Server', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return oAuth2Server;
 	}
 });
 Object.defineProperty(App, 'subdomainrouter', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return koaton.subdomainrouter;
 	}
 });
 
 Object.defineProperty(App, 'cached', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return koaton.cached;
 	}
 });
 
 Object.defineProperty(App, 'passport', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return passport;
 	}
 });
 Object.defineProperty(App, 'jsurl', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return koaton.jsurl;
 	}
 });
 Object.defineProperty(App, 'static', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return ServeStatic;
 	}
 });
 Object.defineProperty(App, 'localization', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return i18nMiddleware;
 	}
 });
 Object.defineProperty(App, 'i18nHelper', {
-	enumerable: true,
+	enumerable: false,
 	get () {
 		return i18nHelper;
 	}
 });
-/* istanbul ignore next */
-App.stack = function (...args) {
-	for (const middleware in args) {
-		App.use(middleware);
-	}
-};
+
+/**
+ * function to make you server avaliable
+ * @param {int} port -  the port where to listen defaults to 62626
+ * @return {http.Server}
+ */
 App.start = function (port) {
 	for (const route of koaton.router.options()) {
 		App.use(route);
@@ -174,4 +178,9 @@ App.start = function (port) {
 		return App.listen(port, callback);
 	}
 };
-module.exports = App;
+/**
+ * Export the original Koa server with some properties attached
+ * @type {Koa}
+ * @property {function} start
+ */
+export { App as default };

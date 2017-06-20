@@ -1,6 +1,6 @@
 import inflector from './inflector';
 import debug from './debug';
-
+/** @ignore */
 async function prepareQuery (database, model, query, item) {
 	let [modelname, property] = item.split('.');
 	let prequery = {};
@@ -32,6 +32,7 @@ async function prepareQuery (database, model, query, item) {
 		value: finds.map(m => m._id)
 	};
 }
+/** @ignore */
 async function getQuery (database, model, filtergroup) {
 	let group = [];
 	for (let index in filtergroup) {
@@ -65,7 +66,7 @@ async function getQuery (database, model, filtergroup) {
 	}
 	return group.join(' ');
 }
-
+/** @ignore */
 async function buildFilterSet (query, model, database) {
 	let filterset = query.filterset || [];
 	if (query.filterset) {
@@ -92,7 +93,7 @@ async function buildFilterSet (query, model, database) {
 	}
 	return filterset;
 }
-
+/** @ignore */
 export default async function toMongooseStringQuery (queryBody, model, database) {
 	let filterset = await buildFilterSet(queryBody, model, database);
 	let query = [];
