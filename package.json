@@ -2,11 +2,11 @@
   "name": "koaton",
   "version": "0.0.0-semantic-release",
   "description": "Koaton is a fullstack framework based on Koa.",
-  "main": "./lib/index.js",
+  "main": "./index.js",
   "scripts": {
-	"jsdoc": "jsdoc -R README.md src -r & esdoc",
+    "jsdoc": "jsdoc -R README.md src -r & esdoc",
     "esdoc": "esdoc",
-    "export": "koaton-exporter src/*.js src/**/*.js lib -r src/ -t v2",
+    "export": "koaton-exporter src/*.js src/**/*.js ./ -r src/ -t v2",
     "eslint": "eslint src --ignore-path .gitignore",
     "test": "node utils/dropdatabase.js & cross-env DEBUG=koaton mocha test/unit/BundleItem.js test/integration/index.js --compilers js:babel-register",
     "cover": "nyc npm t",
@@ -24,12 +24,12 @@
     "commit": "git add -A & git-cz",
     "semantic-release": "semantic-release pre && npm publish && semantic-release post"
   },
-  "directories": {
-    "lib": "lib"
-  },
   "files": [
     "scripts",
-    "lib/**/*.js",
+    "middleware/**/*.js",
+    "support/**/*.js",
+    "views/**/*.js",
+    "index.js",
     "README.md",
     "LICENSE"
   ],
@@ -57,6 +57,7 @@
     "caminte": "git+https://github.com/gerard2p/caminte.git",
     "colors": "^1.1.2",
     "debug": "^2.6.8",
+    "esdoc": "^1.0.0-alpha.8",
     "i": "^0.3.5",
     "jsurl": "^0.1.5",
     "koa": "^2.2.0",
