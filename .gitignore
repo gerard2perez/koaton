@@ -15,3 +15,7 @@ testingapp
 /lib/
 *.tgz
 *.log.*
+/support/
+/views/
+/middleware/
+/index.js

@@ -20,7 +20,7 @@ const testedEngines = [ 'handlebars', 'nunjucks' ],
 		}
 	};
 if (Object.keys(npmpackage.dependencies).indexOf('mongoose') > -1) {
-	require('mongoose').Promise = require('bluebird');
+	require(ProyPath('node_modules', 'mongoose')).Promise = require('bluebird');
 }
 /** @ignore */
 let extMapper = {

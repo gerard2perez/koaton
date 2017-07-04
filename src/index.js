@@ -60,7 +60,6 @@ delete koaton.auth.initialize;
 delete koaton.router.initialize;
 delete koaton.orm.initialize;
 delete koaton.server_models;
-
 Object.defineProperty(App, 'helmet', {
 	configurable: false,
 	enumerable: false,
@@ -149,6 +148,7 @@ App.start = function (port) {
 	for (const route of koaton.router.options()) {
 		App.use(route);
 	}
+	App.use(koaton.error);
 	let callback = () => {
 		/* istanbul ignore else  */
 		if (process.env.NODE_ENV === 'development') {
