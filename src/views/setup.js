@@ -48,6 +48,17 @@ function nunjucks () {
 		}
 		return Kmetadata.bundles[bundle].toString();
 	});
+	env.addFilter('i18n', function (key, locale) {
+		if (locale) {
+			let loc = i18n.getLocale();
+			i18n.setLocale(locale);
+			let res = i18n.__(key);
+			i18n.setLocale(loc);
+			return res;
+		} else {
+			return i18n.__(key);
+		}
+	});
 	return env;
 }
 
