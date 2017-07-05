@@ -7,8 +7,9 @@ describe('Simple Router Responses', function () {
 			// assert.ok(false, '');
 			assert.equal(response.statusCode, 200);
 			assert.equal(response.headers['content-type'], 'application/octet-stream');
+		}).on('error', done).then(function () {
 			done(null, null);
-		}).on('error', done);
+		});
 	});
 	it('return a 404', function (done) {
 		server.expect(404);
