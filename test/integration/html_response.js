@@ -10,6 +10,13 @@ describe('Simple Router Responses', function () {
 			done(null, null);
 		}).on('error', done);
 	});
+	it('return a 404', function (done) {
+		server.expect(404);
+		server.url('koaton.test').get('/findme').then(body => {
+			assert.ok(body.html().indexOf('gerard2perez@outlook.com') > -1);
+			done();
+		});
+	});
 	it('sends static content', function (done) {
 		server.url('koaton.test').post('/download').then(res => {
 			assert.ok(res);

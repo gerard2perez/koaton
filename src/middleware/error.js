@@ -443,14 +443,12 @@ let codes = [
 export default async function error (ctx, next) {
 	await next();
 	if (ctx.body === undefined && ctx.status >= 400 && ctx.accepts('html') === 'html') {
-		console.log(ctx.status, ctx.body);
-		let code = codes.filter(c => c.code == ctx.status)[0];
+		let status = ctx.status;
+		let code = codes.filter(c => c.code === ctx.status.toString())[0];
 		await ctx.render(configuration.server.error.layout, Object.assign({
 			short_description: code.phrase,
 			error: code.code
 		}, configuration.server.error.data));
+		ctx.status = status;
 	}
-	// else {
-	// 	await next();
-	// }
 }
