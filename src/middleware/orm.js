@@ -123,7 +123,7 @@ export function addModel (modelName, definition) {
 				Rel: 'manyToMany',
 				Parent: targetModel
 			});
-			relations[targetModel] = relations[targetModel] || [];
+			relations[targetModel] = relations[targetModel] || /* istanbul ignore next */[];
 			relations[targetModel].push({
 				Parent: modelName,
 				Rel: 'manyToMany',

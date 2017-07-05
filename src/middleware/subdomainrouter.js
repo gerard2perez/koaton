@@ -8,6 +8,7 @@ import { routers } from './router';
 export default async function subdomainrouter (ctx, next) {
 	let [subdomain = 'www'] = ctx.request.subdomains;
 	ctx.subdomain = subdomain;
+	/* istanbul ignore next */
 	let origin = ctx.headers.origin ? ctx.headers.origin : ctx.request.origin;
 	if (origin.indexOf(configuration.server.host) > -1) {
 		ctx.response.set('Access-Control-Allow-Origin', origin);

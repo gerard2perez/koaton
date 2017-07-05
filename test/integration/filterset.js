@@ -72,6 +72,32 @@ describe('Paginator', function () {
 			done(null, true);
 		}, done).catch(done);
 	});
+	it('Finds a sucursal by exact name', function (done) {
+		let encoded = JSURL.stringify([
+			{
+				filters: [
+					{key: 'name', condition: '===', value: 'Sucursal 1'}
+				]
+			}
+		]);
+		server.headers(global.headers).get(`sucursals?filterset=${encoded}`).then(body => {
+			assert.equal(body.sucursals[0].name, 'Sucursal 1');
+			done(null, true);
+		}, done).catch(done);
+	});
+	it('Finds a sucursal by exact book title', function (done) {
+		let encoded = JSURL.stringify([
+			{
+				filters: [
+					{key: 'distributor.name', condition: '===', value: 'Big Cheif'}
+				]
+			}
+		]);
+		server.headers(global.headers).get(`books?filterset=${encoded}`).then(body => {
+			assert.ok(body.books.length > 0);
+			done(null, true);
+		}, done).catch(done);
+	});
 	it('Makes use of my powerfull filtersets (2)', function (done) {
 		let encoded = JSURL.stringify([
 			{

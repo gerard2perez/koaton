@@ -38,6 +38,7 @@ describe('CRUD REST API Related Models', function () {
 			done(null, true);
 		}, done).catch(done);
 	});
+
 	it('Creates a book with id pages', function (done) {
 		server.expect(201);
 		server.headers(global.headers).post('books', {
@@ -69,6 +70,12 @@ describe('CRUD REST API Related Models', function () {
 			done(null, true);
 		}, done).catch(done);
 	});
+	it('Finds books by a given distributor', function (done) {
+		server.headers(global.headers).get(`books?distributor.id=${distributor}`).then(json => {
+			assert.equal(json.books.length, 1);
+			done(null, json);
+		});
+	});
 	it('Creates a sucursals append a book', function (done) {
 		server.expect(201);
 		server.headers(global.headers).post('sucursals', {
@@ -82,6 +89,7 @@ describe('CRUD REST API Related Models', function () {
 			done(null, true);
 		}, done).catch(done);
 	});
+
 	it('Creates a book with no pages', function (done) {
 		server.expect(201);
 		server.headers(global.headers).post('books', {
@@ -101,6 +109,7 @@ describe('CRUD REST API Related Models', function () {
 			done(null, true);
 		}, done).catch(done);
 	});
+
 	it('Get content with relation mode set to objects', function (done) {
 		Object.defineProperty(configuration.server.database, 'relationsMode', {value: 'objects'});
 		server.headers(global.headers).get('books').then(body => {

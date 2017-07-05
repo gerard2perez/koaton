@@ -35,6 +35,7 @@ function getuser (username, password, done) {
  * @return {Promise<AuthModel>|undefined} - if callback is not set it will return a promise
  */
 function getUser (username, password, callback = null) {
+	/* istanbul ignore else */
 	if (callback == null) {
 		return new Promise(function (resolve) {
 			function done (_, data) {
@@ -53,7 +54,7 @@ function getUser (username, password, callback = null) {
  * @param {Object} [body={}] - Information that might be passed to the model creation.
  * @return {Promise<AuthModel>} - if callback is not set it will return a promise
  */
-async function createUser (username, password, body = {}) {
+async function createUser (username, password, /* istanbul ignore next*/ body = {}) {
 	const user = await getUser(username, password);
 	body[configuration.security.username] = username;
 	body[configuration.security.password] = await hash(password, 5);
@@ -87,7 +88,7 @@ function loadSecurityContext () {
 			let component = STR.package || /* istanbul ignore next: I have to change the proyect structure*/`passport-${strategy}`;
 			let Strategy = require(ProyPath('node_modules', component));
 			let args = [];
-			/* istanbul ignore else */
+			/* istanbul ignore next */
 			if (STR.strategy) {
 				Strategy = Strategy[STR.strategy];
 			}

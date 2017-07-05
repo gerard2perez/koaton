@@ -14,6 +14,7 @@ let subdomainRouters,
  * @return {async function(ctx: KoaContext, next: KoaNext)} renders the view
  */
 function serveapp (directory) {
+	/* istanbul ignore next*/
 	return async function serveEmberAPP (ctx, next) {
 		await next();
 		if (!ctx.body) {
@@ -31,6 +32,7 @@ function serveapp (directory) {
 function EvalRoute (ctx, next) {
 	let router = this;
 	let matched = router.match(router.opts.routerPath || ctx.routerPath || ctx.path, ctx.method);
+	/* istanbul ignore else*/
 	if (ctx.matched) {
 		ctx.matched.push.apply(ctx.matched, matched.path);
 	} else {

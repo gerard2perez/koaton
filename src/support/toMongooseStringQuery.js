@@ -5,7 +5,7 @@ async function prepareQuery (database, model, query, item) {
 	let [modelname, property] = item.split('.');
 	let prequery = {};
 	let value = (query.value ? query.value : query[item]);
-	value = query.condition === '===' ? value : new RegExp(`.*${value}.*`);
+	value = query.condition === '===' ? value : (property === 'id' ? value : new RegExp(`.*${value}.*`));
 	prequery[property] = value;
 	let finds = [];
 	if (property === 'id') {

@@ -21,7 +21,8 @@ function pOrp (routers, identifier = 'private') {
  * @param {Object} retations={}
  * @param {Object} MODEL={}
  */
-export async function restify (modelinstance, /* istanbul ignore next */ relations = {}, MODEL = {}) {
+export async function restify (modelinstance, /* istanbul ignore next */ relations = {}, /* istanbul ignore next */MODEL = {}) {
+	/* istanbul ignore next */
 	let model = modelinstance.toJSON ? modelinstance.toJSON() : modelinstance;
 	for (const key of Object.keys(relations)) {
 		const keyTo = relations[key].keyTo === 'id' ? '_id' : relations[key].keyTo;
@@ -233,6 +234,7 @@ export function RestModel (options, route, modelname) {
 					break;
 				case 'belongsTo':
 					let data = ctx.request.body[ctx.params.child];
+					/* istanbul ignore next */
 					if (typeof data === 'object') {
 						data = (await child.modelTo.create(data))._id;
 					}

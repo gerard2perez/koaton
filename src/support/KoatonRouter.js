@@ -117,6 +117,7 @@ export default class KoatonRouter {
 	static findAction (router, binding) {
 		let [controller, ...actions] = binding.split('.');
 		let content = requireSafe(ProyPath(router.loc, 'controllers', controller), null);
+		/* istanbul ignore if */
 		if (content && !content.default) {
 			console.warn(`${controller} controller does not export any default. This will not be supported`);
 		} else if (content && content.default) {
