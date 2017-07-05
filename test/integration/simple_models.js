@@ -5,7 +5,7 @@ describe('CRUD REST API Simple Models', function () {
 	let id,
 		id2;
 	it('Checks for the available verbs', function (done) {
-		server.expect(204);
+		server.expect(200);
 		server.options('users').then(json => {
 			done(null, json);
 		});
