@@ -2,7 +2,7 @@ import { hash, compare } from '../support/secret';
 import * as passport from 'koa-passport';
 import { models } from './orm';
 import inflector from '../support/inflector';
-import * as debug from '../support/debug';
+import debug from '../support/debug';
 
 let AuthModel;
 /**
