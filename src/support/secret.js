@@ -12,10 +12,12 @@ import * as crypto from 'crypto';
 export function hash (plainPassword, saltRounds) {
 	return new Promise(function (resolve) {
 		bcrypt.hash(plainPassword, saltRounds, function (err, hash) {
+			/* istanbul ignore if */
 			if (err) {
 				debug(err);
+			} else {
+				resolve(hash);
 			}
-			resolve(hash);
 		});
 	});
 }
@@ -29,10 +31,12 @@ export function hash (plainPassword, saltRounds) {
 export function compare (plainPassword, hash) {
 	return new Promise(function (resolve) {
 		bcrypt.compare(plainPassword, hash, function (err, res) {
+			/* istanbul ignore if */
 			if (err) {
 				debug(err);
+			} else {
+				resolve(res);
 			}
-			resolve(res);
 		});
 	});
 }
@@ -45,10 +49,12 @@ export function compare (plainPassword, hash) {
 export default function randomBytes (amount) {
 	return new Promise(function (resolve) {
 		crypto.randomBytes(amount, function (err, res) {
+			/* istanbul ignore if */
 			if (err) {
 				debug(err);
+			} else {
+				resolve(res);
 			}
-			resolve(res);
 		});
 	});
 }

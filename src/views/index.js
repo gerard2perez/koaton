@@ -19,6 +19,7 @@ const testedEngines = [ 'handlebars', 'nunjucks' ],
 			return false;
 		}
 	};
+	/* istanbul ignore next */
 if (Object.keys(npmpackage.dependencies).indexOf('mongoose') > -1) {
 	require(ProyPath('node_modules', 'mongoose')).Promise = require('bluebird');
 }

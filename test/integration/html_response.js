@@ -10,6 +10,12 @@ describe('Simple Router Responses', function () {
 			done(null, null);
 		}).on('error', done);
 	});
+	it('sends static content', function (done) {
+		server.url('koaton.test').post('/download').then(res => {
+			assert.ok(res);
+			done();
+		});
+	});
 	it('gets a html response', function (done) {
 		server.url('koaton.t3st').get('/').then(function (body) {
 			done(null, null);
@@ -37,7 +43,17 @@ describe('Simple Router Responses', function () {
 	});
 	it('gets a compiled noengine response', function (done) {
 		server.get('/nunjucks').then(function (body) {
-			assert.ok(body.html().indexOf('<title>Nunjucks tile</title>') > -1);
+			assert.ok(body.html().indexOf('<title>Nunjucks title</title>') > -1);
+			assert.ok(body.html().indexOf('Translated') > -1);
+			assert.ok(body.html().indexOf('Traducido') > -1);
+			done(null, null);
+		}, done).catch(done);
+	});
+	it('translates handlebars page', function (done) {
+		server.get('/handlebars').then(function (body) {
+			assert.ok(body.html().indexOf('<title>Handlebars Title</title>') > -1);
+			assert.ok(body.html().indexOf('Translated') > -1);
+			assert.ok(body.html().indexOf('Traducido') > -1);
 			done(null, null);
 		}, done).catch(done);
 	});

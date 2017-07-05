@@ -39,8 +39,9 @@ if (process.env.NODE_ENV === 'development') {
 	const logger = require('koa-logger');
 	App.use(logger());
 }
-/** @ignore */
 
+App.use(koaton.error);
+/** @ignore */
 const ServeStatic = KStatic(configuration.static.directory || /* istanbul ignore next */ ProyPath('public'), configuration.static.configuration),
 	{i18nHelper, i18nMiddleware} = koaton.localization(App),
 	oAuth2Server = koaton.oauth2server.oauth2server(),
@@ -148,7 +149,6 @@ App.start = function (port) {
 	for (const route of koaton.router.options()) {
 		App.use(route);
 	}
-	App.use(koaton.error);
 	let callback = () => {
 		/* istanbul ignore else  */
 		if (process.env.NODE_ENV === 'development') {
@@ -169,6 +169,7 @@ App.start = function (port) {
 		}
 	};
 	const https = configuration.server.https;
+	/* istanbul ignore next */
 	if (https && https.key && https.cert) {
 		return require('https').createServer({
 			key: fs.readFileSync(https.key),

@@ -1,5 +1,4 @@
-import { hash } from '../support/secret';
-import { compare } from 'bcrypt';
+import { hash, compare } from '../support/secret';
 import * as passport from 'koa-passport';
 import { models } from './orm';
 import inflector from '../support/inflector';
@@ -20,11 +19,7 @@ function getuser (username, password, done) {
 		where: query
 	}).then((user) => {
 		if (user !== null) {
-			compare(password, user[configuration.security.password], (err, res) => {
-				/* istanbul ignore if */
-				if (err) {
-					console.error(err);
-				}
+			compare(password, user[configuration.security.password]).then(res => {
 				done(null, res ? user : null);
 			});
 		} else {

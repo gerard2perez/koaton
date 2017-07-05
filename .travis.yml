@@ -2,7 +2,7 @@
 branches:
   only:
     - master
-    - yml
+    - v2
 services:
   - mongodb
 language: node_js

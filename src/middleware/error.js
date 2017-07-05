@@ -1,3 +1,4 @@
+/** @ignore */
 let codes = [
 	{
 		'code': '1xx',
@@ -434,14 +435,22 @@ let codes = [
 		'spec_href': 'http://documentup.com/joho/7XX-rfc'
 	}
 ];
+/**
+ * This middleware cache all response states that are errors and shows and html response for them if accepts has html
+ * @param {KoaContext} ctx
+ * @param {KoaNext} next
+ */
 export default async function error (ctx, next) {
-	if (!ctx.body && ctx.status >= 400) {
-		let code = codes.filter(c=> c.code == ctx.status)[0];
+	await next();
+	if (ctx.body === undefined && ctx.status >= 400 && ctx.accepts('html') === 'html') {
+		console.log(ctx.status, ctx.body);
+		let code = codes.filter(c => c.code == ctx.status)[0];
 		await ctx.render(configuration.server.error.layout, Object.assign({
 			short_description: code.phrase,
 			error: code.code
 		}, configuration.server.error.data));
-	} else {
-		await next();
 	}
+	// else {
+	// 	await next();
+	// }
 }

@@ -17,6 +17,7 @@ export default function (model) {
 			model[fn] = function (...args) {
 				return new Promise(function (resolve, reject) {
 					rawFN(...args, function (err, res) {
+						/* istanbul ignore if */
 						if (err) {
 							reject(err);
 						} else {
@@ -93,6 +94,7 @@ export default function (model) {
 				data[field] = query[field];
 			});
 			return that.findOne({where: query}).then((res) => {
+				/* istanbul ignore else */
 				if (res === null) {
 					return that.create(data);
 				} else {
