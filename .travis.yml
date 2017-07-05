@@ -30,6 +30,7 @@ cache:
     - node_modules
 before_install:
   - npm config set spin false
+  - npm install -g semantic-release
   - npm install -g codeclimate-test-reporter
 install:
   - npm i .
