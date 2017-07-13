@@ -172,26 +172,35 @@ export function RestModel (options, route, modelname) {
 	let mountRoute = route.replace(/\/$/, '');
 	pOrp(routers, options.get).get('/', async function REST_GET (ctx, next) {
 		let res = {},
-			filteroptions = {
-				skip: 0
-			};
-		filteroptions.limit = isNaN(ctx.query.size) ? (isNaN(configuration.server.pagination.limit) ? /* istanbul ignore next */ 50 : configuration.server.pagination.limit) : parseInt(ctx.query.size, 10);
+			filteroptions = { skip: 0 };
+		filteroptions.limit = isNaN(ctx.query.size) ? isNaN(configuration.server.pagination.limit) ? /* istanbul ignore next */50 : configuration.server.pagination.limit : parseInt(ctx.query.size, 10);
 		if (ctx.query.size) {
 			delete ctx.query.size;
 		}
 		if (ctx.query.page) {
-			filteroptions.skip = ((ctx.query.page * 1) - 1) * filteroptions.limit;
+			filteroptions.skip = (ctx.query.page * 1 - 1) * filteroptions.limit;
 			delete ctx.query.page;
 		}
-		let filterset = await toMongooseStringQuery(ctx.query, ctx.model, ctx.db);
+		let rawmodels;
+		let total;
+		if (ctx.query.filterset) {
+			let filterset = await toMongooseStringQuery(ctx.query, ctx.model, ctx.db);
+			rawmodels = await ctx.model.rawWhere(filterset, filteroptions);
+			total = await ctx.model.rawCount(filterset);
+		} else {
+			let finalq = Object.assign({}, {where: ctx.query}, filteroptions);
+			rawmodels = await ctx.model.find(finalq);
+			total = await ctx.model.count(ctx.query);
+		}
 		res.meta = {
-			page: Math.floor((filteroptions.skip / filteroptions.limit)) + 1,
+			page: Math.floor(filteroptions.skip / filteroptions.limit) + 1,
 			page_size: filteroptions.limit,
-			total: await ctx.model.rawCount(filterset)
+			total
 		};
-		let rawmodels = (await ctx.model.rawWhere(filterset, filteroptions));
-		for (const idx in rawmodels) {
-			rawmodels[idx] = await restify(await ctx.model.findById(rawmodels[idx].id), ctx.model.relations, ctx.model);
+		if (Object.keys(ctx.model.relations).length > 0) {
+			for (const idx in rawmodels) {
+				rawmodels[idx] = await restify((await ctx.model.findById(rawmodels[idx].id)), ctx.model.relations, ctx.model);
+			}
 		}
 		res[modelname] = rawmodels;
 		ctx.body = res;

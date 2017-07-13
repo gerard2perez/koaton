@@ -188,7 +188,7 @@ export function initializeORM (seed) {
 				debug('Nothing to seed');
 			}
 			line2(true);
-		}).catch(debug);
+		});
 	}
 	/* istanbul ignore if */
 	return res;
