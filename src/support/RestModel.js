@@ -183,7 +183,14 @@ export function RestModel (options, route, modelname) {
 		}
 		let rawmodels;
 		let total;
-		if (ctx.query.filterset) {
+		let usemongoose = false;
+		for (const key of Object.keys(ctx.query)) {
+			if (key.indexOf('.') > -1) {
+				usemongoose = true;
+				break;
+			}
+		}
+		if (ctx.query.filterset || usemongoose) {
 			let filterset = await toMongooseStringQuery(ctx.query, ctx.model, ctx.db);
 			rawmodels = await ctx.model.rawWhere(filterset, filteroptions);
 			total = await ctx.model.rawCount(filterset);
