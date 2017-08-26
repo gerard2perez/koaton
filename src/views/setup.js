@@ -1,6 +1,6 @@
 import { sync as glob } from 'glob';
 import { basename } from 'upath';
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
 
 /**
  * Initialize layout support for handlebars, bundle helper, i18n helpers

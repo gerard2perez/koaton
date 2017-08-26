@@ -1,6 +1,6 @@
 import * as render from 'consolidate';
 import { extname, resolve, basename } from 'upath';
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
 import * as Promise from 'bluebird';
 import * as SetUpEngines from './setup';
 import debug from '../support/debug';

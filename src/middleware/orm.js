@@ -1,4 +1,4 @@
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
 import * as co from 'co';
 import * as path from 'upath';
 import { sync as glob } from 'glob';

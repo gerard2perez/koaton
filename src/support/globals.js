@@ -3,7 +3,7 @@ import * as path from 'upath';
 import Configuration from './configuration';
 import { sync as glob } from 'glob';
 import BundleItem from './BundleItem';
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
 
 /**
  * Makes and Object iterable.
@@ -96,7 +96,7 @@ global.Kmetadata = {
 	bundles: {}
 };
 if (glob('./.koaton').length === 1) {
-	let koaton = fs.readJsonSync(ProyPath('.koaton'));
+	let koaton = JSON.parse(fs.readFileSync(ProyPath('.koaton'), 'utf-8'));
 	for (const bundle of Object.keys(koaton.bundles)) {
 		Kmetadata.bundles[bundle] = new BundleItem(bundle, koaton.bundles[bundle]);
 	}

@@ -1,6 +1,6 @@
 import * as calculate from 'etag';
 import * as Stream from 'stream';
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
 
 /** @ignore */
 /* istanbul ignore next*/
