@@ -1,7 +1,6 @@
 import * as render from 'consolidate';
 import { extname, resolve, basename } from 'upath';
 import * as fs from 'fs';
-import * as Promise from 'bluebird';
 import * as SetUpEngines from './setup';
 import debug from '../support/debug';
 
@@ -21,7 +20,7 @@ const testedEngines = [ 'handlebars', 'nunjucks' ],
 	};
 	/* istanbul ignore next */
 if (Object.keys(npmpackage.dependencies).indexOf('mongoose') > -1) {
-	require(ProyPath('node_modules', 'mongoose')).Promise = require('bluebird');
+	require(ProyPath('node_modules', 'mongoose')).Promise = Promise;
 }
 /** @ignore */
 let extMapper = {

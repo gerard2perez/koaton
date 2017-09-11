@@ -1,5 +1,3 @@
-import * as Promise from 'bluebird';
-
 /** @ignore */
 const promesifythem = ['exists', 'create', 'findOrCreate', 'findOne', 'findById', 'find', 'all', 'run', 'updateOrCreate', 'upsert', 'update', 'remove', 'destroyById', 'destroy', 'count'
 // , 'destroyAll'
