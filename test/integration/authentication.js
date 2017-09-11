@@ -56,13 +56,13 @@ describe('REST APP Authentication', function () {
 	});
 
 	it('Can\'t get an access token (uncomplete args)', function (done) {
-		server.expect(406);
+		server.expect(400);
 		server.post('token/?response_type=code', {
 			grant_type: 'password'
 		}).then(done.bind(null, null), done).catch(done);
 	});
 	it('Can\'t get an access token (bad password)', function (done) {
-		server.expect(403);
+		server.expect(401);
 		server.post('token/?response_type=password&client_id=123456', {
 			username: 'agent',
 			password: '003',

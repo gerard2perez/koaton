@@ -166,9 +166,8 @@ export function oauth2server () {
 					user: ctx.req.user
 				}
 			};
-			// ctx.request.body = ctx.request.body;
 			const type = grantType[ctx.request.body.grant_type];
-			switch (ctx.request.query.response_type) {
+			switch (ctx.query.response_type) {
 				case 'code':
 					ctx.request.body.code = (await secret(16)).toString('hex');
 					break;
@@ -185,7 +184,7 @@ export function oauth2server () {
 			} /* istanbul ignore next */ else if (type.indexOf(ctx.state.data.client.AuthorizationGrantType) === -1) {
 				ctx.response.status = 500;
 			} else {
-				await server._exchange(exchanges[ctx.request.query.response_type], ctx, /* istanbul ignore next */ function (err) {
+				await server._exchange(exchanges[ctx.query.response_type], ctx, /* istanbul ignore next */ function (err) {
 					throw err;
 				});
 			}
