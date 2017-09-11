@@ -155,6 +155,7 @@ export function oauth2server () {
 	router.post('/token/',
 		/* passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], { session: false }),*/
 		async function token (ctx, next) {
+
 			await next();
 			ctx.state = {
 				data: {

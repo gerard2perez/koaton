@@ -442,13 +442,19 @@ let codes = [
  */
 export default async function error (ctx, next) {
 	await next();
-	if (ctx.body === undefined && ctx.status >= 400 && ctx.accepts('html') === 'html') {
+	if (ctx.body === undefined && ctx.status >= 400) {
 		let status = ctx.status;
 		let code = codes.filter(c => c.code === ctx.status.toString())[0];
-		await ctx.render(configuration.server.error.layout, Object.assign({
-			short_description: code.phrase,
-			error: code.code
-		}, configuration.server.error.data));
-		ctx.status = status;
+		if (ctx.accepts('html') === 'html') {
+			await ctx.render(configuration.server.error.layout, Object.assign({
+				short_description: code.phrase,
+				error: code.code
+			}, configuration.server.error.data));
+			ctx.status = status;
+		} else if (ctx.accepts('json')) {
+			ctx.body = {
+				error: code
+			};
+		}
 	}
 }
