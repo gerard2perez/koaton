@@ -39,7 +39,7 @@ async function protect (ctx, next) {
 				ctx.body = null;
 				ctx.status = 401;
 			} else {
-				await ctx.login();
+				ctx.state.user = user;
 			}
 			await next();
 		})(ctx, next);
