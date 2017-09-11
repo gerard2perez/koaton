@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as co from 'co';
 import * as path from 'upath';
 import { sync as glob } from 'glob';
 import * as caminte from 'caminte';
@@ -171,7 +170,7 @@ export function initializeORM (seed) {
 	}
 	/* istanbul ignore else */
 	if (process.env.NODE_ENV === 'development') {
-		res = co(async function () {
+		res = (async function () {
 			let files = fs.readdirSync(ProyPath('seeds'));
 			for (let index in files) {
 				let file = files[index].replace('.js', '');
@@ -188,7 +187,7 @@ export function initializeORM (seed) {
 				debug('Nothing to seed');
 			}
 			line2(true);
-		});
+		})();
 	}
 	/* istanbul ignore if */
 	return res;
