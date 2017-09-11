@@ -87,7 +87,7 @@ export function oauth2server () {
 		userProperty: 'data'
 	}, function (data, accesstoken) {
 		return secret(16).then((refreshtoken) => {
-			let date = new Date(Date.now() + (1 * configuration.security.tokenTimeout * 1000));
+			let date = new Date(Date.now() + (configuration.security.tokenTimeout * 1000));
 			return models.oauth2accesstokens.create({
 				'UserId': data.user._id,
 				'RefreshToken': refreshtoken.toString('hex'),
@@ -113,7 +113,7 @@ export function oauth2server () {
 			if (client !== null && user !== null) {
 				return secret(16).then((token) => {
 					return secret(16).then((refreshtoken) => {
-						let date = new Date(Date.now() + (1 * 60 * 1000));
+						let date = new Date(Date.now() + (configuration.security.tokenTimeout * 1000));
 						return models.oauth2accesstokens.create({
 							'UserId': user._id,
 							'RefreshToken': refreshtoken.toString('hex'),
@@ -155,7 +155,6 @@ export function oauth2server () {
 	router.post('/token/',
 		/* passport.authenticate(['local', 'bearer', 'basic', 'oauth2-client-password'], { session: false }),*/
 		async function token (ctx, next) {
-
 			await next();
 			ctx.state = {
 				data: {
