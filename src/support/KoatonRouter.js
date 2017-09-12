@@ -25,12 +25,14 @@ async function findmodel (ctx, next) {
  * @return {Object} {status:401, body: null}
  */
 async function protect (ctx, next) {
+	console.log('Im Protect', ctx.isAuthenticated());
 	if (ctx.isAuthenticated()) {
 		await next();
 	} else {
 		await passport.authenticate('bearer', {
 			session: false
 		}, async function (err, user) {
+			// console.log(err, user);
 			/* istanbul ignore if */
 			if (err) {
 				throw err;
@@ -40,9 +42,9 @@ async function protect (ctx, next) {
 				ctx.status = 401;
 			} else {
 				ctx.state.user = user;
+				await next();
 			}
-			await next();
-		})(ctx, next);
+		})(ctx);
 	}
 }
 

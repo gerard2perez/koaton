@@ -75,11 +75,11 @@ export function oauth2server () {
 			return done(null, client);
 		});
 	});
-	/* istanbul ignore next*/
+	/* istanbul ignore next */
 	server.grant(oauth2orize.exchange.refreshToken(function (client, refreshToken, scope, done) {
 		debug('grant refreshToken');
 	}));
-	/* istanbul ignore next*/
+	/* istanbul ignore next */
 	server.grant(oauth2orize.grant.code(function (client, redirectURI, user, ares) {
 		debug(client, redirectURI, user, ares);
 	}));

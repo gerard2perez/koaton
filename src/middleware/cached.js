@@ -3,7 +3,7 @@ import * as Stream from 'stream';
 import * as fs from 'fs';
 
 /** @ignore */
-/* istanbul ignore next*/
+/* istanbul ignore next */
 function noop () {}
 /** @ignore */
 const stat = function stat (path) {

@@ -54,12 +54,12 @@ function getUser (username, password, callback = null) {
  * @param {Object} [body={}] - Information that might be passed to the model creation.
  * @return {Promise<AuthModel>} - if callback is not set it will return a promise
  */
-async function createUser (username, password, /* istanbul ignore next*/ body = {}) {
+async function createUser (username, password, /* istanbul ignore next */ body = {}) {
 	const user = await getUser(username, password);
 	body[configuration.security.username] = username;
 	body[configuration.security.password] = await hash(password, 5);
 	if (user === null) {
-		return await AuthModel.create(body);
+		return AuthModel.create(body);
 	} else {
 		return Promise.resolve({
 			error: 'User Already Extis'
@@ -72,7 +72,7 @@ async function createUser (username, password, /* istanbul ignore next*/ body = 
 function loadSecurityContext () {
 	AuthModel = models[inflector.pluralize(configuration.security.model)];
 	const Model = models[inflector.pluralize(configuration.security.model)];
-	/* istanbul ignore if*/
+	/* istanbul ignore if */
 	if (!Model) {
 		return;
 	}
@@ -85,7 +85,7 @@ function loadSecurityContext () {
 	for (const strategy of Object.keys(configuration.security.strategies)) {
 		const STR = configuration.security.strategies[strategy];
 		try {
-			let component = STR.package || /* istanbul ignore next: I have to change the proyect structure*/`passport-${strategy}`;
+			let component = STR.package || /* istanbul ignore next: I have to change the proyect structure */`passport-${strategy}`;
 			let Strategy = require(ProyPath('node_modules', component));
 			let args = [];
 			/* istanbul ignore next */
@@ -103,7 +103,7 @@ function loadSecurityContext () {
 				args.push(new Strategy(STR.secret || getuser));
 			}
 			passport.use(...args);
-		} catch (err) /* istanbul ignore next*/ {
+		} catch (err) /* istanbul ignore next */ {
 			debug(err);
 			debug(inflector.camelize(`${strategy}_strategy`) + ' not found');
 			debug(`You might try npm install ${STR.package}`);

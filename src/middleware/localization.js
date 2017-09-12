@@ -18,8 +18,9 @@ export default function localization (koaton) {
 	const locale = require('koa-locale');
 	const i18n = require('koa-i18n');
 	locale(koaton, config.queryKey);
-	return {i18nHelper: i18n(koaton, config), i18nMiddleware: async function exporti18n (ctx, next) {
-		global.i18n = ctx.i18n;
-		await next();
-	}};
+	return {i18nHelper: i18n(koaton, config),
+		i18nMiddleware: async function exporti18n (ctx, next) {
+			global.i18n = ctx.i18n;
+			await next();
+		}};
 }

@@ -178,11 +178,11 @@ export function initializeORM (seed) {
 					debug(`Sedding ${file}`);
 					let model = exp.databases[inflector.pluralize(file.toLowerCase())];
 					await require(ProyPath('seeds', file)).default(model.findcre);
-				} catch (err) /* istanbul ignore next*/ {
+				} catch (err) /* istanbul ignore next */ {
 					debug(err);
 				}
 			}
-			/* istanbul ignore next*/
+			/* istanbul ignore next */
 			if (files.length === 0) {
 				debug('Nothing to seed');
 			}
