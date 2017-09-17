@@ -25,7 +25,6 @@ async function findmodel (ctx, next) {
  * @return {Object} {status:401, body: null}
  */
 async function protect (ctx, next) {
-	console.log('Im Protect', ctx.isAuthenticated());
 	if (ctx.isAuthenticated()) {
 		await next();
 	} else {

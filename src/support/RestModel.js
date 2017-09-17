@@ -211,13 +211,11 @@ export function RestModel (options, route, modelname) {
 		}
 		res[modelname] = rawmodels;
 		ctx.body = res;
-		await next();
 	});
 	pOrp(routers, options.get).get('/:id', async function REST_GET_ID (ctx, next) {
 		let res = {};
 		res[inflector.singularize(modelname)] = await restify(await ctx.model.findById(ctx.params.id), ctx.model.relations, ctx.model);
 		ctx.body = res;
-		await next();
 	});
 	pOrp(routers, options.post).post('/', async function REST_POST (ctx, next) {
 		let res = {};
@@ -235,7 +233,6 @@ export function RestModel (options, route, modelname) {
 		}
 		ctx.status = 201;
 		ctx.body = res;
-		await next();
 	});
 	pOrp(routers, options.post).post('/:id/:child', async function REST_POST_ID (ctx, next) {
 		let parent = await ctx.model.findById(ctx.params.id);
@@ -262,7 +259,6 @@ export function RestModel (options, route, modelname) {
 		let res = {};
 		res[inflector.singularize(modelname)] = await restify(parent, ctx.model.relations, ctx.model);
 		ctx.body = res;
-		await next();
 	});
 	pOrp(routers, options.put).put('/:id', async function REST_PUT (ctx, next) {
 		let body = ctx.request.body[inflector.singularize(modelname)];
@@ -276,14 +272,12 @@ export function RestModel (options, route, modelname) {
 		record = await REST_POST_SINGLE(ctx.model, body, record);
 		ctx.body = {};
 		ctx.body[inflector.singularize(modelname)] = record;
-		await next();
 	});
 	pOrp(routers, options.delete).del('/:id', async function REST_DELETE (ctx, next) {
 		await ctx.model.destroyById(ctx.params.id);
 		ctx.body = {
 			id: ctx.params.id
 		};
-		await next();
 	});
 	routers.path = path.join('/', mountRoute);
 	return routers;
