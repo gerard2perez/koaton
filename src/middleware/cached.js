@@ -7,11 +7,11 @@ import * as fs from 'fs';
 function noop () {}
 /** @ignore */
 const stat = function stat (path) {
-	return new Promise(function (resolve) {
+	return new Promise(function (resolve, reject) {
 		fs.stat(path, function (err, stats) {
 			/* istanbul ignore if */
 			if (err) {
-				throw err;
+				reject(err);
 			}
 			resolve(stats);
 		});
