@@ -15,7 +15,6 @@ globals:
  beforeEach: true
  after: true
  Kmetadata: true
- requireSafe: true
  requireNoCache: true
  i18n: true
 

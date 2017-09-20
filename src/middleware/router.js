@@ -54,7 +54,7 @@ export function initialize () {
 	let routers = glob('koaton_modules/**/routes.js').concat(glob('routes.js'));
 	for (const router of routers) {
 		let location = path.dirname(router);
-		let PackageSubdomains = requireSafe(ProyPath(location, 'config', 'server.js'), {default: { subdomains: [] }}).default.subdomains;
+		let PackageSubdomains = require(ProyPath(location, 'config', 'server.js'), {default: { subdomains: [] }}).default.subdomains;
 		for (const subdomain of PackageSubdomains) {
 			if (!subdomainRouters[subdomain]) {
 				subdomainRouters[subdomain] = new KoatonRouter(subdomain);

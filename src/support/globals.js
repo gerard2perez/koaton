@@ -34,21 +34,6 @@ global.cleanString = (text) => {
 };
 
 /**
- * Makes a require with no errors or return defaults.
- * @function requireSafe
- * @param {String} lib - path to require.
- * @param {Object=} [defaults={}] - Object to return if require fails.
- * @returns {Object} The required library.
- */
-global.requireSafe = function requireSafe (lib, defaults = {}) {
-	try {
-		return require(lib);
-	} catch (e) {
-		return defaults;
-	}
-};
-
-/**
  * Makes a require with no cache. If fails return defaults.
  * @function requireNoCache
  * @param {String} lib - path to require.
@@ -61,7 +46,7 @@ global.requireNoCache = function requireNoCache (lib, defaults) {
 		library = library.replace('.js', ''); // + '.js';
 	}
 	delete require.cache[library];
-	return requireSafe(library, defaults);
+	return require(library, defaults);
 };
 
 /**
