@@ -40,13 +40,13 @@ global.cleanString = (text) => {
  * @param {Object=} [defaults={}] - Object to return if require fails.
  * @returns {Object} The required library (always) fresh.
  */
-global.requireNoCache = function requireNoCache (lib, defaults) {
+global.requireNoCache = function requireNoCache (lib) {
 	let library = rawpath.normalize(rawpath.resolve(lib));
 	if (library.indexOf('.json') === -1) {
 		library = library.replace('.js', ''); // + '.js';
 	}
 	delete require.cache[library];
-	return require(library, defaults);
+	return require(library);
 };
 
 /**

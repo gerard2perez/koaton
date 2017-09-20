@@ -55,7 +55,7 @@ export default class Configuration {
 		let modules = glob(ProyPath('config', '**', '*.js'));
 		let moduleNames = [];
 		for (const configFile of modules) {
-			let config = require(configFile, {default: {}}).default;
+			let config = require(configFile).default;
 			const moduleName = basename(configFile).replace(extname(configFile), '');
 			moduleNames.push(moduleName);
 			/** @ignore */

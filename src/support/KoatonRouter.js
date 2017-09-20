@@ -200,7 +200,7 @@ export default class KoatonRouter {
 			model = url;
 			url = undefined;
 		}
-		let controller = require(ProyPath(this.loc, 'controllers', model), {}).default;
+		let controller = require(ProyPath(this.loc, 'controllers', model)).default;
 		controller = Object.assign({
 			Name: model,
 			Namespace: '',
