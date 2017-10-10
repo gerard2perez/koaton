@@ -67,11 +67,12 @@ const DeepGet = function (object, action, ...rest) {
  * Creates a default handler for the route (render html view)
  * @private
  * @param {string} view - Default view name
+ * @param {string} engine - Default engine extension
  * @return {async function(ctx: KoaContext, next: KoaNext)} renders the view
  */
-const DefaultView = function (view) {
+const DefaultView = function (view, engine = 'html') {
 	return async function DefaultView (ctx, next) {
-		await ctx.render(`${view}.html`);
+		await ctx.render(`${view}.${engine}`);
 	};
 };
 /**
@@ -126,6 +127,9 @@ export default class KoatonRouter {
 	 * @return {function(ctx: KoaContext, next: KoaNext)} handles the route
 	 */
 	static findAction (router, binding) {
+		if (path.resolve('views', binding)) {
+			return DefaultView(...binding.split('.'));
+		}
 		let [controller, ...actions] = binding.split('.');
 		let content = require(ProyPath(router.loc, 'controllers', controller));
 		/* istanbul ignore if */
