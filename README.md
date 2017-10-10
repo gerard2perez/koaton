@@ -1,4 +1,5 @@
 ![Koaton](/koaton.png)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton?ref=badge_shield)
 -----------
 [![Build Status](https://img.shields.io/travis/gerard2p/koaton/master.svg?style=flat-square)](https://travis-ci.org/gerard2p/koaton)[![Dependency Status](https://david-dm.org/gerard2p/koaton.svg?style=flat-square)](https://david-dm.org/gerard2p/koaton)![PRs Welcome](https://img.shields.io/badge/PRs%20🔀-Welcome-brightgreen.svg?style=flat-square)
 
@@ -82,3 +83,6 @@ Koaton actually has a [CLI tool](https://github.com/gerard2p/koaton-cli) to plea
 
 ## Licensing
 Read [LICENSE](LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton?ref=badge_large)
