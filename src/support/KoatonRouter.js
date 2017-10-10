@@ -2,7 +2,9 @@ import * as Router from 'koa-router';
 import * as passport from 'koa-passport';
 import inflector from './inflector';
 import * as path from 'upath';
-import {RestModel} from './RestModel';
+import { RestModel } from './RestModel';
+import { existsSync } from 'fs';
+import debug from './debug';
 
 let allroutes = {};
 /**
@@ -127,16 +129,21 @@ export default class KoatonRouter {
 	 * @return {function(ctx: KoaContext, next: KoaNext)} handles the route
 	 */
 	static findAction (router, binding) {
-		if (path.resolve('views', binding)) {
+		if (existsSync(path.resolve('views', binding))) {
 			return DefaultView(...binding.split('.'));
 		}
 		let [controller, ...actions] = binding.split('.');
-		let content = require(ProyPath(router.loc, 'controllers', controller));
-		/* istanbul ignore if */
-		if (content && !content.default) {
-			console.warn(`${controller} controller does not export any default. This will not be supported`);
-		} else if (content && content.default) {
-			content = content.default;
+		let content = null;
+		try {
+			content = require(ProyPath(router.loc, 'controllers', controller));
+			/* istanbul ignore if */
+			if (content && !content.default) {
+				console.warn(`${controller} controller does not export any default. This will not be supported`);
+			} else if (content && content.default) {
+				content = content.default;
+			}
+		} catch (err) {
+			debug(err);
 		}
 		let action = DeepGet(content, ...actions) || DefaultView(controller);
 		return action;
