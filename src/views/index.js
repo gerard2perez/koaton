@@ -77,7 +77,9 @@ function template (file, locals = {}) {
 	let fullpath = resolve('views', file);
 	const [engine, target] = ex2engine(fullpath);
 	if (engine !== 'html') {
-		return render[engine](target, locals);
+		return render[engine](target, Object.assign({}, locals, {
+			isDevelopment: configuration.env !== 'production'
+		}));
 	} else {
 		return new Promise(function (resolve, reject) {
 			try {
@@ -113,7 +115,10 @@ export async function viewsMiddleware (ctx, next) {
 	};
 	ctx.render = async function (file, locals) {
 		try {
-			ctx.body = await template(file, locals);
+			ctx.body = await template(file, Object.assign({}, locals, {
+				route: ctx.state.route,
+				subdomain: ctx.state.subdomain
+			}));
 			ctx.state.nocache = false;
 		} catch (err) {
 			debug(err);

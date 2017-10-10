@@ -1,7 +1,7 @@
 import { sync as glob } from 'glob';
 import { basename } from 'upath';
 import * as fs from 'fs';
-
+import KoatonRouter from '../support/KoatonRouter';
 /**
  * Initialize layout support for handlebars, bundle helper, i18n helpers
  * @type {function} handlebars - returns the handlebars instance
@@ -42,11 +42,54 @@ function handlebars () {
 function nunjucks () {
 	const nunjucks = require(ProyPath('node_modules', 'nunjucks'));
 	const env = new nunjucks.Environment();
+	class Link {
+		constructor () {
+			this.tags = ['link'];
+		}
+		parse (parser, nodes, lexer) {
+			// get the tag token
+			let tok = parser.nextToken();
+
+			// parse the args and move after the block end. passing true
+			// as the second arg is required if there are no parentheses
+			let args = parser.parseSignature(null, true);
+			parser.advanceAfterBlockEnd(tok.value);
+
+			// parse the body and possibly the error block, which is optional
+			let body = parser.parseUntilBlocks('error', 'endlink');
+			let errorBody = null;
+
+			if (parser.skipSymbol('error')) {
+				parser.skip(lexer.TOKEN_BLOCK_END);
+				errorBody = parser.parseUntilBlocks('endlink');
+			}
+
+			parser.advanceAfterBlockEnd();
+
+			// See above for notes about CallExtension
+			return new nodes.CallExtension(this, 'run', args, [body, errorBody]);
+		}
+		run (context, url, body, errorBody) {
+			let route = KoatonRouter.AllRoutes(context.ctx.subdomain).map(exp => {
+				if (url.match(exp[0])) {
+					console.log(exp, url);
+					return url.replace(...exp);
+				}
+			}).filter(r => !!r)[0];
+			let content;
+			if (context.ctx.route === url) {
+				content = `<a class="active">${body()}</a>`;
+			} else {
+				content = `<a href="${route}" >${body()}</a>`;
+			}
+			return new nunjucks.runtime.SafeString(content);
+		}
+	}
 	env.addFilter('bundle', function (bundle) {
 		if (Kmetadata.bundles[bundle] === undefined) {
 			return '';
 		}
-		return Kmetadata.bundles[bundle].toString();
+		return new nunjucks.runtime.SafeString(Kmetadata.bundles[bundle].toString());
 	});
 	env.addFilter('i18n', function (key, locale) {
 		if (locale) {
@@ -59,6 +102,12 @@ function nunjucks () {
 			return i18n.__(key);
 		}
 	});
+	// env.addFilter('link', function(name, callback) {
+	// 	console.log(name);
+	// 	console.log(callback);
+	// 	callback();
+	// }, true);
+	env.addExtension('Link', new Link());
 	return env;
 }
 

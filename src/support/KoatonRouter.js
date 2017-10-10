@@ -3,6 +3,8 @@ import * as passport from 'koa-passport';
 import inflector from './inflector';
 import * as path from 'upath';
 import {RestModel} from './RestModel';
+
+let allroutes = {};
 /**
  * Reads the model that is requested based on the route
  * and appends model to ctx.state
@@ -111,6 +113,13 @@ export default class KoatonRouter {
 		this.loc = location;
 	}
 	/**
+	 * return all the routes defined in the app
+	 * @return {Array(Object)}
+	 */
+	static AllRoutes (subdomain) {
+		return allroutes[subdomain];
+	}
+	/**
 	 * find what is the best mathching action for the given router and binding
 	 * @param {KoaRouter} - The router
 	 * @param {String} binding - a dot separated action. example: 'school.get'
@@ -138,15 +147,35 @@ export default class KoatonRouter {
 	 * @return {KoaRouter}
 	 */
 	request (method, url, binding = 'index', secured = false) {
+		let Action;
 		if (typeof binding === 'boolean') {
 			secured = binding;
 			binding = 'index';
-		} else if (typeof binding === 'function') {
-			(secured ? this.secured : this.public)[method](url, binding);
-			return this;
 		}
-		let Action = KoatonRouter.findAction(this, binding);
-		(secured ? this.secured : this.public)[method](url, Action);
+		if (typeof binding !== 'function') {
+			Action = KoatonRouter.findAction(this, binding);
+		} else {
+			Action = binding;
+		}
+		let route = url.replace(/^\//, '').split('/');
+		let repl = url.split('/').map((r, i) => {
+			if (!r) return '/';
+			return `$${i}` + r.replace(/([^\.]*)(.*)/g, '$2');
+		}).join('/');
+		let exp = route.filter(r => !!r).map(r => {
+			if (r.indexOf(':') > -1) {
+				return '([^\\.]*)' + r.replace(/([^\.]*)(.*)/g, '$2').replace('*', '.*');
+			}
+			return `(${r})`.replace('*', '.*');
+		}).join('\\.').replace(/\\\.$/, '');
+		let nroute = route[0] || 'home';
+		allroutes[this.subdomain] = allroutes[this.subdomain] || [];
+		allroutes[this.subdomain].push([new RegExp(`^${exp || 'home'}$`), repl.replace(/\/+/g, '/')]);
+		// console.log(allroutes);
+		(secured ? this.secured : this.public)[method](url, async (ctx, next) => {
+			ctx.state.route = nroute;
+			await next();
+		}, Action);
 		return this;
 	}
 	/**
@@ -200,7 +229,12 @@ export default class KoatonRouter {
 			model = url;
 			url = undefined;
 		}
-		let controller = require(ProyPath(this.loc, 'controllers', model)).default;
+		let controller;
+		try {
+			controller = require(ProyPath(this.loc, 'controllers', model)).default;
+		} catch (ex) {
+			controller = {};
+		}
 		controller = Object.assign({
 			Name: model,
 			Namespace: '',

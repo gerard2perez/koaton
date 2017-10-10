@@ -7,6 +7,7 @@ import { routers } from './router';
  */
 export default async function subdomainrouter (ctx, next) {
 	let [subdomain = 'www'] = ctx.request.subdomains;
+	ctx.state.subdomain = subdomain;
 	ctx.subdomain = subdomain;
 	/* istanbul ignore next */
 	let origin = ctx.headers.origin ? ctx.headers.origin : ctx.request.origin;
