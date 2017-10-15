@@ -78,6 +78,7 @@ function template (file, locals = {}) {
 	const [engine, target] = ex2engine(fullpath);
 	if (engine !== 'html') {
 		return render[engine](target, Object.assign({}, locals, {
+			liveReloadHost: process.env.liveReloadHost,
 			isDevelopment: configuration.env !== 'production'
 		}));
 	} else {
