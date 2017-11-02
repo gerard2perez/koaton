@@ -3,6 +3,7 @@ branches:
   only:
     - master
     - v2
+    - /^greenkeeper/.*$/
 services:
   - mongodb
 language: node_js

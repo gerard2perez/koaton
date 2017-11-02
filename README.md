@@ -1,5 +1,7 @@
 ![Koaton](/koaton.png)
 -----------
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/gerard2p/koaton.svg)](https://greenkeeper.io/)
 [![Build Status](https://img.shields.io/travis/gerard2p/koaton/master.svg?style=flat-square)](https://travis-ci.org/gerard2p/koaton)[![Dependency Status](https://david-dm.org/gerard2p/koaton.svg?style=flat-square)](https://david-dm.org/gerard2p/koaton)![PRs Welcome](https://img.shields.io/badge/PRs%20🔀-Welcome-brightgreen.svg?style=flat-square)
 
 [![Code Climate](https://codeclimate.com/github/gerard2p/koaton/badges/gpa.svg?style=flat-square)](https://codeclimate.com/github/gerard2p/koaton?style=flat-square) [![Test Coverage](https://codeclimate.com/github/gerard2p/koaton/badges/coverage.svg?style=flat-square)](https://codeclimate.com/github/gerard2p/koaton/coverage) [![Issue Count](https://codeclimate.com/github/gerard2p/koaton/badges/issue_count.svg?style=flat-square)](https://codeclimate.com/github/gerard2p/koaton)
