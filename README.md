@@ -1,4 +1,5 @@
 ![Koaton](/koaton.png)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton?ref=badge_shield)
 -----------
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/gerard2p/koaton.svg)](https://greenkeeper.io/)
@@ -84,3 +85,6 @@ Koaton actually has a [CLI tool](https://github.com/gerard2p/koaton-cli) to plea
 
 ## Licensing
 Read [LICENSE](LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fgerard2p%2Fkoaton?ref=badge_large)
