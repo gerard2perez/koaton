@@ -71,16 +71,20 @@ function nunjucks () {
 		}
 		run (context, url, body, errorBody) {
 			let route = KoatonRouter.AllRoutes(context.ctx.subdomain).map(exp => {
-				if (url.match(exp[0])) {
-					console.log(exp, url);
+				let variables = (exp[1].match(/\$/g) || []).length;
+				let matches = (url.match(exp[0]) || []).length - 1;
+				if (matches === variables && url.replace(...exp).indexOf('.') === -1) {
 					return url.replace(...exp);
 				}
-			}).filter(r => !!r)[0];
+			}).filter(r => !!r);
+			route = url === 'home' ? '/' : route[0];
 			let content;
-			if (context.ctx.route === url) {
+			console.log(context.ctx.path, context.ctx.route, url, route);
+			let active = context.ctx.route === url || context.ctx.path === route;
+			if (context.ctx.path === route) {
 				content = `<a class="active">${body()}</a>`;
 			} else {
-				content = `<a href="${route}" >${body()}</a>`;
+				content = `<a href="${route}" class="${active ? 'active' : ''}">${body()}</a>`;
 			}
 			return new nunjucks.runtime.SafeString(content);
 		}

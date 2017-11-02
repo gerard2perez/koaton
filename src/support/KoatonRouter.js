@@ -185,6 +185,7 @@ export default class KoatonRouter {
 		// console.log(allroutes);
 		(secured ? this.secured : this.public)[method](url, async (ctx, next) => {
 			ctx.state.route = nroute;
+			ctx.state.fullRoute = url;
 			await next();
 		}, Action);
 		return this;
