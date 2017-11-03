@@ -19,16 +19,7 @@ export default function include (dir) {
 				let module = require(path.join(dir, name));
 				mods[name] = module.default ? module.default : module;
 			});
-		mods[Symbol.iterator] = function () {
-			let keys = Object.keys(this),
-				index = -1;
-			return {
-				next: () => ({
-					value: this[keys[++index]],
-					done: !(index < keys.length)
-				})
-			};
-		};
+		makeObjIterable(mods);
 	} catch (e) {
 		debug(e);
 	}
