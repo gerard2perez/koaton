@@ -42,6 +42,12 @@ describe('REST APP Authentication', function () {
 			done(null, response);
 		});
 	});
+	it('Fails to Login 2', function (done) {
+		server.expect(401);
+		server.post('singin/?username=nouser&password=003').then(response => {
+			done(null, response);
+		});
+	});
 	it('Session Login', function (done) {
 		server.expect(200);
 		server.post('singin/?username=agent&password=007').then(response => {
@@ -66,6 +72,18 @@ describe('REST APP Authentication', function () {
 		server.post('token/?response_type=password&client_id=123456', {
 			username: 'agent',
 			password: '003',
+			grant_type: 'password'
+		}).then(body => {
+			bearerToken = `${body.token_type} ${body.access_token}`;
+			assert.ok(bearerToken);
+			done(null, null);
+		}, done).catch(done);
+	});
+	it('Can\'t get an access token (no client id)', function (done) {
+		server.expect(406);
+		server.post('token/?response_type=password&client_id=123456789', {
+			username: 'agent',
+			password: '007',
 			grant_type: 'password'
 		}).then(body => {
 			bearerToken = `${body.token_type} ${body.access_token}`;
@@ -100,6 +118,14 @@ describe('REST APP Authentication', function () {
 		server.post('singout').then(res => {
 			server.expect(401);
 			return server.get('pages').then(done.bind(null, null), done).catch(done);
+		}, done).catch(done);
+	});
+	it('Fails a request with the access token', function (done) {
+		server.expect(401);
+		global.id = id;
+		global.headers = {Authorization: bearerToken + 'ko5gg'};
+		server.headers(global.headers).get('pages').then(body => {
+			done(null, null);
 		}, done).catch(done);
 	});
 	it('Makes a request with the access token', function (done) {
