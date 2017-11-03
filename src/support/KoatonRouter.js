@@ -136,15 +136,15 @@ export default class KoatonRouter {
 		let content = null;
 		try {
 			content = require(ProyPath(router.loc, 'controllers', controller));
-			/* istanbul ignore if */
-			if (content && !content.default) {
+			if (!content.default) {
 				console.warn(`${controller} controller does not export any default. This will not be supported`);
-			} else if (content && content.default) {
+			} else {
 				content = content.default;
 			}
 		} catch (err) {
 			debug(err);
 		}
+		console.warn(content, actions);
 		let action = DeepGet(content, ...actions) || DefaultView(controller);
 		return action;
 	}
@@ -242,10 +242,11 @@ export default class KoatonRouter {
 			url = undefined;
 		}
 		let controller;
-		try {
-			controller = require(ProyPath(this.loc, 'controllers', model)).default;
-		} catch (ex) {
-			controller = {};
+		controller = require(ProyPath(this.loc, 'controllers', model));
+		if (!controller.default) {
+			console.warn('controller must export a default variable; not exporting a default won\'t be supporter in v3');
+		} else {
+			controller = controller.default;
 		}
 		controller = Object.assign({
 			Name: model,

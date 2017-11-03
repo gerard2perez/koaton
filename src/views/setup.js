@@ -4,6 +4,36 @@ import * as fs from 'fs';
 import KoatonRouter from '../support/KoatonRouter';
 import deprecate from '../support/deprecate';
 
+/**
+ * Translate the given work to the current locale of to a one specified in the arguments.
+ * @param {object} ctx The current context in wich the helper is executing.
+ * @param {String} url The url to genereate the link.
+ * @return {String} The helper content.
+ */
+function makeLink (ctx, url, render) {
+	let route = KoatonRouter.AllRoutes(ctx.subdomain).map(exp => {
+		let variables = (exp[1].match(/\$/g) || []).length;
+		let matches = (url.match(exp[0]) || []).length - 1;
+		if (matches === variables && url.replace(...exp).indexOf('.') === -1) {
+			return url.replace(...exp);
+		}
+	}).filter(r => !!r);
+	route = url === 'home' ? '/' : route[0];
+	let content;
+	let active = ctx.route === url || ctx.path === route;
+	if (ctx.path === route) {
+		content = `<a class="active">${render(this)}</a>`;
+	} else {
+		content = `<a href="${route}" class="${active ? 'active' : ''}">${render()}</a>`;
+	}
+	return content;
+}
+/**
+ * Translate the given work to the current locale of to a one specified in the arguments.
+ * @param {String} key The key to use in the translation sheet.
+ * @param {String} locale Custom locale to translate the key.
+ * @return {String} localized key.
+ */
 function translate (key, locale) {
 	if (locale) {
 		let loc = i18n.getLocale();
@@ -25,6 +55,9 @@ function handlebars () {
 	const Handlebars = require(ProyPath('node_modules', 'handlebars'));
 	const layouts = require(ProyPath('node_modules', 'handlebars-layouts'));
 	Handlebars.registerHelper(layouts(Handlebars));
+	Handlebars.registerHelper('link', function (url, helper) {
+		return makeLink(helper.data.root, url, helper.fn);
+	});
 	// Bundles
 	Handlebars.registerHelper('bundle', function (bundle) {
 		if (Kmetadata.bundles[bundle] === undefined) {
@@ -64,7 +97,7 @@ function nunjucks () {
 			// parse the body and possibly the error block, which is optional
 			let body = parser.parseUntilBlocks('error', 'endlink');
 			let errorBody = null;
-
+			/* istanbul ignore next */
 			if (parser.skipSymbol('error')) {
 				parser.skip(lexer.TOKEN_BLOCK_END);
 				errorBody = parser.parseUntilBlocks('endlink');
@@ -76,23 +109,7 @@ function nunjucks () {
 			return new nodes.CallExtension(this, 'run', args, [body, errorBody]);
 		}
 		run (context, url, body, errorBody) {
-			let route = KoatonRouter.AllRoutes(context.ctx.subdomain).map(exp => {
-				let variables = (exp[1].match(/\$/g) || []).length;
-				let matches = (url.match(exp[0]) || []).length - 1;
-				if (matches === variables && url.replace(...exp).indexOf('.') === -1) {
-					return url.replace(...exp);
-				}
-			}).filter(r => !!r);
-			route = url === 'home' ? '/' : route[0];
-			let content;
-			console.log(context.ctx.path, context.ctx.route, url, route);
-			let active = context.ctx.route === url || context.ctx.path === route;
-			if (context.ctx.path === route) {
-				content = `<a class="active">${body()}</a>`;
-			} else {
-				content = `<a href="${route}" class="${active ? 'active' : ''}">${body()}</a>`;
-			}
-			return new nunjucks.runtime.SafeString(content);
+			return new nunjucks.runtime.SafeString(makeLink(context.ctx, url, body));
 		}
 	}
 	env.addFilter('bundle', function (bundle) {
@@ -103,11 +120,6 @@ function nunjucks () {
 	});
 	env.addFilter('i18n', _i18n);
 	env.addFilter('t', translate);
-	// env.addFilter('link', function(name, callback) {
-	// 	console.log(name);
-	// 	console.log(callback);
-	// 	callback();
-	// }, true);
 	env.addExtension('Link', new Link());
 	return env;
 }

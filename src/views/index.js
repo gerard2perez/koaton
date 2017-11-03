@@ -73,7 +73,7 @@ for (const engine of avaliableEngines) {
 * @param {String} file - relative to views/
 * @return {Object}
 */
-function template (file, locals = {}) {
+function template (file, locals) {
 	let fullpath = resolve('views', file);
 	const [engine, target] = ex2engine(fullpath);
 	if (engine !== 'html') {

@@ -57,6 +57,34 @@ describe('Simple Router Responses', function () {
 			done(null, null);
 		}, done).catch(done);
 	});
+	it('gets a compiled noengine response', function (done) {
+		server.get('/helpers/njk').then(function (body) {
+			assert.ok(body.html().indexOf('a href="/"') > -1, body.html());
+			assert.ok(body.html().indexOf('a href="/helpers"') > -1, body.html());
+			assert.ok(body.html().indexOf('a href="/helpers/handlebars"') > -1, body.html());
+			assert.ok(body.html().indexOf('a class="active"') > -1, body.html());
+			assert.ok(body.html().indexOf('Traducido') > -1, body.html());
+			done(null, null);
+		}, done).catch(done);
+	});
+	it('gets a compiled noengine response', function (done) {
+		server.get('/helpers/handlebars').then(function (body) {
+			assert.ok(body.html().indexOf('a href="/"') > -1, body.html());
+			assert.ok(body.html().indexOf('a href="/helpers/njk"') > -1, body.html());
+			assert.ok(body.html().indexOf('a href="/helpers"') > -1, body.html());
+			assert.ok(body.html().indexOf('a class="active"') > -1, body.html());
+			assert.ok(body.html().indexOf('Traducido') > -1, body.html());
+			done(null, null);
+		}, done).catch(done);
+	});
+	it('gets a compiled response directly inserted in router', function (done) {
+		server.get('/helpers').then(function (body) {
+			assert.ok(body.html().indexOf('<title>Nunjucks title</title>') > -1);
+			assert.ok(body.html().indexOf('Translated') > -1);
+			assert.ok(body.html().indexOf('Traducido') > -1);
+			done(null, null);
+		}, done).catch(done);
+	});
 	it('translates handlebars page', function (done) {
 		server.get('/handlebars').then(function (body) {
 			assert.ok(body.html().indexOf('<title>Handlebars Title</title>') > -1);
