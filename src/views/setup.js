@@ -2,6 +2,21 @@ import { sync as glob } from 'glob';
 import { basename } from 'upath';
 import * as fs from 'fs';
 import KoatonRouter from '../support/KoatonRouter';
+import deprecate from '../support/deprecate';
+
+function translate (key, locale) {
+	if (locale) {
+		let loc = i18n.getLocale();
+		i18n.setLocale(locale);
+		let res = i18n.__(key);
+		i18n.setLocale(loc);
+		return res;
+	} else {
+		return i18n.__(key);
+	}
+}
+const _i18n = deprecate('i18n will be deprecated in future versions of koaton, please use t instead', translate);
+
 /**
  * Initialize layout support for handlebars, bundle helper, i18n helpers
  * @type {function} handlebars - returns the handlebars instance
@@ -18,17 +33,8 @@ function handlebars () {
 		return Kmetadata.bundles[bundle].toString();
 	});
 	// Localition
-	Handlebars.registerHelper('i18n', function (key, locale, helper) {
-		if (helper) {
-			let loc = i18n.getLocale();
-			i18n.setLocale(locale);
-			let res = i18n.__(key);
-			i18n.setLocale(loc);
-			return res;
-		} else {
-			return i18n.__(key);
-		}
-	});
+	Handlebars.registerHelper('i18n', _i18n);
+	Handlebars.registerHelper('t', translate);
 	const layoutFiles = glob(ProyPath('views', 'layouts', '*.handlebars')).concat(glob(ProyPath('koaton_modules', '**', 'views', 'layouts', '*.handlebars')));
 	for (const file of layoutFiles) {
 		Handlebars.registerPartial(basename(file).replace('.handlebars', ''), fs.readFileSync(file, 'utf8'));
@@ -95,17 +101,8 @@ function nunjucks () {
 		}
 		return new nunjucks.runtime.SafeString(Kmetadata.bundles[bundle].toString());
 	});
-	env.addFilter('i18n', function (key, locale) {
-		if (locale) {
-			let loc = i18n.getLocale();
-			i18n.setLocale(locale);
-			let res = i18n.__(key);
-			i18n.setLocale(loc);
-			return res;
-		} else {
-			return i18n.__(key);
-		}
-	});
+	env.addFilter('i18n', _i18n);
+	env.addFilter('t', translate);
 	// env.addFilter('link', function(name, callback) {
 	// 	console.log(name);
 	// 	console.log(callback);
