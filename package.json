@@ -5,7 +5,7 @@
   "main": "./index.js",
   "scripts": {
     "jsdoc": "jsdoc -R README.md src -r & esdoc",
-    "esdoc": "esdoc",
+    "esdoc": "esdoc -c esdoc.json",
     "export": "koaton-exporter src/*.js src/**/*.js ./ -r src/ -t v2",
     "eslint": "eslint src --ignore-path .gitignore",
     "test": "cross-env DEBUG=* node --expose-internals utils/dropdatabase.js & mocha test/unit/BundleItem.js test/integration/index.js --compilers js:babel-register",
@@ -84,7 +84,8 @@
     "cheerio": "^1.0.0-rc.1",
     "chokidar": "^1.7.0",
     "cross-spawn": "^5.1.0",
-    "esdoc": "^1.0.0-alpha.8",
+    "esdoc": "^1.0.3",
+    "esdoc-ecmascript-proposal-plugin": "^1.0.0",
     "esdoc-importpath-plugin": "^1.0.1",
     "esdoc-standard-plugin": "^1.0.0",
     "eslint": "^4.7.0",
