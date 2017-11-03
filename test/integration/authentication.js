@@ -36,13 +36,13 @@ describe('REST APP Authentication', function () {
 			done(null, true);
 		}, done).catch(done);
 	});
-	it('Fails to Login', function (done) {
+	it('Fails to Login (wrong password)', function (done) {
 		server.expect(401);
 		server.post('singin/?username=agent&password=003').then(response => {
 			done(null, response);
 		});
 	});
-	it('Fails to Login 2', function (done) {
+	it('Fails to Login (wrong user)', function (done) {
 		server.expect(401);
 		server.post('singin/?username=nouser&password=003').then(response => {
 			done(null, response);
@@ -132,6 +132,13 @@ describe('REST APP Authentication', function () {
 		global.id = id;
 		global.headers = {Authorization: bearerToken};
 		server.headers(global.headers).get('pages').then(body => {
+			done(null, null);
+		}, done).catch(done);
+	});
+	it('Makes a request with the access token (wrong end)', function (done) {
+		global.id = id;
+		global.headers = {Authorization: bearerToken, Accept: 'application/json'};
+		server.headers(global.headers).get('pagess').then(body => {
 			done(null, null);
 		}, done).catch(done);
 	});

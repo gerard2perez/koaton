@@ -104,6 +104,7 @@ export default async function toMongooseStringQuery (queryBody, model, database)
 		}
 		query.push(`(${await getQuery(database, model, filtergroup.filters)})`);
 	}
+	/* istanbul ignore else */
 	if (query.length > 0) {
 		query.splice(0, 0, 'var that=this;return ');
 	} else {

@@ -116,11 +116,6 @@ export async function viewsMiddleware (ctx, next) {
 	};
 	ctx.render = async function (file, locals) {
 		try {
-			console.log('----------------*****');
-			console.log(ctx.request.originalUrl);
-			console.log(ctx.request.url);
-			console.log(ctx.request.path);
-			console.log('----------------*****');
 			ctx.body = await template(file, Object.assign({}, locals, {
 				path: ctx.request.path,
 				route: ctx.state.route,
@@ -129,7 +124,6 @@ export async function viewsMiddleware (ctx, next) {
 			ctx.state.nocache = false;
 		} catch (err) {
 			debug(err);
-			console.log(err);
 			ctx.status = 500;
 		}
 	};

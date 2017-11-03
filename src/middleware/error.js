@@ -1,3 +1,5 @@
+import debug from '../support/debug';
+
 /** @ignore */
 let codes = [
 	{
@@ -445,13 +447,14 @@ export default async function error (ctx, next) {
 	if (ctx.body === undefined && ctx.status >= 400) {
 		let status = ctx.status;
 		let code = codes.filter(c => c.code === ctx.status.toString())[0];
+		/* istanbul ignore else */
 		if (ctx.accepts('html') === 'html') {
 			await ctx.render(configuration.server.error.layout, Object.assign({
 				short_description: code.phrase,
 				error: code.code
 			}, configuration.server.error.data));
 			ctx.status = status;
-		} else if (ctx.accepts('json')) {
+		} else if (ctx.accepts('json') === 'json') {
 			ctx.body = {
 				error: code
 			};

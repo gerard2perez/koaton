@@ -107,12 +107,8 @@ export function oauth2server () {
 		userProperty: 'client'
 	}, async function (client, username, password) {
 		let user = await getUser(username, password);
-		if (client !== null && user !== null) {
-			let [token, refreshtoken] = await Promise.all([secret(16), secret(16)]);
-			return generateToken(token, refreshtoken, user, client);
-		} else {
-			return null;
-		}
+		let [token, refreshtoken] = await Promise.all([secret(16), secret(16)]);
+		return generateToken(token, refreshtoken, user, client);
 	}));
 	router.post('/singin/', passport.authenticate('local'), async function singin (ctx, next) {
 		await next();
