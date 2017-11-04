@@ -144,7 +144,6 @@ export default class KoatonRouter {
 		} catch (err) {
 			debug(err);
 		}
-		console.warn(content, actions);
 		let action = DeepGet(content, ...actions) || DefaultView(controller);
 		return action;
 	}
@@ -182,7 +181,6 @@ export default class KoatonRouter {
 		let nroute = route[0] || 'home';
 		allroutes[this.subdomain] = allroutes[this.subdomain] || [];
 		allroutes[this.subdomain].push([new RegExp(`^${exp || 'home'}$`), repl.replace(/\/+/g, '/')]);
-		// console.log(allroutes);
 		(secured ? this.secured : this.public)[method](url, async (ctx, next) => {
 			ctx.state.route = nroute;
 			ctx.state.fullRoute = url;

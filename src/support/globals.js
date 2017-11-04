@@ -60,7 +60,6 @@ global.ProyPath = function (...args) {
 	return path.normalize(path.join.apply(path, args));
 };
 
-// TODO I don't like this here
 process.env.NODE_PATH = path.join(process.cwd(), 'node_modules');
 require('module').Module._initPaths();
 

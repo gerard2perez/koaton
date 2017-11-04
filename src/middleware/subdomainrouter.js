@@ -6,9 +6,15 @@ import { routers } from './router';
  * @param {KoaNext} next
  */
 export default async function subdomainrouter (ctx, next) {
-	let [subdomain = 'www'] = ctx.request.subdomains;
-	ctx.state.subdomain = subdomain;
-	ctx.subdomain = subdomain;
+	ctx.subdomain = 'www';
+	for (const subdomain of configuration.server.subdomains) {
+		if (ctx.request.host.indexOf(subdomain) === 0) {
+			ctx.state.subdomain = subdomain;
+			ctx.subdomain = subdomain;
+			break;
+		}
+	}
+	ctx.state.domain = ctx.request.host.replace(`${ctx.subdomain}.`, '');
 	/* istanbul ignore next */
 	let origin = ctx.headers.origin ? ctx.headers.origin : ctx.request.origin;
 	if (origin.indexOf(configuration.server.host) > -1) {

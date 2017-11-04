@@ -24,7 +24,8 @@
     "codelive": "npm-run-all --parallel export:live eslint:live",
     "codeclimate:report": "codeclimate-test-reporter < coverage/lcov.info",
     "commit": "git add -A & git-cz",
-    "semantic-release": "semantic-release pre && npm publish && semantic-release post"
+    "semantic-release": "semantic-release pre && npm publish && semantic-release post",
+	"precommit": "npm run eslint && npm run cover"
   },
   "files": [
     "scripts",
@@ -107,10 +108,10 @@
     }
   },
   "nyc": {
-    "lines": 99,
-    "statements": 99,
-    "functions": 99,
-    "branches": 99,
+    "lines": 100,
+    "statements": 100,
+    "functions": 100,
+    "branches": 100,
     "reporter": [
       "lcov",
       "text"
@@ -126,7 +127,7 @@
     "sourceMap": false,
     "instrument": false,
     "cache": true,
-    "check-coverage": false,
+    "check-coverage": true,
     "all": false,
     "report-dir": "./coverage"
   },

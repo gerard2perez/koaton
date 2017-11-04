@@ -29,7 +29,7 @@ import * as helmet from 'koa-helmet';
 import * as Koa from 'koa';
 import * as path from 'path';
 import * as fs from 'fs';
-// TODO: This setup is for legacy compability
+
 /** @ignore */
 let App = new Koa(),
 	koaton = include(path.join(__dirname, 'middleware'));
