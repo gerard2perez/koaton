@@ -1,5 +1,3 @@
-import debug from '../support/debug';
-
 /** @ignore */
 let codes = [
 	{
