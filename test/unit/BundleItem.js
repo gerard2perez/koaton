@@ -1,5 +1,3 @@
-'use strict';
-
 import * as assert from 'assert';
 import BundleItem from '../../src/support/BundleItem';
 import {describe, it} from 'mocha';

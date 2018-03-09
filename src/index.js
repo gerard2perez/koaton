@@ -145,7 +145,7 @@ Object.defineProperty(App, 'i18nHelper', {
  * @param {int} port -  the port where to listen defaults to 62626
  * @return {http.Server}
  */
-App.start = function (port) {
+App.start = function (port, usehttp2 = false) {
 	for (const route of koaton.router.options()) {
 		App.use(route);
 	}
@@ -171,7 +171,7 @@ App.start = function (port) {
 	const https = configuration.server.https;
 	/* istanbul ignore next */
 	if (https && https.key && https.cert) {
-		return require('https').createServer({
+		return require(usehttp2 ? 'https' : 'http2').createServer({
 			key: fs.readFileSync(https.key),
 			cert: fs.readFileSync(https.cert)
 		}, App.callback()).listen(port, callback);
