@@ -78,7 +78,7 @@
     "passport-http": "^0.3.0",
     "passport-http-bearer": "^1.0.1",
     "passport-oauth2-client-password": "^0.1.2",
-    "upath": "^1.0.4",
+    "upath": "1.1.2",
     "why-is-node-running": "^2.0.2"
   },
   "devDependencies": {
