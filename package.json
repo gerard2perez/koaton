@@ -100,7 +100,7 @@
     "koaton-exporter": "^1.3.0",
     "mocha": "^5.0.4",
     "nyc": "^11.5.0",
-    "request-promise": "^4.2.1"
+    "request-promise": "4.2.4"
   },
   "config": {
     "commitizen": {
