@@ -82,7 +82,7 @@
     "why-is-node-running": "^2.0.2"
   },
   "devDependencies": {
-    "babel-plugin-istanbul": "^4.1.5",
+    "babel-plugin-istanbul": "^6.0.0",
     "babel-preset-env": "^1.5.2",
     "cheerio": "^1.0.0-rc.1",
     "chokidar": "^2.0.2",
