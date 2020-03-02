@@ -60,7 +60,7 @@
     "caminte": "git+https://github.com/gerard2p/caminte.git",
     "colors": "^1.1.2",
     "consolidate": "^0.15.0",
-    "debug": "^3.1.0",
+    "debug": "^4.0.0",
     "etag": "^1.8.1",
     "i": "^0.3.5",
     "jsurl": "^0.1.5",
