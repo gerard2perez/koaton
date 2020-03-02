@@ -56,7 +56,7 @@
   "readmeFilename": "README.md",
   "homepage": "https://github.com/gerard2p/koaton.git",
   "dependencies": {
-    "bcrypt": "^2.0.0",
+    "bcrypt": "^4.0.1",
     "caminte": "git+https://github.com/gerard2p/caminte.git",
     "colors": "^1.1.2",
     "consolidate": "^0.15.0",
